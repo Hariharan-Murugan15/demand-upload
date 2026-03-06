@@ -144,4 +144,4 @@ CHANGELOG_EMEA_FILTERS.md
 PROJECT_ANALYSIS.md
 
 # Environment file containing secrets
-# NOTE: `.env` is intentionally tracked for this project per user request
+.env
