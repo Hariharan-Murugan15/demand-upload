@@ -1,0 +1,4891 @@
+{% extends 'visualize/common.html' %} {% block content %}
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+<link
+  href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"
+/>
+
+<style>
+  /* ======== Page-level dark theme ======== */
+  body {
+    font-family: "Roboto", sans-serif;
+    background-color: #070707;
+  }
+
+  .pvd-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    /* reduced bottom padding to tighten vertical spacing between sections */
+    padding: 2px 24px 12px;
+  }
+
+  /* ======== Header row ======== */
+
+  
+  .pvd-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .pvd-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .pvd-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .pvd-controls label {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  .pvd-select {
+    background-color: #ffffffff;
+    color: #000000ff;
+    border: 1px solid #3a3f4b;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .pvd-select:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.25);
+  }
+
+  .btn-export {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .btn-export:hover {
+    background-color: #c82333;
+  }
+
+  /* ======== Demand chart limit circles======== */
+  .demand-data-limit-circle {
+    margin: 0 6px;
+    padding: 8px 14px;
+    border: 2px solid #6e8192;
+    color: #6e8192;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .demand-data-limit-circle:hover {
+    border-color: #008ffb;
+    color: #008ffb;
+  }
+
+  .demand-data-limit-circle.highlight {
+    color: #fff;
+    border-color: #fff;
+  }
+
+  .demand-modebar-btn {
+    display: inline-block;
+    padding: 6px;
+    justify-content: flex-start;
+  }
+
+  /* ======== Loading spinner ======== */
+  .pvd-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+  }
+
+  .pvd-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  /* ======== Skeleton shimmer for table placeholders ======== */
+  :root {
+    --skeleton-bg: #e9eef6;
+    --skeleton-highlight: #f5f8fc;
+  }
+
+  .skeleton-table {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 6px;
+    overflow: hidden;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skeleton-header {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    min-height: 48px;
+    box-sizing: border-box;
+    background-color: #4472c4;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .skeleton-hcell {
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    flex-shrink: 0;
+  }
+
+  .skeleton-body {
+    padding: 8px 0;
+    flex: 1;
+    background-color: #d9e2f3;
+    overflow: hidden;
+  }
+
+  .skeleton-row {
+    display: flex;
+    gap: 12px;
+    padding: 14px 12px;
+    align-items: center;
+    background-color: #d9e2f3;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+  }
+
+  .skeleton-cell {
+    display: flex;
+    align-items: center;
+  }
+
+  /* approximate column widths (flex-basis percentages) */
+  .s-cell-id {
+    flex: 0 0 11.7%;
+    min-width: 80px;
+  }
+  .s-cell-name {
+    flex: 0 0 20.8%;
+  }
+  .s-cell-account {
+    flex: 0 0 16.6%;
+  }
+  .s-cell-vertical {
+    flex: 0 0 9.2%;
+  }
+  .s-cell-stage {
+    flex: 0 0 11.7%;
+  }
+  .s-cell-tcv {
+    flex: 0 0 10.8%;
+  }
+  .s-cell-close {
+    flex: 0 0 10%;
+  }
+  .s-cell-total {
+    flex: 0 0 9.2%;
+  }
+
+  .skeleton-bar {
+    height: 12px;
+    width: 100%;
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      var(--skeleton-bg) 25%,
+      var(--skeleton-highlight) 50%,
+      var(--skeleton-bg) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* smaller bar widths for narrow columns */
+  .s-cell-id .skeleton-bar {
+    width: 60%;
+  }
+  .s-cell-tcv .skeleton-bar {
+    width: 60%;
+  }
+  .s-cell-close .skeleton-bar {
+    width: 70%;
+  }
+  .s-cell-total .skeleton-bar {
+    width: 50%;
+  }
+  .s-cell-vertical .skeleton-bar {
+    width: 50%;
+  }
+  .s-cell-stage .skeleton-bar {
+    width: 70%;
+  }
+  .s-cell-account .skeleton-bar {
+    width: 80%;
+  }
+  .s-cell-name .skeleton-bar {
+    width: 90%;
+  }
+
+  /* responsive: reduce padding on small screens */
+  @media (max-width: 900px) {
+    .skeleton-row {
+      padding: 10px 8px;
+    }
+  }
+
+  /* ======== Compact row/header sizing — matching ag-theme-balham look ======== */
+  #pvdGrid.ag-theme-alpine,
+  #qpzdGrid.ag-theme-alpine {
+    --ag-row-height: 28px;
+    --ag-header-height: 32px;
+    --ag-font-size: 11px;
+    --ag-cell-horizontal-padding: 4px;
+  }
+
+  /* ======== AG-Grid dark overrides matching other pages ======== */
+  #pvdGrid .ag-header,
+  #pvdGrid .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #pvdGrid .ag-header-cell {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+  }
+
+  #pvdGrid .ag-header-cell-label,
+  #pvdGrid .ag-header-cell-text {
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  #pvdGrid .ag-header-cell-resize {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    opacity: 0.4;
+  }
+
+  #pvdGrid .ag-header-cell-resize:hover {
+    opacity: 1;
+  }
+
+  /* Move the ag-Grid header menu (three-dash sandwich) to the right
+     so it appears after the column name for both grids. Keep it
+     inside the header cell but visually to the right of the label. */
+  #pvdGrid .ag-header-cell .ag-header-cell-menu-button,
+  #qpzdGrid .ag-header-cell .ag-header-cell-menu-button {
+    position: absolute !important;
+    right: 8px !important; /* sits left of the resize handle */
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+    order: 2 !important;
+  }
+
+  /* Ensure header label has enough right padding so the menu doesn't overlap text */
+  #pvdGrid .ag-header-cell-label,
+  #qpzdGrid .ag-header-cell-label {
+    padding-right: 28px !important;
+  }
+
+  /* Keep the custom expand/collapse buttons visible when header is hovered.
+     The header hover rule sets text color globally with !important, so we
+     explicitly style these buttons (identified by their title attribute)
+     to have a high-contrast dark background and white icon. */
+  #pvdGrid .ag-header-cell button[title="Show tower columns"],
+  #pvdGrid .ag-header-cell button[title="Hide tower columns"],
+  #qpzdGrid .ag-header-cell button[title="Show tower columns"],
+  #qpzdGrid .ag-header-cell button[title="Hide tower columns"] {
+    background: #0b3d91 !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 0 6px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    line-height: 18px !important;
+    z-index: 3 !important;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15) !important;
+    padding-bottom: 3px !important;
+  }
+
+  /* Slight hover effect for the buttons themselves */
+  #pvdGrid .ag-header-cell button[title="Show tower columns"]:hover,
+  #pvdGrid .ag-header-cell button[title="Hide tower columns"]:hover,
+  #qpzdGrid .ag-header-cell button[title="Show tower columns"]:hover,
+  #qpzdGrid .ag-header-cell button[title="Hide tower columns"]:hover {
+    background: #083169 !important;
+  }
+
+  #pvdGrid .ag-row {
+    border-bottom: 1.2px solid rgba(255, 255, 255, 0.24) !important;
+    box-shadow:
+      inset 0 -1.5px 0 rgba(255, 255, 255, 0.06),
+      inset 0 1.4px 0 rgba(0, 0, 0, 0.02);
+  }
+
+  #pvdGrid .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #pvdGrid .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+
+  #pvdGrid .ag-row:hover .ag-cell {
+    background-color: #d9e2f3 !important;
+    color: #000000 !important;
+  }
+
+  /* Also apply the same hover to header cells so columns show the same hover color when hovering */
+  #pvdGrid .ag-header-cell:hover,
+  #pvdGrid .ag-header-cell .ag-header-cell-label:hover {
+    background-color: #d9e2f3 !important;
+    color: #000000 !important;
+  }
+
+  #pvdGrid .ag-row:hover {
+    cursor: pointer;
+  }
+
+  #pvdGrid .ag-root .ag-cell,
+  #pvdGrid .ag-root .ag-header-cell {
+    font-family: "Roboto", sans-serif;
+    font-size: 11px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    border-right: none;
+  }
+
+  /* Prevent column content from overflowing and overlapping adjacent columns
+     — clip with ellipsis and allow flex children to shrink */
+  #pvdGrid .ag-root .ag-cell,
+  #pvdGrid .ag-root .ag-header-cell,
+  #pvdGrid .ag-root .ag-header-cell .ag-header-cell-label,
+  #pvdGrid .ag-root .ag-cell .ag-cell-value {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+  }
+
+  #pvdGrid .ag-cell {
+    color: #000000;
+    line-height: normal;
+    padding: 0px !important;
+  }
+
+  /* Opportunity ID column: left-align with leading space */
+  #pvdGrid .ag-cell[col-id="Opportunity ID"],
+  #qpzdGrid .ag-cell[col-id="Opportunity ID"] {
+    padding-left: 14px !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Allow text selection */
+  #pvdGrid .ag-root,
+  #pvdGrid .ag-root .ag-cell,
+  #pvdGrid .ag-root .ag-header-cell {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+  
+  #pvdGrid .ag-header-cell,
+  #pvdGrid .ag-header-cell-label,
+  #pvdGrid .ag-cell {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* ======== Duplicate PVD grid styles for Qualified Pipeline grid ======== */
+  #qpzdGrid .ag-header,
+  #qpzdGrid .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #qpzdGrid .ag-header-cell {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+  }
+
+  #qpzdGrid .ag-header-cell-label,
+  #qpzdGrid .ag-header-cell-text {
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  #qpzdGrid .ag-header-cell-resize {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    opacity: 0.4;
+  }
+
+  #qpzdGrid .ag-header-cell-resize:hover {
+    opacity: 1;
+  }
+
+  #qpzdGrid .ag-row {
+    border-bottom: 1.2px solid rgba(255, 255, 255, 0.24) !important;
+    box-shadow:
+      inset 0 -1.5px 0 rgba(255, 255, 255, 0.06),
+      inset 0 1.4px 0 rgba(0, 0, 0, 0.02);
+  }
+
+  #qpzdGrid .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #qpzdGrid .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+
+  #qpzdGrid .ag-row:hover .ag-cell {
+    background-color: #d9e2f3 !important;
+    color: #000000 !important;
+  }
+
+  /* Also apply the same hover to header cells so columns show the same hover color when hovering */
+  #qpzdGrid .ag-header-cell:hover,
+  #qpzdGrid .ag-header-cell .ag-header-cell-label:hover {
+    background-color: #d9e2f3 !important;
+    color: #000000 !important;
+  }
+
+  #qpzdGrid .ag-row:hover {
+    cursor: pointer;
+  }
+
+  #qpzdGrid .ag-root .ag-cell,
+  #qpzdGrid .ag-root .ag-header-cell {
+    font-family: "Roboto", sans-serif;
+    font-size: 11px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    border-right: none;
+  }
+
+  /* Prevent column content from overflowing and overlapping adjacent columns
+     for Qualified Pipeline grid */
+  #qpzdGrid .ag-root .ag-cell,
+  #qpzdGrid .ag-root .ag-header-cell,
+  #qpzdGrid .ag-root .ag-header-cell .ag-header-cell-label,
+  #qpzdGrid .ag-root .ag-cell .ag-cell-value {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+  }
+
+  #qpzdGrid .ag-cell {
+    color: #000000;
+    line-height: normal;
+    padding: 0px !important;
+  }
+
+  /* Allow text selection */
+  #qpzdGrid .ag-root,
+  #qpzdGrid .ag-root .ag-cell,
+  #qpzdGrid .ag-root .ag-header-cell {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+  .js-plotly-plot .plotly,
+  .js-plotly-plot .plotly div {
+    direction: ltr;
+    font-family: "Open Sans", verdana, arial, sans-serif;
+    margin: 0px;
+    padding: 0px;
+    gap: 6px;
+    font-size: 12px !important;
+  }
+  /* ======== Quick Filters (Top) – checkbox design ======== */
+  .pvd-top-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: flex-start;
+    padding: 3px 100px 3px 100px;
+    margin: 10px 0 6px;
+    background-color: #070707;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+  .pvd-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0px;
+    align-items: center;
+  }
+  .pvd-filter-label {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+    margin-right: 2px;
+  }
+  .pvd-filter-labell {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+    margin-right: 2px;
+    padding-left: 15px;
+  }
+  .pvd-chk {
+    width: 126px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 2px;
+    border: 1px solid #000000ff;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0);
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  {% comment %} .pvd-chk:hover {
+    border-color: #4a8fd955;
+  } {% endcomment %}
+  .pvd-chk input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #4a90d9;
+    cursor: pointer;
+  }
+  
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91; /* Cognizant blue-ish */
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+
+  /* Back-to-top floating button (reuses apply button color) */
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none; /* shown when scrolled down */
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+
+  
+.pvd-dd {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+/* Toggle button */
+.pvd-dd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #111318;
+  color: #fff;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pvd-dd-toggle:hover { border-color: #0e6bcde3; }
+.pvd-dd-summary { color: #0f54c7; font-weight: 700; }
+.pvd-dd-caret { font-size: 12px; opacity: 0.8; }
+
+/* Panel */
+.pvd-dd-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 380px;
+  max-width: 420px;
+  max-height: 370px;
+  overflow: auto;
+  background: #0b0c0f;
+  border: 1px solid #2f3542;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  padding: 8px 10px;
+  z-index: 20;
+  display: none; /* default hidden */
+}
+
+/* Actions row inside panel */
+.pvd-dd-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px 6px;
+  border-bottom: 1px dashed #2f3542;
+  margin-bottom: 6px;
+}
+.pvd-dd-link {
+  background: transparent;
+  border: none;
+  color: #9cc8ff;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+.pvd-dd-link:hover { color: #cfe4ff; text-decoration: underline; }
+.pvd-dd-sep { color: #3a3f4b; }
+
+/* Checkbox list area */
+.pvd-dd-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two columns by default */
+  gap: 6px 10px;
+}
+@media (max-width: 900px) {
+  .pvd-dd-list { grid-template-columns: 1fr; }
+}
+
+/* Reuse existing chip styles for each row */
+.pvd-dd-list .pvd-chk {
+  width: auto;
+  border-radius: 8px;
+  border: 1px solid #000;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.02);
+}
+.pvd-dd-list .pvd-chk:hover {
+  border-color: #0e6bcde3;
+}
+</style>
+<body>
+  <div>
+  <!-- Quick Filters (Top) -->
+
+<div class="pvd-top-filters" role="group" aria-label="Quick filters">
+
+  <!-- Sales Stage -->
+  <div class="pvd-dd" id="ddSalesStage">
+    <button class="pvd-dd-toggle" type="button" aria-expanded="false" aria-controls="panelSalesStage">
+      <span class="pvd-dd-title">Sales Stage:</span>
+      <span class="pvd-dd-summary" id="sumSalesStage">All</span>
+      <i class="fa fa-chevron-down pvd-dd-caret" aria-hidden="true"></i>
+    </button>
+    <div class="pvd-dd-panel" id="panelSalesStage" role="dialog" aria-labelledby="sumSalesStage" aria-modal="false">
+      <div class="pvd-dd-actions">
+        <button type="button" class="pvd-dd-link" data-dd-action="select-all" data-for="salesStage">Select all</button>
+        <span class="pvd-dd-sep">|</span>
+        <button type="button" class="pvd-dd-link" data-dd-action="reset" data-for="salesStage">Reset</button>
+      </div>
+      <div class="pvd-dd-list" id="listSalesStage"><!-- .pvd-top-ss checkboxes injected here --></div>
+    </div>
+  </div>
+
+  <!-- Deal Size -->
+  <div class="pvd-dd" id="ddDealSize">
+    <button class="pvd-dd-toggle" type="button" aria-expanded="false" aria-controls="panelDealSize">
+      <span class="pvd-dd-title">Deal Size:</span>
+      <span class="pvd-dd-summary" id="sumDealSize">All</span>
+      <i class="fa fa-chevron-down pvd-dd-caret" aria-hidden="true"></i>
+    </button>
+    <div class="pvd-dd-panel" id="panelDealSize" role="dialog" aria-labelledby="sumDealSize" aria-modal="false">
+      <div class="pvd-dd-actions">
+        <button type="button" class="pvd-dd-link" data-dd-action="select-all" data-for="dealSize">Select all</button>
+        <span class="pvd-dd-sep">|</span>
+        <button type="button" class="pvd-dd-link" data-dd-action="reset" data-for="dealSize">Reset</button>
+      </div>
+      <div class="pvd-dd-list" id="listDealSize"><!-- .pvd-top-ds checkboxes injected here --></div>
+    </div>
+  </div>
+
+  <!-- Service Line (Tower) -->
+  <div class="pvd-dd" id="ddTowers">
+    <button class="pvd-dd-toggle" type="button" aria-expanded="false" aria-controls="panelTowers">
+      <span class="pvd-dd-title">Service Line:</span>
+      <span class="pvd-dd-summary" id="sumTowers">All</span>
+      <i class="fa fa-chevron-down pvd-dd-caret" aria-hidden="true"></i>
+    </button>
+    <div class="pvd-dd-panel" id="panelTowers" role="dialog" aria-labelledby="sumTowers" aria-modal="false">
+      <div class="pvd-dd-actions">
+        <button type="button" class="pvd-dd-link" data-dd-action="select-all" data-for="towers">Select all</button>
+        <span class="pvd-dd-sep">|</span>
+        <button type="button" class="pvd-dd-link" data-dd-action="reset" data-for="towers">Reset</button>
+      </div>
+      <div class="pvd-dd-list" id="listTowers"><!-- .pvd-top-tower checkboxes injected here --></div>
+    </div>
+  </div>
+
+  <!-- SO Line Status -->
+  <div class="pvd-dd" id="ddSOStatus">
+    <button class="pvd-dd-toggle" type="button" aria-expanded="false" aria-controls="panelSOStatus">
+      <span class="pvd-dd-title">SO Line Status:</span>
+      <span class="pvd-dd-summary" id="sumSOStatus">OPEN</span>
+      <i class="fa fa-chevron-down pvd-dd-caret" aria-hidden="true"></i>
+    </button>
+    <div class="pvd-dd-panel" id="panelSOStatus" role="dialog" aria-labelledby="sumSOStatus" aria-modal="false">
+      <div class="pvd-dd-actions">
+        <button type="button" class="pvd-dd-link" data-dd-action="select-all" data-for="soStatus">Select all</button>
+        <span class="pvd-dd-sep">|</span>
+        <button type="button" class="pvd-dd-link" data-dd-action="reset" data-for="soStatus">Reset</button>
+      </div>
+      <div class="pvd-dd-list" id="listSOStatus"><!-- .pvd-top-so checkboxes injected here --></div>
+    </div>
+  </div>
+
+  <!-- Apply button lives in the same bar -->
+  <div class="pvd-filter-group" style="margin-left:auto">
+    <button id="applyTopFilters" class="btn-apply" type="button">APPLY FILTERS</button>
+  </div>
+</div>
+
+<div>
+<div class="container-fluid" style="background-color: #070707">
+  <div class="pvd-container">
+    <!-- ======== PVD Summary Stats Banner (not linked to row-limit dropdown) ======== -->
+    <div id="pvdStatsBanner" style="background:transparent;color:#fff;padding:5px 0px;font-size:14px;font-weight:700;display:flex;flex-wrap:wrap;gap:24px;align-items:center;letter-spacing:0.3px;">
+      <span>Opportunity Count (#) :&nbsp;<span id="pvdStatOppCount" style="font-weight:900">—</span></span>
+      <span>Total TCV($m) :&nbsp;$&nbsp;<span id="pvdStatTCV" style="font-weight:900">—</span></span>
+      <span>Total Demands :&nbsp;<span id="pvdStatDemands" style="font-weight:900">—</span></span>
+    </div>
+
+    <!-- Header -->
+    <div class="pvd-header">
+      <h3 class="pvd-title">Pipeline vs Demand by SL</h3>
+      <div class="pvd-controls">
+        <label for="pvdLimitSelect">Rows:</label>
+        <select id="pvdLimitSelect" class="pvd-select" onchange="loadPVDData()">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="100">100</option>
+          <option value="300">300</option>
+          <option value="all">All</option>
+        </select>
+        <button class="btn-export" 
+        {% comment %} onclick="exportPVDToExcel()" {% endcomment %}
+        >
+          EXPORT TO EXCEL
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading spinner (shown until data arrives) -->
+    <div id="pvdLoading" class="pvd-loading" style="display: none">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 fw-bold" style="color: #ccc">
+        Loading Pipeline vs Demand data&hellip;
+      </p>
+    </div>
+
+    <!-- Skeleton shimmer (shown while table data loads) -->
+    <div
+      id="pvdSkeleton"
+      class="skeleton-table"
+      style="display: none; height: 620px"
+    >
+      <div class="skeleton-header">
+        <div class="skeleton-hcell" style="flex: 0 0 11.7%; width: 80px"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 20.8%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 16.6%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 9.2%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 11.7%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 10.8%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 10%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 9.2%"></div>
+      </div>
+      <div class="skeleton-body" role="status" aria-hidden="false">
+        <!-- 20 placeholder rows -->
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AG-Grid container (hidden until data arrives) -->
+    <div
+      id="pvdGrid"
+      class="ag-theme-alpine"
+      style="height: 600px; width: 100%; display: none"
+    ></div>
+
+  </div>
+</div>
+<div class="container-fluid" style="background-color: #070707; margin-top: 8px">
+  <div class="pvd-container">
+    <div class="pvd-header">
+      <h3 class="pvd-title">Qualified Pipeline with Zero Demands</h3>
+      <div class="pvd-controls">
+        <label for="qpzdLimitSelect">Rows:</label>
+        <select
+          id="qpzdLimitSelect"
+          class="pvd-select"
+          onchange="loadQPZDData()"
+        >
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="100">100</option>
+          <option value="300">300</option>
+          <option value="all">All</option>
+        </select>
+        <button class="btn-export" 
+        {% comment %} onclick="exportQPZDToExcel()" {% endcomment %}
+        >
+          EXPORT TO EXCEL
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div id="qpzdLoading" class="pvd-loading" style="display: none">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 fw-bold" style="color: #ccc">
+        Loading Qualified Pipeline (Zero Demands)…
+      </p>
+    </div>
+
+    <!-- Skeleton shimmer for qualified-pipeline table -->
+    <div
+      id="qpzdSkeleton"
+      class="skeleton-table"
+      style="display: none; height: 600px"
+    >
+      <div class="skeleton-header">
+        <div class="skeleton-hcell" style="flex: 0 0 11.7%; width: 80px"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 20.8%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 16.6%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 9.2%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 11.7%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 10.8%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 10%"></div>
+        <div class="skeleton-hcell" style="flex: 0 0 9.2%"></div>
+      </div>
+      <div class="skeleton-body">
+        <!-- 20 placeholder rows -->
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-cell s-cell-id">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-name">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-account">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-vertical">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-stage">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-tcv">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-close">
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-cell s-cell-total">
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AG-Grid container -->
+    <div
+      id="qpzdGrid"
+      class="ag-theme-alpine"
+      style="height: 600px; width: 100%; display: none"
+    ></div>
+  </div>
+</div>
+
+<!-- ======== Demands by Closed Date Chart (moved here so order is: PVD -> QPZD -> Chart) ======== -->
+<div class="pvd-container" style="margin-top: 18px; max-width: 1800px">
+  <!-- Loading state (shown until chart renders) -->
+  <div id="demandChartLoading" class="pvd-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 fw-bold" style="color: #ccc">Loading chart&hellip;</p>
+  </div>
+
+  <!-- Plotly chart container (limit buttons injected into modebar after render) -->
+  <div
+    id="demandsByCloseDateChart"
+    style="width: 100%; height: 700px; display: none"
+  ></div>
+</div>
+
+<!-- ======== Demands by Requirement Start Date Chart ======== -->
+<div class="pvd-container" style="margin-top: 18px; max-width: 1800px">
+  <!-- Loading state -->
+  <div id="reqStartDateChartLoading" class="pvd-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 fw-bold" style="color: #ccc">Loading chart&hellip;</p>
+  </div>
+
+  <!-- Plotly chart container -->
+  <div
+    id="demandsByReqStartDateChart"
+    style="width: 100%; height: 750px; display: none"
+  ></div>
+</div>
+
+<!-- ======== Demands by Account Name Chart ======== -->
+<div class="pvd-container" style="margin-top: 18px; max-width: 1800px">
+  <!-- Loading state -->
+  <div id="accountChartLoading" class="pvd-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 fw-bold" style="color: #ccc">Loading chart&hellip;</p>
+  </div>
+
+  <!-- Plotly chart container -->
+  <div
+    id="demandsByAccountNameChart"
+    style="width: 100%; height: 750px; display: none"
+  ></div>
+</div>
+
+<!-- ======== Sunburst Demand Distribution Chart ======== -->
+<div class="pvd-container" style="margin-top: 18px; max-width: 1800px">
+  <!-- Loading state -->
+  <div id="sunburstChartLoading" class="pvd-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 fw-bold" style="color: #ccc">Loading sunburst chart&hellip;</p>
+  </div>
+
+  <!-- Chart wrapper with header -->
+  <div id="sunburstChartWrapper" style="display: none; background: #000000; border-radius: 14px; padding: 18px 18px 10px; border: none; box-shadow: none;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+      <h3 style="color: #ffffff; margin: 0; font-weight: 700; letter-spacing: 0.3px;">
+        Summary view
+      </h3>
+      <button id="sunburstResetBtn" onclick="resetSunburstToRoot()" style="display:none; background:#0b3d91; color:#fff; border:none; border-radius:6px; padding:5px 14px; font-size:12px; font-weight:600; cursor:pointer;">
+        <i class="fas fa-undo" style="margin-right:4px;"></i> Reset to Root
+      </button>
+    </div>
+    <!-- Breadcrumb trail -->
+    <div id="sunburstBreadcrumb" style="color: #8a8f9a; font-size: 12px; margin-bottom: 6px;"></div>
+    <!-- Plotly sunburst container -->
+    <div id="sunburstChart" style="width: 100%; height: 800px;"></div>
+  </div>
+</div>
+  <!-- Back to top button -->
+  <button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+</body>
+<script>
+  // ========== Tower column list (order matches the SQL query) ==========
+  var towerCols = JSON.parse('{{ towers_json|escapejs }}');
+  /*
+  [
+    "ADM",
+    "AIA",
+    "Business Support",
+    "CIS",
+    "Cognizant Moment",
+    "Consulting",
+    "Corporate",
+    "Cybersecurity",
+    "Digital Engineering",
+    "EPS",
+    "Industry Solutions Group",
+    "IOA",
+    "IoT",
+    "MDU",
+    "Others",
+    "QEA",
+    "ServiceNow Business Group",
+  ];
+*/
+
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      // show when scrolled down 400px from top or near bottom
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Smooth scroll to top when clicked
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+
+  // ========== Global state for demand chart ==========
+  var chartIdxLabel = null; // stores the idx_label used when chart was last loaded
+
+  // 17 distinct colours (one per tower, ordered by sorted rank)
+  var demandChartColors = [
+    "#4fc3f7",
+    "#ef5350",
+    "#66bb6a",
+    "#ffa726",
+    "#ab47bc",
+    "#26c6da",
+    "#d4e157",
+    "#ec407a",
+    "#26a69a",
+    "#ff7043",
+    "#5c6bc0",
+    "#8d6e63",
+    "#78909c",
+    "#42a5f5",
+    "#9ccc65",
+    "#ffca28",
+    "#ff80ab",
+  ];
+
+  // ========== Tooltip renderer ==========
+  function pvdTooltip(params) {
+    // Prefer formatted value (valueFormatted) when available so formatters
+    // like the Close Date valueFormatter are shown in the tooltip/cell.
+    var v = "";
+    if (
+      params &&
+      params.valueFormatted !== undefined &&
+      params.valueFormatted !== null
+    ) {
+      v = params.valueFormatted;
+    } else if (params && params.value !== undefined && params.value !== null) {
+      v = params.value;
+    }
+    return '<span title="' + v + '">' + v + "</span>";
+  }
+
+  // ========== Format currency for display ==========
+  function fmtTCV(val) {
+    if (val === undefined || val === null || val === "") return "$0.00";
+    var n = parseFloat(val);
+    if (isNaN(n)) return "$0.00";
+    // Already in raw dollars — show in millions with 2 decimals
+    var m = n / 1000000;
+    return (
+      "$" +
+      m.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) +
+      " M"
+    );
+  }
+
+  function ExpandTowerHeader() {}
+ 
+ExpandTowerHeader.prototype.init = function (params) {
+  this.params = params;
+ 
+  this.eGui = document.createElement("div");
+  this.eGui.style.cssText =
+    "display:flex;align-items:center;justify-content:center;gap:6px;width:100%;position:relative;";
+ 
+  // clickable label (triggers sort)
+  this.eLabel = document.createElement("span");
+  this.eLabel.textContent = "Demand Total";
+  this.eLabel.style.cssText = "cursor:pointer;user-select:none;";
+ 
+  // simple sort indicator
+  this.eSort = document.createElement("span");
+  this.eSort.style.cssText = "font-size:12px;opacity:0.9;min-width:12px;text-align:left;";
+ 
+  // expand/collapse toggle button
+  var btn = document.createElement("button");
+  btn.innerHTML = towersExpanded ? "‹" : "›";
+  btn.title = towersExpanded ? "Hide tower columns" : "Show tower columns";
+  btn.style.cssText =
+    "background:rgba(255,255,255,0.28);border:none;color:#fff;border-radius:4px;padding:0 6px;cursor:pointer;font-size:18px;font-weight:900;line-height:20px;flex-shrink:0;";
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    var expanding = !towersExpanded;
+    toggleTowerCols(expanding);
+    btn.innerHTML = expanding ? "‹" : "›";
+    btn.title = expanding ? "Hide tower columns" : "Show tower columns";
+  });
+ 
+  // sort handling (click label area)
+  const onSortClick = (e) => {
+    // shiftKey enables multi-sort like AG-Grid default
+    params.progressSort(e.shiftKey);
+  };
+ 
+  this.eLabel.addEventListener("click", onSortClick);
+  this.eSort.addEventListener("click", onSortClick);
+ 
+  this.eGui.appendChild(this.eLabel);
+  this.eGui.appendChild(this.eSort);
+  this.eGui.appendChild(btn);
+ 
+  this.onSortChanged = this.onSortChanged.bind(this);
+  params.column.addEventListener("sortChanged", this.onSortChanged);
+  this.onSortChanged();
+};
+ 
+ExpandTowerHeader.prototype.onSortChanged = function () {
+  const sort = this.params.column.getSort(); // 'asc' | 'desc' | null
+  this.eSort.textContent = sort === "asc" ? "🡡" : sort === "desc" ? "🡣" : "";
+};
+ 
+ExpandTowerHeader.prototype.getGui = function () {
+  return this.eGui;
+};
+ 
+ExpandTowerHeader.prototype.destroy = function () {
+  if (this.params && this.params.column && this.onSortChanged) {
+    this.params.column.removeEventListener("sortChanged", this.onSortChanged);
+  }
+};
+ 
+ 
+  // ========== Custom header: first tower col — ‹ button collapses tower columns ==========
+
+function CollapseTowerHeader() {}
+
+CollapseTowerHeader.prototype.init = function (params) {
+  this.params = params;
+
+  this.eGui = document.createElement("div");
+  this.eGui.style.cssText =
+    "display:flex;align-items:center;justify-content:flex-start;gap:6px;width:100%;position:relative;overflow:hidden;";
+
+  // collapse button
+  this.btn = document.createElement("button");
+  this.btn.innerHTML = "‹";
+  this.btn.title = "Hide tower columns";
+  this.btn.style.cssText =
+    "background:rgba(255,255,255,0.28);border:none;color:#fff;border-radius:4px;padding:0 6px;cursor:pointer;font-size:18px;font-weight:900;line-height:20px;flex-shrink:0;";
+  this.btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleTowerCols(false);
+  });
+
+  // label (sortable)
+  this.eLabel = document.createElement("span");
+  this.eLabel.textContent = params.displayName;
+  this.eLabel.style.cssText = "cursor:pointer;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 0;";
+
+  // sort indicator
+  this.eSort = document.createElement("span");
+  this.eSort.style.cssText = "font-size:12px;opacity:0.9;min-width:12px;text-align:left;";
+
+  const onSortClick = (e) => params.progressSort(e.shiftKey);
+  this.eLabel.addEventListener("click", onSortClick);
+  this.eSort.addEventListener("click", onSortClick);
+
+  this.eGui.appendChild(this.btn);
+  this.eGui.appendChild(this.eLabel);
+  this.eGui.appendChild(this.eSort);
+
+  // React to sort state
+  this.onSortChanged = this.onSortChanged.bind(this);
+  params.column.addEventListener("sortChanged", this.onSortChanged);
+  this.onSortChanged();
+
+  // Determine if this column is the first *visible* tower and update button visibility
+  this.refreshButtonVisibility = this.refreshButtonVisibility.bind(this);
+
+  // Listen to column visibility/resize events to keep it accurate
+  const columnApi = params.columnApi || (params.api && params.api.getColumnApi && params.api.getColumnApi());
+  this.columnApi = columnApi || params.api; // fallback
+
+  // AG Grid dispatches events on params.api; subscribe and filter
+  this.onColumnEvent = this.refreshButtonVisibility;
+  params.api.addEventListener('columnVisible', this.onColumnEvent);
+  params.api.addEventListener('columnPinned', this.onColumnEvent);
+  params.api.addEventListener('columnMoved', this.onColumnEvent);
+  params.api.addEventListener('columnResized', this.onColumnEvent);
+
+  // Initial evaluation
+  this.refreshButtonVisibility();
+};
+
+ 
+CollapseTowerHeader.prototype.onSortChanged = function () {
+  const sort = this.params.column.getSort();
+  this.eSort.textContent = sort === "asc" ? "🡡" : sort === "desc" ? "🡣" : "";
+};
+ 
+
+CollapseTowerHeader.prototype.refreshButtonVisibility = function () {
+  // Find the first *visible* tower column among towerCols
+  const displayed = (this.columnApi.getDisplayedCenterColumns
+    ? this.columnApi.getDisplayedCenterColumns()
+    : this.params.api.getDisplayedCenterColumns()
+  ) || [];
+
+  // Extract column ids of displayed columns
+  const displayedIds = displayed.map(c => (typeof c === "string" ? c : c.getColId()));
+
+  // Which tower is first visible?
+  let firstVisibleTowerId = null;
+  for (const t of towerCols) {
+    if (displayedIds.includes(t)) {
+      firstVisibleTowerId = t;
+      break;
+    }
+  }
+
+  const thisId = this.params.column.getColId();
+  const isFirstVisibleTower = (thisId === firstVisibleTowerId);
+
+  // Show button only for the left-most visible tower
+  this.btn.style.display = isFirstVisibleTower ? "inline-block" : "none";
+};
+
+CollapseTowerHeader.prototype.getGui = function () { return this.eGui; };
+
+CollapseTowerHeader.prototype.destroy = function () {
+  if (this.params && this.params.column && this.onSortChanged) {
+    this.params.column.removeEventListener("sortChanged", this.onSortChanged);
+  }
+  if (this.onColumnEvent && this.params && this.params.api) {
+    this.params.api.removeEventListener('columnVisible', this.onColumnEvent);
+    this.params.api.removeEventListener('columnPinned', this.onColumnEvent);
+    this.params.api.removeEventListener('columnMoved', this.onColumnEvent);
+    this.params.api.removeEventListener('columnResized', this.onColumnEvent);
+  }
+};
+
+ 
+  // ========== Smooth width animation for tower columns ==========
+  function animateTowerColWidths(fromW, toW, duration, onDone) {
+    if (!pvdColumnApi) return;
+    var start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var t = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p; // ease-in-out
+      var w = Math.max(1, Math.round(fromW + (toW - fromW) * t));
+      pvdColumnApi.setColumnWidths(
+        towerCols.map(function (c) {
+          return { key: c, newWidth: w };
+        }),
+      );
+      if (p < 1) {
+        requestAnimationFrame(step);
+      } else if (onDone) {
+        onDone();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+    function animateTowerColWidthsFor(cols, fromW, toW, duration, onDone) {
+    if (!pvdColumnApi || !Array.isArray(cols) || cols.length === 0) return;
+    var start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var t = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      var w = Math.max(1, Math.round(fromW + (toW - fromW) * t));
+      pvdColumnApi.setColumnWidths(cols.map(function (c) {
+        return { key: c, newWidth: w };
+      }));
+      if (p < 1) requestAnimationFrame(step);
+      else if (onDone) onDone();
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ========== Toggle tower columns — expand or collapse with animation ==========
+  function toggleTowerCols(expand) {
+    if (!pvdColumnApi) return;
+    var active = getSelectedTowers(); // only show selected SLs during expand
+
+    if (expand) {
+      // Hide all tower columns, then show only selected at a safe narrow width and animate to expanded
+      pvdColumnApi.setColumnsVisible(towerCols, false);
+      pvdColumnApi.setColumnsVisible(active, true);
+      pvdColumnApi.setColumnWidths(active.map(function (c) {
+        return { key: c, newWidth: TOWER_COLLAPSE_ANIM_WIDTH };
+      }));
+      setTimeout(function () {
+        animateTowerColWidthsFor(active, TOWER_COLLAPSE_ANIM_WIDTH, TOWER_EXPANDED_WIDTH, 260);
+      }, 16);
+    } else {
+      // Collapse: animate visible selected columns to narrow width, then hide all
+      animateTowerColWidthsFor(active, TOWER_EXPANDED_WIDTH, TOWER_COLLAPSE_ANIM_WIDTH, 200, function () {
+        // (Optional) briefly set to 1px for a crisp hide transition that users won't catch
+        pvdColumnApi.setColumnWidths(active.map(function (c) {
+          return { key: c, newWidth: TOWER_HIDDEN_WIDTH };
+        }));
+        pvdColumnApi.setColumnsVisible(towerCols, false);
+      });
+    }
+  }
+
+  
+var towersExpanded = false;
+
+// Show/hide tower columns based on current selection and expanded state
+function reconcileTowerColumnVisibility() {
+  if (!pvdColumnApi) return;
+  var selected = getSelectedTowers(); // existing helper returns full list when All
+  var selectedSet = new Set(selected);
+
+  // Hide all tower columns first
+  pvdColumnApi.setColumnsVisible(towerCols, false);
+
+  if (towersExpanded) {
+    // Show only selected towers
+    pvdColumnApi.setColumnsVisible(selected, true);
+
+    // Animate width for what’s visible now
+    animateTowerColWidthsFor(selected, 1, 100, 220);
+  }
+}
+
+// Override/extend toggle to update expanded flag + visibility
+var _origToggleTowerCols = toggleTowerCols;
+toggleTowerCols = function(expand) {
+  towersExpanded = !!expand;
+  _origToggleTowerCols(expand);
+};
+
+// Ensure render swaps (first draw or table refresh) respect current visibility
+function afterGridRenderedApplyTowers() {
+  reconcileTowerColumnVisibility();
+}
+
+
+var TOWER_EXPANDED_WIDTH = 100;
+var TOWER_COLLAPSE_ANIM_WIDTH = 60; // a safe narrow width during collapse animation
+var TOWER_HIDDEN_WIDTH = 1;   
+
+  // ========== Build AG-Grid column definitions ==========
+  function buildColumnDefs() {
+    var cols = [
+      {
+        headerName: "Opportunity ID",
+        field: "Opportunity ID",
+        width: 115,
+        pinned: "left",
+        // UPDATED: Custom Renderer to link to popup
+        cellRenderer: function(params) {
+            if (params.value) {
+                // Return a clickable link calling the global show_winzone function
+                return `<a href="javascript:void(0);" onclick="show_winzone('${params.value}')" style="color: #0b3d91; text-decoration: underline; font-weight: bold; cursor: pointer;">${params.value}</a>`;
+            }
+            return "";
+        }
+      },
+      {
+        headerName: "Opportunity Name",
+        field: "Opportunity Name",
+        width: 300,
+        cellRenderer: pvdTooltip,
+        pinned: "left"
+      },
+      {
+        headerName: "Account Name",
+        field: "Account Name",
+        width: 210,
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Vertical",
+        field: "Vertical",
+        width: 100,
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Sales Stage",
+        field: "Sales Stage",
+        width: 130,
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Net TCV ($m)",
+        field: "Gross TCV $",
+        width: 110,
+        type: "numericColumn",
+
+        valueFormatter: function (p) {
+          if (!p || p.value === null || p.value === undefined || p.value === "")
+            return "0.00";
+          var n = parseFloat(p.value);
+          if (isNaN(n)) return "0.00";
+          var m = n / 1000000;
+          return m.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        },
+        comparator: function (a, b) {
+          var na = parseFloat(String(a).replace(/,/g, "")) || 0;
+          var nb = parseFloat(String(b).replace(/,/g, "")) || 0;
+          return na - nb;
+        },
+      },
+      {
+        headerName: "Close Date",
+        field: "CloseDate",
+        width: 100,
+        valueFormatter: function (p) {
+          if (!p || p.value === null || p.value === undefined || p.value === "")
+            return "";
+          var s = String(p.value).trim();
+          var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (m) {
+            var mm = String(m[1]).padStart(2, "0");
+            var dd = String(m[2]).padStart(2, "0");
+            var yyyy = m[3];
+            return mm + "/" + dd + "/" + yyyy;
+          }
+          var d = new Date(s);
+          if (!isNaN(d.getTime())) {
+            var mm2 = String(d.getMonth() + 1).padStart(2, "0");
+            var dd2 = String(d.getDate()).padStart(2, "0");
+            var yyyy2 = d.getFullYear();
+            return mm2 + "/" + dd2 + "/" + yyyy2;
+          }
+          return s;
+        },
+        cellRenderer: pvdTooltip,
+        comparator: function (a, b) {
+          function toDate(val) {
+            if (val === null || val === undefined || val === "") return null;
+            if (val instanceof Date) return val;
+            var s = String(val).trim();
+            var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m)
+              return new Date(
+                parseInt(m[3], 10),
+                parseInt(m[1], 10) - 1,
+                parseInt(m[2], 10),
+              );
+            var d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+          }
+          var da = toDate(a);
+          var db = toDate(b);
+          if (da === null && db === null) return 0;
+          if (da === null) return -1;
+          if (db === null) return 1;
+          return da - db;
+        },
+      },
+    ];
+
+    // Tower columns 
+    towerCols.forEach(function (t, idx) {
+      var colDef = {
+        headerName: t,
+        field: t,
+        width: 100,
+        minWidth: 60,
+        type: "numericColumn",
+        hide: true,
+        suppressMenu: true,
+        headerComponent: "collapseTowerHeader",
+        valueFormatter: function (p) {
+          return p && p.value !== undefined && p.value !== null ? p.value : 0;
+        },
+        cellStyle: function (p) {
+          return { color: "#000000" };
+        },
+      };
+      if (idx === 0) {
+        colDef.headerComponent = "collapseTowerHeader";
+      }
+      cols.push(colDef);
+    });
+
+    // Row Total
+    cols.push({
+      headerName: "Demand Total",
+      field: "Demand Total",
+      width: 110,
+      type: "numericColumn",
+      sortable: true,
+      comparator: function (a, b) { return (parseFloat(a) || 0) - (parseFloat(b) || 0); },
+      headerComponent: "expandTowerHeader",
+      cellStyle: { color: "#0b3d91", fontWeight: "700" },
+    });
+
+    return cols;
+  }
+  
+
+  // ========== Grid API reference ==========
+  var pvdGridApi = null;
+  var pvdColumnApi = null;
+
+  // ========== Initialise or refresh the grid ==========
+  function renderGrid(data) {
+    var gridDiv = document.getElementById("pvdGrid");
+
+    // If grid already exists, just swap data
+    if (pvdGridApi) {
+      pvdGridApi.setRowData(data);
+      return;
+    }
+
+    var gridOptions = {
+      columnDefs: buildColumnDefs(),
+      rowData: data,
+      rowHeight: 28,
+      headerHeight: 32,
+      defaultColDef: {
+        sortable: true,
+        resizable: true,
+        filter: true,
+        suppressMovable: true,
+        minWidth: 80,
+      },
+      animateRows: true,
+      enableCellTextSelection: true,
+      ensureDomOrder: true,
+      suppressCellFocus: true,
+      suppressMovableColumns: true,
+      suppressColumnMoveAnimation: true,
+      // Ensure header and body render the same column set and share scrolling
+      suppressColumnVirtualisation: true,
+      // Always show the grid's horizontal scrollbar so header and body scroll together
+      alwaysShowHorizontalScroll: true,
+      components: {
+        expandTowerHeader: ExpandTowerHeader,
+        collapseTowerHeader: CollapseTowerHeader,
+      },
+      onGridReady: function (params) {
+        pvdGridApi = params.api;
+        pvdColumnApi = params.columnApi || params.api;
+      },
+    };
+
+    new agGrid.Grid(gridDiv, gridOptions);
+  }
+
+  function buildFilterParams() {
+    const params = new URLSearchParams(window.location.search);
+
+    // Make sure idx_label exists (fallback from template if missing)
+    if (!params.get("idx_label")) {
+      params.set("idx_label", "{{ idx_label_selected|escapejs }}");
+    }
+
+    // These are not needed for ajax (safe cleanup)
+    params.delete("submit");
+    params.delete("plt_label");
+
+    return params;
+  }
+
+  // ========== Load summary stats for PVD banner (NOT linked to the row-limit dropdown) ==========
+  // Call this on filter changes but NOT from pvdLimitSelect.onchange.
+  function loadPVDStats() {
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+
+    var url = "{% url 'AjaxCallForPVDStats' %}?" + params.toString();
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (result.success) {
+          document.getElementById("pvdStatOppCount").textContent =
+            result.opp_count.toLocaleString();
+          document.getElementById("pvdStatTCV").textContent =
+            result.total_tcv_m.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })+ " M";
+          document.getElementById("pvdStatDemands").textContent =
+            result.total_demands.toLocaleString();
+        }
+      })
+      .catch(function (err) { console.error("PVD stats error:", err); });
+  }
+
+  // ========== Fetch data via AJAX ==========
+  function loadPVDData() {
+    var limit = document.getElementById("pvdLimitSelect").value;
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+    // spinner hidden — using skeleton shimmer instead
+    // document.getElementById("pvdLoading").style.display = "flex";
+    document.getElementById("pvdSkeleton").style.display = "block";
+    document.getElementById("pvdGrid").style.display = "none";
+
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+    params.set("limit", limit);
+
+    var url = "{% url 'AjaxCallForPipelineVsDemand' %}?" + params.toString();
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((result) => {
+        document.getElementById("pvdLoading").style.display = "none";
+        document.getElementById("pvdSkeleton").style.display = "none";
+        document.getElementById("pvdGrid").style.display = "block";
+        //if (result.success) renderGrid(result.data);
+        
+        
+        if (result.success) {
+          const transformed = transformPVDByTowers(result.data);
+          renderGrid(transformed);
+          afterGridRenderedApplyTowers();
+        }
+
+
+        else
+          document.getElementById("pvdGrid").innerHTML =
+            '<div class="alert alert-danger m-4">' +
+            (result.error || "Unknown error") +
+            "</div>";
+      })
+      .catch((err) => {
+        document.getElementById("pvdLoading").style.display = "none";
+        document.getElementById("pvdSkeleton").style.display = "none";
+        document.getElementById("pvdGrid").style.display = "block";
+        document.getElementById("pvdGrid").innerHTML =
+          '<div class="alert alert-danger m-4">Failed to load data from server.</div>';
+        console.error(err);
+      });
+  }
+
+  function transformPVDByTowers(data) {
+  const selected = getSelectedTowers();
+  const allSelected = selected.length === towerCols.length;
+  if (allSelected) return data; // nothing to change
+
+  return (data || [])
+    .map((row) => {
+      let sum = 0;
+      selected.forEach((t) => { sum += parseInt(row[t]) || 0; });
+      return Object.assign({}, row, { "Demand Total": sum });
+    })
+    .filter((row) => (parseInt(row["Demand Total"]) || 0) > 0);
+}
+
+  function exportPVDToExcel() {
+    if (!pvdGridApi) {
+      alert("Data not loaded yet.");
+      return;
+    }
+
+    var rows = [];
+    pvdGridApi.forEachNodeAfterFilterAndSort(function (node) {
+      var rec = {};
+      rec["Opportunity ID"] = node.data["Opportunity ID"];
+      rec["Opportunity Name"] = node.data["Opportunity Name"];
+      rec["Account Name"] = node.data["Account Name"];
+      rec["Vertical"] = node.data["Vertical"];
+      rec["Sales Stage"] = node.data["Sales Stage"];
+      rec["Net TCV $"] = node.data["Net TCV $"];
+      rec["Close Date"] = node.data["CloseDate"];
+      towerCols.forEach(function (t) {
+        rec[t] = node.data[t] || 0;
+      });
+      rec["Demand Total"] = node.data["Demand Total"];
+      rows.push(rec);
+    });
+
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pipeline vs Demand");
+    XLSX.writeFile(wb, "Pipeline_vs_Demand_by_SL.xlsx");
+  }
+
+  // ========== Demands by Closed Date – global chart state ==========
+  var demandTraces = []; // original full traces (set once per data load)
+  var demandLayout = {}; // layout (set once per data load)
+
+  // ========== Load chart data from the dedicated chart endpoint ==========
+  // limit: 'all' | integer string — passed directly to the backend so the
+  // zoom buttons never filter the PVD table data in memory.
+  function loadChartData(idxLabel, limit) {
+    limit = limit || "all";
+    chartIdxLabel = idxLabel;
+
+    document.getElementById("demandChartLoading").style.display = "flex";
+    document.getElementById("demandsByCloseDateChart").style.display = "none";
+
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+    params.set("limit", limit);
+
+    var url = "{% url 'AjaxCallForDemandsChart' %}?" + params.toString();
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((result) => {
+        if (result.success) {
+          renderDemandsByCloseDateChart(result.data, limit);
+        } else {
+          document.getElementById("demandChartLoading").style.display = "none";
+          console.error("Chart data load failed:", result.error);
+        }
+      })
+      .catch((err) => {
+        document.getElementById("demandChartLoading").style.display = "none";
+        console.error("Chart data fetch error:", err);
+      });
+  }
+
+  // ========== Build chart data from raw AJAX response ==========
+  function buildDemandChartData(allData) {
+    // 1. Parse CloseDate into Date objects + dd/mm/yyyy label
+    allData.forEach(function (item) {
+      if (typeof item.CloseDate === "string") {
+        item._closeDate = new Date(item.CloseDate);
+      } else {
+        item._closeDate = item.CloseDate;
+      }
+      var d = item._closeDate;
+      var dd = ("0" + d.getDate()).slice(-2);
+      var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+      var yyyy = d.getFullYear();
+      item._closeDateLabel = dd + "/" + mm + "/" + yyyy;
+    });
+
+    // 2. Sort by CloseDate ascending
+    allData.sort(function (a, b) {
+      return a._closeDate - b._closeDate;
+    });
+
+    // 3. Build sorted unique close date labels for x-axis categories
+    var seenDates = {};
+    var sortedDateLabels = [];
+    allData.forEach(function (row) {
+      if (!seenDates[row._closeDateLabel]) {
+        seenDates[row._closeDateLabel] = true;
+        sortedDateLabels.push(row._closeDateLabel);
+      }
+    });
+
+    // 4. Calculate total demands per tower to determine legend order (desc)
+    var towerTotals = {};
+    towerCols.forEach(function (tower) {
+      towerTotals[tower] = allData.reduce(function (sum, row) {
+        return sum + (parseInt(row[tower]) || 0);
+      }, 0);
+    });
+    // Sort ascending so highest-demand tower traces render LAST (on top in chart)
+    var sortedTowers = towerCols.slice().sort(function (a, b) {
+      return towerTotals[a] - towerTotals[b];
+    });
+
+    var selectedTowerSet = new Set(getSelectedTowers());
+    var filteredSortedTowers = sortedTowers.filter(function (t) {
+      return selectedTowerSet.has(t);
+    });
+
+    // 5. Build one trace per tower using date labels as x values (category axis)
+    demandTraces = [];
+    filteredSortedTowers.forEach(function (tower, index) {
+      var filteredData = allData.filter(function (row) {
+        return (parseInt(row[tower]) || 0) > 0;
+      });
+      demandTraces.push({
+        x: filteredData.map(function (row) { return row._closeDateLabel; }),
+        y: filteredData.map(function (row) { return parseInt(row[tower]) || 0; }),
+        mode: "markers",
+        type: "scatter",
+        name: tower,
+        marker: {
+          size: filteredData.map(function (row) {
+            var count = parseInt(row[tower]) || 0;
+            var sz = 7 + 3 * Math.sqrt(count);
+            return Math.max(8, Math.min(65, sz));
+          }),
+          color: demandChartColors[index % demandChartColors.length],
+          line: { width: 0 },
+        },
+        hovertemplate:
+          "<b>Service Line</b>: %{text[0]}<br>" +
+          "<b>Demands</b>: %{text[1]}<br>" +
+          "<b>Close Date</b>: %{text[2]}<br>" +
+          "<b>Opportunity Name</b>: %{text[3]}<br>" +
+          "<b>Account Name</b>: %{text[4]}<br>" +
+          "<b>Vertical</b>: %{text[5]}<br>",
+        text: filteredData.map(function (row) {
+          return [
+            tower,
+            (parseInt(row[tower]) || 0).toString(),
+            row._closeDateLabel,
+            row["Opportunity Name"] || "-",
+            row["Account Name"] || "-",
+            row["Vertical"] || "-",
+          ];
+        }),
+      });
+    });
+
+    // 6. Layout – category x-axis showing exact dates from the table
+    demandLayout = {
+      title: "Demands by Closed Date",
+      xaxis: {
+        title: "Close Date",
+        type: "category",
+        categoryorder: "array",
+        categoryarray: sortedDateLabels,
+        tickangle: -90,
+        automargin: true,
+      },
+      yaxis: {
+        title: "No. of Demands",
+        rangemode: "nonnegative",
+      },
+      legend: {
+        title: { text: "Service Line (Tower)" },
+        traceorder: "reversed",
+      },
+      plot_bgcolor: "black",
+      paper_bgcolor: "black",
+      font: {
+        color: "#fff",
+      },
+      margin: { l: 60, r: 50, t: 50, b: 160 },
+      width: 1800,
+      height: 750,
+    };
+  }
+
+  // ========== Render chart + inject modebar limit buttons ==========
+  function renderDemandsByCloseDateChart(allData, activeLimit) {
+    buildDemandChartData(allData);
+    activeLimit = activeLimit || "all";
+    document.getElementById("demandChartLoading").style.display = "none";
+    document.getElementById("demandsByCloseDateChart").style.display = "block";
+
+    Plotly.newPlot("demandsByCloseDateChart", demandTraces, demandLayout).then(
+      function (gd) {
+        // Inject limit buttons into the modebar (top-left) – same pattern as won/lost page
+        var modebar = gd.querySelector(".modebar-container");
+        if (modebar) {
+          var buttonsHtml =
+            '<div style="display:flex;justify-content:flex-start;margin-left:20px">';
+          ["all", 10, 25, 50, 100, 200, 300].forEach(function (val) {
+            var label = val === "all" ? "All" : val;
+            buttonsHtml +=
+              '<div class="demand-modebar-btn" onclick="setDemandZoom(\'' +
+              val +
+              "')\">" +
+              '<div class="demand-data-limit-circle"><div style="margin:3px;font-size:14px;font-weight:600">' +
+              label +
+              "</div></div>" +
+              "</div>";
+          });
+          buttonsHtml += "</div>";
+          modebar.insertAdjacentHTML("beforeend", buttonsHtml);
+
+          // Default: All selected
+          highlightDemandIcon(
+            activeLimit === "all" ? "all" : String(activeLimit),
+          );
+        }
+      },
+    );
+  }
+
+  // ========== setZoom: re-fetch from backend with the chosen top-N limit ==========
+  window.setDemandZoom = function setDemandZoom(limit) {
+    // Always go to the dedicated chart endpoint — no dependency on PVD table data.
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+    loadChartData(idxLabel, limit);
+  };
+
+  // ========== Demands by Requirement Start Date – load data from dedicated endpoint ==========
+  function loadReqStartDateChartData(limit) {
+    limit = limit || "all";
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+
+    document.getElementById("reqStartDateChartLoading").style.display = "flex";
+    document.getElementById("demandsByReqStartDateChart").style.display = "none";
+
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+    params.set("limit", limit);
+
+    var url = "{% url 'AjaxCallForDemandsReqStartDate' %}?" + params.toString();
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (result.success) {
+          renderDemandsByReqStartDateChart(result.data, limit);
+        } else {
+          document.getElementById("reqStartDateChartLoading").style.display = "none";
+          console.error("Req Start Date chart load failed:", result.error);
+        }
+      })
+      .catch(function (err) {
+        document.getElementById("reqStartDateChartLoading").style.display = "none";
+        console.error("Req Start Date chart fetch error:", err);
+      });
+  }
+
+  // ========== Build & render Demands by Requirement Start Date bubble chart ==========
+  function renderDemandsByReqStartDateChart(data, activeLimit) {
+    activeLimit = activeLimit || "all";
+
+    // Parse date strings and build formatted labels — backend already sorted ASC
+    data.forEach(function (row) {
+      var rawDate = row["Requirement Start Date"];
+      var d = rawDate ? new Date(rawDate) : null;
+      if (d && !isNaN(d)) {
+        var dd = ("0" + d.getDate()).slice(-2);
+        var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+        var yyyy = d.getFullYear();
+        row._reqStartDateLabel = dd + "/" + mm + "/" + yyyy;
+      } else {
+        row._reqStartDateLabel = rawDate || "Unknown";
+      }
+    });
+
+    // Build unique ordered date labels for x-axis category array
+    var seenRsdLabels = {};
+    var sortedRsdLabels = [];
+    data.forEach(function (row) {
+      if (!seenRsdLabels[row._reqStartDateLabel]) {
+        seenRsdLabels[row._reqStartDateLabel] = true;
+        sortedRsdLabels.push(row._reqStartDateLabel);
+      }
+    });
+
+    // Calculate total demands per tower to determine legend / trace order
+    var towerTotalsRSD = {};
+    towerCols.forEach(function (tower) {
+      towerTotalsRSD[tower] = data.reduce(function (sum, row) {
+        return sum + (parseInt(row[tower]) || 0);
+      }, 0);
+    });
+    // Sort ascending so highest-demand service line renders LAST (on top in chart)
+    var sortedTowersRSD = towerCols.slice().sort(function (a, b) {
+      return towerTotalsRSD[a] - towerTotalsRSD[b];
+    });
+
+    
+    var selectedTowerSetRSD = new Set(getSelectedTowers());
+    sortedTowersRSD = sortedTowersRSD.filter(function (t) { return selectedTowerSetRSD.has(t); });
+
+
+    // One scatter (bubble) trace per tower — only rows where tower has > 0 demands
+
+    var rsdTraces = [];
+    sortedTowersRSD.forEach(function (tower, index) {
+      var filteredData = data.filter(function (row) {
+        return (parseInt(row[tower]) || 0) > 0;
+      });
+      if (filteredData.length === 0) return;
+      rsdTraces.push({
+        x: filteredData.map(function (row) { return row._reqStartDateLabel; }),
+        y: filteredData.map(function (row) { return parseInt(row[tower]) || 0; }),
+        mode: "markers",
+        type: "scatter",
+        name: tower,
+        marker: {
+          size: filteredData.map(function (row) {
+            var count = parseInt(row[tower]) || 0;
+            var sz = 7 + 3 * Math.sqrt(count);
+            return Math.max(8, Math.min(65, sz));
+          }),
+          color: demandChartColors[index % demandChartColors.length],
+          line: { width: 0 }
+        },
+        customdata: filteredData.map(function (row) {
+          return [parseInt(row["Total Demands"]) || 0];
+        }),
+        hovertemplate:
+          "<b>Service Line</b>: " + tower + "<br>" +
+          "<b>Demands</b>: %{y}<br>" +
+          "<b>Requirement Start Date</b>: %{x}<br>" +
+          "<b>Total Demands (Date)</b>: %{customdata[0]}<extra></extra>"
+      });
+    });
+
+
+    var rsdLayout = {
+      title: "Demands by Requirement Start Date",
+      xaxis: {
+        title: "Requirement Start Date",
+        type: "category",
+        categoryorder: "array",
+        categoryarray: sortedRsdLabels,
+        tickangle: -90,
+        automargin: true,
+      },
+      yaxis: {
+        title: "No. of Demands",
+        rangemode: "nonnegative",
+      },
+      legend: {
+        title: { text: "Service Line (Tower)" },
+        traceorder: "reversed",
+      },
+      plot_bgcolor: "black",
+      paper_bgcolor: "black",
+      font: { color: "#fff" },
+      margin: { l: 60, r: 50, t: 50, b: 160 },
+      width: 1800,
+      height: 750,
+    };
+
+    document.getElementById("reqStartDateChartLoading").style.display = "none";
+    document.getElementById("demandsByReqStartDateChart").style.display = "block";
+
+    Plotly.newPlot("demandsByReqStartDateChart", rsdTraces, rsdLayout).then(
+      function (gd) {
+        var modebar = gd.querySelector(".modebar-container");
+        if (modebar) {
+          var buttonsHtml =
+            '<div style="display:flex;justify-content:flex-start;margin-left:20px">';
+          ["all", 10, 25, 50, 100, 200, 300].forEach(function (val) {
+            var label = val === "all" ? "All" : val;
+            buttonsHtml +=
+              '<div class="demand-modebar-btn" onclick="setReqStartDateZoom(\'' +
+              val +
+              '\')">' +
+              '<div class="demand-data-limit-circle"><div style="margin:3px;font-size:14px;font-weight:600">' +
+              label +
+              "</div></div>" +
+              "</div>";
+          });
+          buttonsHtml += "</div>";
+          modebar.insertAdjacentHTML("beforeend", buttonsHtml);
+
+          highlightReqStartDateIcon(
+            activeLimit === "all" ? "all" : String(activeLimit)
+          );
+        }
+      }
+    );
+  }
+
+  window.setReqStartDateZoom = function setReqStartDateZoom(limit) {
+    loadReqStartDateChartData(limit);
+  };
+
+  window.highlightReqStartDateIcon = function highlightReqStartDateIcon(active) {
+    var chart = document.getElementById("demandsByReqStartDateChart");
+    if (!chart) return;
+    chart.querySelectorAll(".demand-data-limit-circle").forEach(function (el) {
+      el.classList.remove("highlight");
+    });
+    chart.querySelectorAll(".demand-modebar-btn").forEach(function (btn) {
+      var circleText = btn.querySelector(".demand-data-limit-circle div");
+      if (circleText) {
+        var val = circleText.textContent.trim();
+        if (val === "All") val = "all";
+        if (String(val) === String(active)) {
+          btn.querySelector(".demand-data-limit-circle").classList.add("highlight");
+        }
+      }
+    });
+  };
+
+  // ========== Demands by Account Name – load data from dedicated endpoint ==========
+  function loadAccountNameChartData(limit) {
+    limit = limit || "all";
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+
+    document.getElementById("accountChartLoading").style.display = "flex";
+    document.getElementById("demandsByAccountNameChart").style.display = "none";
+
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+    params.set("limit", limit);
+
+    var url = "{% url 'AjaxCallForDemandsByAccountName' %}?" + params.toString();
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (result.success) {
+          renderDemandsByAccountNameChart(result.data, limit);
+        } else {
+          document.getElementById("accountChartLoading").style.display = "none";
+          console.error("Account chart load failed:", result.error);
+        }
+      })
+      .catch(function (err) {
+        document.getElementById("accountChartLoading").style.display = "none";
+        console.error("Account chart fetch error:", err);
+      });
+  }
+
+  // ========== Build & render Demands by Account Name bubble chart ==========
+  function renderDemandsByAccountNameChart(data, activeLimit) {
+    // data is already sorted DESC by Total Demands from the backend
+    activeLimit = activeLimit || "all";
+
+    // Build sorted unique account name labels for x-axis (order = desc by Total Demands)
+    var accountNames = data.map(function (row) { return row["Account Name"]; });
+
+    // Calculate total demands per tower to determine legend order (ascending = top trace rendered last)
+    var towerTotalsAcc = {};
+    towerCols.forEach(function (tower) {
+      towerTotalsAcc[tower] = data.reduce(function (sum, row) {
+        return sum + (parseInt(row[tower]) || 0);
+      }, 0);
+    });
+    // Sort ascending so highest-demand service line traces render LAST (on top in chart)
+    var sortedTowersAcc = towerCols.slice().sort(function (a, b) {
+      return towerTotalsAcc[a] - towerTotalsAcc[b];
+    });
+
+    var selectedTowerSetAcc = new Set(getSelectedTowers());
+    sortedTowersAcc = sortedTowersAcc.filter(function (t) { return selectedTowerSetAcc.has(t); });
+
+    // One scatter (bubble) trace per tower — only rows where the tower has > 0 demands
+    var traces = sortedTowersAcc.map(function (tower, index) {
+      var filteredData = data.filter(function (row) {
+        return (parseInt(row[tower]) || 0) > 0;
+      });
+      return {
+        x: filteredData.map(function (row) { return row["Account Name"]; }),
+        y: filteredData.map(function (row) { return parseInt(row[tower]) || 0; }),
+        mode: "markers",
+        type: "scatter",
+        name: tower,
+        marker: {
+          size: filteredData.map(function (row) {
+            var count = parseInt(row[tower]) || 0;
+            var sz = 7 + 3 * Math.sqrt(count);
+            return Math.max(8, Math.min(65, sz));
+          }),
+          color: demandChartColors[index % demandChartColors.length],
+          line: { width: 0 }
+        },
+        customdata: filteredData.map(function (row) {
+          return [parseInt(row["Total Demands"]) || 0];
+        }),
+        hovertemplate:
+          "<b>Service Line</b>: " + tower + "<br>" +
+          "<b>Demands</b>: %{y}<br>" +
+          "<b>Account Name</b>: %{x}<br>" +
+          "<b>Total Demands (Account)</b>: %{customdata[0]}<br>" +
+          "<extra></extra>"
+      };
+    });
+
+
+    var layout = {
+      title: {
+        text: "Demands by Account Name",
+        font: { color: "#fff", size: 16 },
+      },
+      xaxis: {
+        title: { text: "Account Name", font: { color: "#ccc" } },
+        type: "category",
+        categoryorder: "array",
+        categoryarray: accountNames,
+        tickangle: -90,
+        automargin: true,
+        tickfont: { color: "#ccc", size: 11 },
+      },
+      yaxis: {
+        title: { text: "No. of Demands", font: { color: "#ccc" } },
+        rangemode: "nonnegative",
+        tickfont: { color: "#ccc" },
+        gridcolor: "rgba(255,255,255,0)",
+      },
+      legend: {
+        title: { text: "Service Line (Tower)", font: { color: "#ccc" } },
+        font: { color: "#ccc" },
+        traceorder: "reversed",
+      },
+      plot_bgcolor: "black",
+      paper_bgcolor: "black",
+      font: { color: "#fff" },
+      margin: { l: 60, r: 50, t: 50, b: 160 },
+      width: 1800,
+      height: 750,
+    };
+
+    document.getElementById("accountChartLoading").style.display = "none";
+    document.getElementById("demandsByAccountNameChart").style.display = "block";
+
+    Plotly.newPlot("demandsByAccountNameChart", traces, layout).then(function (gd) {
+      var modebar = gd.querySelector(".modebar-container");
+      if (modebar) {
+        var buttonsHtml = '<div style="display:flex;justify-content:flex-start;margin-left:20px">';
+        ["all", 10, 25, 50, 100, 200, 300].forEach(function (val) {
+          var label = val === "all" ? "All" : val;
+          buttonsHtml +=
+            '<div class="demand-modebar-btn" onclick="setAccountNameZoom(\'' + val + '\')">' +
+            '<div class="demand-data-limit-circle"><div style="margin:3px;font-size:14px;font-weight:600">' +
+            label + "</div></div>" +
+            "</div>";
+        });
+        buttonsHtml += "</div>";
+        modebar.insertAdjacentHTML("beforeend", buttonsHtml);
+        highlightAccountNameIcon(activeLimit === "all" ? "all" : String(activeLimit));
+      }
+    });
+  }
+
+  // ========== setAccountNameZoom: re-fetch account chart with chosen top-N limit ==========
+  window.setAccountNameZoom = function setAccountNameZoom(limit) {
+    loadAccountNameChartData(limit);
+  };
+
+  // ========== Highlight the active limit button for account name chart ==========
+  window.highlightAccountNameIcon = function highlightAccountNameIcon(id) {
+    var chart = document.getElementById("demandsByAccountNameChart");
+    if (!chart) return;
+    chart.querySelectorAll(".demand-data-limit-circle").forEach(function (btn) {
+      btn.classList.remove("highlight");
+    });
+    var label = id === "all" ? "All" : String(id);
+    var target = Array.from(chart.querySelectorAll(".demand-data-limit-circle")).find(function (btn) {
+      var inner = btn.querySelector("div");
+      return inner && inner.textContent.trim() === label;
+    });
+    if (target) target.classList.add("highlight");
+  };
+
+  // ========== SUNBURST CHART: Demand Distribution ==========
+  var _sunburstRaw = [];
+  var _sunburstFull = null;    // { ids, labels, parents, values, customdata }
+  var _sunburstCurrentRoot = "";
+  var _sunburstPlotted = false;
+  var _sunburstCachedColors = null; // cache colours across drill-downs
+
+  function loadSunburstChartData() {
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+
+    document.getElementById("sunburstChartLoading").style.display = "flex";
+    document.getElementById("sunburstChartWrapper").style.display = "none";
+    _sunburstPlotted = false;
+    _sunburstCachedColors = null;
+
+    var params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+
+    var url = "{% url 'AjaxCallForSunburstData' %}?" + params.toString();
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (result.success) {
+          _sunburstRaw = result.data;
+          _sunburstFull = buildSunburstStructure(_sunburstRaw);
+          _sunburstCurrentRoot = "";
+          _sunburstCachedColors = _buildSunburstColors(_sunburstFull);
+          renderSunburstChart(false);
+        } else {
+          document.getElementById("sunburstChartLoading").style.display = "none";
+          console.error("Sunburst load failed:", result.error);
+        }
+      })
+      .catch(function (err) {
+        document.getElementById("sunburstChartLoading").style.display = "none";
+        console.error("Sunburst fetch error:", err);
+      });
+  }
+
+  /**
+   * Build flat arrays for Plotly sunburst (Map-based O(1) lookups).
+   * Hierarchy: EMEA → Vertical → Market Unit → Account Name → Opportunity Name → Tower
+   * customdata: [demands, tcv, opportunity_count, percentage]
+   *
+   * Opportunity counting uses actual d.[Opportunity ID] from the backend
+   * so the EMEA total matches PVDStats exactly.
+   */
+  function buildSunburstStructure(rows) {
+    var nodeMap = new Map();
+    var ids = [], labels = [], parents = [], values = [], customdata = [];
+
+    var vertAcc = new Map();    // vert_id → accumulator
+    var muAcc  = new Map();
+    var accAcc = new Map();
+    var oppAcc = new Map();
+    var towerOppSets = new Map();   // tow_id → Set of actual Opportunity IDs
+    var rootDemands = 0, rootTCV = 0;
+    var rootOppIds = new Set();     // actual Opportunity IDs
+
+    for (var ri = 0, len = rows.length; ri < len; ri++) {
+      var r = rows[ri];
+      var vert = r["R_Vertical"]        || "(Unknown Vertical)";
+      var mu   = r["Market Unit"]       || "(Unknown MU)";
+      var acc  = r["Account Name"]      || "(Unknown Account)";
+      var opp  = r["Opportunity Name"]  || "(Unknown Opportunity)";
+      var tow  = r["Tower"]             || "(Unknown Tower)";
+      var dem  = Number(r["Demands"])    || 0;
+      var tcv  = Number(r["TCV"])        || 0;
+      var oppRealId = String(r["Opportunity ID"] || "");
+
+      var vert_id = "vert|" + vert;
+      var mu_id   = "mu|"   + vert + "|" + mu;
+      var acc_id  = "acc|"  + vert + "|" + mu + "|" + acc;
+      var opp_id  = "opp|"  + vert + "|" + mu + "|" + acc + "|" + opp;
+      var tow_id  = "tow|"  + vert + "|" + mu + "|" + acc + "|" + opp + "|" + tow;
+
+      // Tower leaf — may merge rows that differ only by Opportunity ID
+      if (nodeMap.has(tow_id)) {
+        var ti = nodeMap.get(tow_id);
+        values[ti]        += dem;
+        customdata[ti][0] += dem;
+        customdata[ti][1] += tcv;
+        towerOppSets.get(tow_id).add(oppRealId);
+        customdata[ti][2] = towerOppSets.get(tow_id).size;
+        customdata[ti][3] = 0;
+      } else {
+        nodeMap.set(tow_id, ids.length);
+        var ts = new Set(); ts.add(oppRealId);
+        towerOppSets.set(tow_id, ts);
+        ids.push(tow_id); labels.push(tow); parents.push(opp_id);
+        values.push(dem); customdata.push([dem, tcv, 1, 0]);
+      }
+
+      // Accumulate upward — use actual Opportunity ID for distinct counting
+      if (!oppAcc.has(opp_id)) oppAcc.set(opp_id, { demands: 0, tcv: 0, oppIds: new Set(), acc_id: acc_id, label: opp });
+      var oa = oppAcc.get(opp_id);
+      oa.demands += dem; oa.tcv += tcv; oa.oppIds.add(oppRealId);
+
+      if (!accAcc.has(acc_id)) accAcc.set(acc_id, { demands: 0, tcv: 0, oppIds: new Set(), mu_id: mu_id, label: acc });
+      var aa = accAcc.get(acc_id);
+      aa.demands += dem; aa.tcv += tcv; aa.oppIds.add(oppRealId);
+
+      if (!muAcc.has(mu_id)) muAcc.set(mu_id, { demands: 0, tcv: 0, oppIds: new Set(), vert_id: vert_id, label: mu });
+      var ma = muAcc.get(mu_id);
+      ma.demands += dem; ma.tcv += tcv; ma.oppIds.add(oppRealId);
+
+      if (!vertAcc.has(vert_id)) vertAcc.set(vert_id, { demands: 0, tcv: 0, oppIds: new Set(), label: vert });
+      var va = vertAcc.get(vert_id);
+      va.demands += dem; va.tcv += tcv; va.oppIds.add(oppRealId);
+
+      rootDemands += dem;
+      rootTCV += tcv;
+      rootOppIds.add(oppRealId);
+    }
+
+    // Opportunity nodes
+    oppAcc.forEach(function (o, oid) {
+      ids.push(oid); labels.push(o.label); parents.push(o.acc_id);
+      values.push(o.demands); customdata.push([o.demands, o.tcv, o.oppIds.size, 0]);
+    });
+    // Account nodes
+    accAcc.forEach(function (a, aid) {
+      ids.push(aid); labels.push(a.label); parents.push(a.mu_id);
+      values.push(a.demands); customdata.push([a.demands, a.tcv, a.oppIds.size, 0]);
+    });
+    // Market Unit nodes — parent is now the Vertical node
+    muAcc.forEach(function (m, mid) {
+      ids.push(mid); labels.push(m.label); parents.push(m.vert_id);
+      values.push(m.demands); customdata.push([m.demands, m.tcv, m.oppIds.size, 0]);
+    });
+    // Vertical nodes — parent is EMEA
+    vertAcc.forEach(function (v, vid) {
+      ids.push(vid); labels.push(v.label); parents.push("EMEA");
+      values.push(v.demands); customdata.push([v.demands, v.tcv, v.oppIds.size, 0]);
+    });
+    // EMEA root
+    ids.push("EMEA"); labels.push("EMEA"); parents.push("");
+    values.push(rootDemands); customdata.push([rootDemands, rootTCV, rootOppIds.size, 100]);
+
+    // Store structure info for later percentage calculation based on viewing root
+    return { ids: ids, labels: labels, parents: parents, values: values, customdata: customdata };
+  }
+
+  // ---------- Colour helpers ----------
+  // Fallback palette for any market units not in the fixed map
+  var _sbColorPalette = [
+    "#4a90d9","#e74c3c","#2ecc71","#f39c12","#9b59b6",
+    "#1abc9c","#e67e22","#3498db","#e84393","#00cec9",
+    "#6c5ce7","#fd79a8","#00b894","#fdcb6e","#636e72",
+    "#d63031","#0984e3","#a29bfe","#55efc4","#fab1a0"
+  ];
+
+  // Fixed brand colors per Market Unit
+  var _muFixedColors = {
+    "UK&I":                          "#4a90d9",  // Blue
+    "DACH":                          "#f39c12",  // Orange
+    "Northern Europe":               "#e74c3c",  // Red
+    "Southern Europe & Middle East": "#2ecc71",  // Green
+    "EMEA Others":                   "#9b59b6",  // Purple
+    "CE Others":                     "#1abc9c"   // Teal
+  };
+
+  // How much to lighten each depth level (0 = original, 1 = white)
+  var _sbDepthLighten = { vert: 0, mu: 0.01, acc: 0.02, opp: 0.03, tow: 0.05 };
+
+  // Blend a hex color toward white by `amount` (0–1)
+  function _lightenColor(hex, amount) {
+    hex = hex.replace(/^#/, "");
+    var r = parseInt(hex.substring(0, 2), 16);
+    var g = parseInt(hex.substring(2, 4), 16);
+    var b = parseInt(hex.substring(4, 6), 16);
+    r = Math.min(255, Math.round(r + (255 - r) * amount));
+    g = Math.min(255, Math.round(g + (255 - g) * amount));
+    b = Math.min(255, Math.round(b + (255 - b) * amount));
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  function _buildSunburstColors(s) {
+    // Assign a base colour for each Vertical node (using a distinct palette)
+    var vertColorPalette = [
+      "#5B8FF9","#5AD8A6","#F6BD16","#E86452","#6DC8EC",
+      "#945FB9","#FF9845","#1E9493","#FF99C3","#269A99"
+    ];
+    var vertColorMap = new Map(), vci = 0;
+    for (var k = 0; k < s.ids.length; k++) {
+      if (s.ids[k].indexOf("vert|") === 0 && !vertColorMap.has(s.ids[k])) {
+        vertColorMap.set(s.ids[k], vertColorPalette[vci++ % vertColorPalette.length]);
+      }
+    }
+
+    // Build MU → base colour map. Key = mu id (e.g. "mu|6-CMT|UK&I")
+    var muColorMap = new Map(), ci = 0;
+    for (var k = 0; k < s.ids.length; k++) {
+      if (s.ids[k].indexOf("mu|") === 0 && !muColorMap.has(s.ids[k])) {
+        // Extract MU name: last segment after the last "|"
+        var parts = s.ids[k].split("|");
+        var muName = parts[parts.length - 1];
+        muColorMap.set(s.ids[k], _muFixedColors[muName] || _sbColorPalette[ci++ % _sbColorPalette.length]);
+      }
+    }
+
+    var colors = new Array(s.ids.length);
+    for (var i = 0; i < s.ids.length; i++) {
+      var id = s.ids[i];
+      if (id === "EMEA") { colors[i] = "#1e2129"; continue; }
+
+      var pipeIdx = id.indexOf("|");
+      var prefix = pipeIdx > 0 ? id.substring(0, pipeIdx) : "";
+
+      if (prefix === "vert") {
+        // Vertical nodes get their own color
+        colors[i] = vertColorMap.get(id) || "#4a90d9";
+        continue;
+      }
+
+      // For mu|, acc|, opp|, tow| nodes: find the ancestor MU to get base color
+      // IDs are like: prefix|vert|mu|acc|opp|tow — find "mu|vert|mu" portion
+      var segments = id.substring(pipeIdx + 1).split("|"); // after the prefix
+      // segments[0] = vertical, segments[1] = MU name (for mu, acc, opp, tow)
+      var muKey = (segments.length >= 2) ? ("mu|" + segments[0] + "|" + segments[1]) : "";
+      var baseColor = muColorMap.get(muKey) || vertColorMap.get("vert|" + segments[0]) || "#4a90d9";
+      var lightenAmt = (_sbDepthLighten[prefix] !== undefined) ? _sbDepthLighten[prefix] : 0.60;
+      colors[i] = _lightenColor(baseColor, lightenAmt);
+    }
+    return colors;
+  }
+
+  /**
+   * Render the sunburst chart.
+   * First call: Plotly.newPlot + attach events.
+   * Drill-down/reset: Plotly.animate (only changes level, no re-render).
+   */
+  function renderSunburstChart(isDrillDown) {
+    if (!_sunburstFull) return;
+
+    document.getElementById("sunburstChartLoading").style.display = "none";
+    document.getElementById("sunburstChartWrapper").style.display = "block";
+
+    var s = _sunburstFull;
+    var container = document.getElementById("sunburstChart");
+
+    // Recalculate percentages relative to the given root id
+    function recalcPercentages(rootId) {
+      var rId = rootId || "EMEA";
+      var rIdx = s.ids.indexOf(rId);
+      var rVal = (rIdx >= 0) ? s.values[rIdx] : 0;
+      for (var i = 0; i < s.ids.length; i++) {
+        if (s.ids[i] === rId) {
+          s.customdata[i][3] = 100;
+        } else {
+          s.customdata[i][3] = (rVal > 0) ? (s.values[i] / rVal) * 100 : 0;
+        }
+      }
+    }
+
+    // Helper: react with updated percentages
+    function reactAtLevel(rootId) {
+      recalcPercentages(rootId);
+      var newLevel = rootId || "EMEA";
+      var updatedTrace = Object.assign({}, container.data[0], {
+        level: newLevel,
+        customdata: s.customdata
+      });
+      Plotly.react(container, [updatedTrace], container.layout, { responsive: true, displayModeBar: false, displaylogo: false });
+    }
+
+    // --- Drill-down / reset: update percentages then react ---
+    if (_sunburstPlotted && isDrillDown) {
+      reactAtLevel(_sunburstCurrentRoot);
+      updateSunburstBreadcrumb(_sunburstCurrentRoot);
+      document.getElementById("sunburstResetBtn").style.display =
+        _sunburstCurrentRoot ? "inline-block" : "none";
+      return;
+    }
+
+    // --- Full render (first load / filter change) ---
+    recalcPercentages(_sunburstCurrentRoot || "EMEA");
+
+    var trace = {
+      type: "sunburst",
+      ids: s.ids,
+      labels: s.labels,
+      parents: s.parents,
+      values: s.values,
+      customdata: s.customdata,
+      branchvalues: "total",
+      maxdepth: 6,
+      insidetextorientation: "radial",
+      textinfo: "label",
+      hovertemplate:
+        "<b>%{label}</b><br>" +
+        "Demands: <b>%{customdata[0]:,}</b><br>" +
+        "Total TCV: <b>$%{customdata[1]:,.0f}</b><br>" +
+        "Total Opportunities: <b>%{customdata[2]:,}</b><br>" +
+        "Percentage: <b>%{customdata[3]:.1f}%</b>" +
+        "<extra></extra>",
+      marker: {
+        colors: _sunburstCachedColors,
+        line: { color: "#070707", width: 1 }
+      },
+      textfont: { color: "#ffffff", size: 11 },
+      leaf: { opacity: 0.85 }
+    };
+
+    if (_sunburstCurrentRoot) {
+      trace.level = _sunburstCurrentRoot;
+    }
+
+    var layout = {
+      margin: { t: 5, l: 5, r: 5, b: 5 },
+      paper_bgcolor: "#000000",
+      font: { color: "#cfd1d4", family: "Roboto, sans-serif" },
+      sunburstcolorway: _sbColorPalette,
+      transition: { duration: 0 }
+    };
+
+    var config = {
+      responsive: true,
+      displayModeBar: false,
+      displaylogo: false
+    };
+
+    // Purge old plot to avoid event listener leaks
+    Plotly.purge(container);
+    Plotly.newPlot(container, [trace], layout, config).then(function () {
+      _sunburstPlotted = true;
+
+      // Click handler: drill into branches, click center to go back, ignore leaf towers
+      container.on("plotly_sunburstclick", function (evt) {
+        if (!evt || !evt.points || !evt.points.length) return false;
+        var clickedId = evt.points[0].id;
+
+        // Clicking the current root (center) → go back to parent
+        if (clickedId === _sunburstCurrentRoot || clickedId === "EMEA") {
+          if (_sunburstCurrentRoot && _sunburstCurrentRoot !== "EMEA") {
+            var idx = s.ids.indexOf(_sunburstCurrentRoot);
+            var parentId = (idx >= 0) ? s.parents[idx] : "";
+            _sunburstCurrentRoot = (parentId === "EMEA" || parentId === "") ? "" : parentId;
+          } else {
+            _sunburstCurrentRoot = "";
+          }
+          updateSunburstBreadcrumb(_sunburstCurrentRoot);
+          document.getElementById("sunburstResetBtn").style.display =
+            _sunburstCurrentRoot ? "inline-block" : "none";
+          reactAtLevel(_sunburstCurrentRoot);
+          return false;
+        }
+
+        // Ignore clicks on tower (leaf) segments — prefix "tow|"
+        if (clickedId.indexOf("tow|") === 0) return false;
+
+        // Drill down into the clicked segment
+        _sunburstCurrentRoot = clickedId;
+        updateSunburstBreadcrumb(clickedId);
+        document.getElementById("sunburstResetBtn").style.display = "inline-block";
+        reactAtLevel(clickedId);
+        return false;
+      });
+    });
+
+    updateSunburstBreadcrumb(_sunburstCurrentRoot);
+    document.getElementById("sunburstResetBtn").style.display =
+      _sunburstCurrentRoot ? "inline-block" : "none";
+  }
+
+  /** Reset sunburst to full EMEA root view */
+  window.resetSunburstToRoot = function () {
+    _sunburstCurrentRoot = "";
+    renderSunburstChart(true);
+  };
+
+  /** Breadcrumb from segment id */
+  function updateSunburstBreadcrumb(segId) {
+    var el = document.getElementById("sunburstBreadcrumb");
+    if (!el) return;
+    if (!segId) {
+      el.innerHTML = '<span style="color:#4a90d9;">EMEA</span> <span style="color:#555;font-size:11px;">(all layers)</span>';
+      return;
+    }
+    var parts = segId.split("|");
+    var crumbs = ["EMEA"];
+    for (var i = 1; i < parts.length; i++) crumbs.push(parts[i]);
+    var html = [];
+    for (var ci = 0; ci < crumbs.length; ci++) {
+      var isLast = ci === crumbs.length - 1;
+      if (isLast) {
+        html.push('<span style="color:#4a90d9;font-weight:600;">' + _escHtml(crumbs[ci]) + '</span>');
+      } else {
+        var tgt = _buildIdFromCrumbs(crumbs, ci);
+        html.push('<span style="color:#8a8f9a;cursor:pointer;text-decoration:underline dotted;" onclick="drillSunburstTo(\'' + _escAttr(tgt) + '\')">' + _escHtml(crumbs[ci]) + '</span>');
+      }
+    }
+    el.innerHTML = html.join(' <span style="color:#555;"> › </span> ');
+  }
+
+  function _buildIdFromCrumbs(crumbs, upToIdx) {
+    if (upToIdx === 0) return "EMEA";
+    var prefixes = ["vert", "mu", "acc", "opp", "tow"];
+    return prefixes[Math.min(upToIdx - 1, 4)] + "|" + crumbs.slice(1, upToIdx + 1).join("|");
+  }
+
+  window.drillSunburstTo = function (segId) {
+    _sunburstCurrentRoot = segId === "EMEA" ? "" : segId;
+    renderSunburstChart(true);
+  };
+
+  var _escDiv = document.createElement("div");
+  function _escHtml(s) { _escDiv.textContent = s; return _escDiv.innerHTML; }
+  function _escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+
+  function _adjustBrightness(hex, factor) {
+    hex = hex.replace(/^#/, "");
+    var r = Math.min(255, Math.max(0, Math.round(parseInt(hex.substring(0, 2), 16) * factor)));
+    var g = Math.min(255, Math.max(0, Math.round(parseInt(hex.substring(2, 4), 16) * factor)));
+    var b = Math.min(255, Math.max(0, Math.round(parseInt(hex.substring(4, 6), 16) * factor)));
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  // ========== Highlight the active limit button ==========
+  window.highlightDemandIcon = function highlightDemandIcon(id) {
+    var chart = document.getElementById("demandsByCloseDateChart");
+    chart.querySelectorAll(".demand-data-limit-circle").forEach(function (btn) {
+      btn.classList.remove("highlight");
+    });
+    var targetButton;
+    var label = id === "all" || id === "all" ? "All" : String(id);
+    targetButton = Array.from(
+      chart.querySelectorAll(".demand-data-limit-circle"),
+    ).find(function (btn) {
+      var inner = btn.querySelector("div");
+      return inner && inner.textContent.trim() === label;
+    });
+    if (targetButton) {
+      targetButton.classList.add("highlight");
+    }
+  };
+
+  function buildQPZDColumnDefs() {
+    return [
+      {
+        headerName: "Opportunity ID",
+        field: "Opportunity ID",
+        width: 130,
+        cellStyle: { textAlign: "left", paddingLeft: "14px" },
+        valueFormatter: function (p) {
+            if (p.value === null || p.value === undefined) return "";
+            return String(p.value).replace(/\.0$/, "");
+          },
+        cellRenderer: pvdTooltip,
+        pinned: "left"
+      },
+      {
+        headerName: "Opportunity Name",
+        field: "Opportunity Name",
+        width: 320,
+        pinned: "left",
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Account Name",
+        field: "Account Name",
+        width: 220,
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Vertical",
+        field: "Vertical",
+        width: 110,
+        cellRenderer: pvdTooltip,
+      },
+      {
+        headerName: "Sales Stage",
+        field: "Sales Stage",
+        width: 150,
+        cellRenderer: pvdTooltip,
+      },
+
+      {
+        headerName: "Net TCV ($m)",
+        field: "Net TCV",
+        width: 140,
+        type: "numericColumn",
+        valueFormatter: function (p) {
+          if (!p || p.value === null || p.value === undefined || p.value === "")
+            return "0.00";
+          var n = parseFloat(p.value);
+          if (isNaN(n)) return "0.00";
+          var m = n / 1000000;
+          return m.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        },
+        comparator: function (a, b) {
+          var na = parseFloat(String(a).replace(/,/g, "")) || 0;
+          var nb = parseFloat(String(b).replace(/,/g, "")) || 0;
+          return na - nb;
+        },
+      },
+
+      {
+        headerName: "Close Date",
+        field: "CloseDate",
+        width: 130,
+        valueFormatter: function (p) {
+          if (!p || p.value === null || p.value === undefined || p.value === "")
+            return "";
+          var s = String(p.value).trim();
+          var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (m) {
+            var mm = String(m[1]).padStart(2, "0");
+            var dd = String(m[2]).padStart(2, "0");
+            var yyyy = m[3];
+            return mm + "/" + dd + "/" + yyyy;
+          }
+          var d = new Date(s);
+          if (!isNaN(d.getTime())) {
+            var mm2 = String(d.getMonth() + 1).padStart(2, "0");
+            var dd2 = String(d.getDate()).padStart(2, "0");
+            var yyyy2 = d.getFullYear();
+            return mm2 + "/" + dd2 + "/" + yyyy2;
+          }
+          return s;
+        },
+        cellRenderer: pvdTooltip,
+        comparator: function (a, b) {
+          function toDate(val) {
+            if (val === null || val === undefined || val === "") return null;
+            if (val instanceof Date) return val;
+            var s = String(val).trim();
+            var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m)
+              return new Date(
+                parseInt(m[3], 10),
+                parseInt(m[1], 10) - 1,
+                parseInt(m[2], 10),
+              );
+            var d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+          }
+          var da = toDate(a);
+          var db = toDate(b);
+          if (da === null && db === null) return 0;
+          if (da === null) return -1;
+          if (db === null) return 1;
+          return da - db;
+        },
+      },
+    ];
+  }
+
+  var qpzdGridApi = null;
+
+  function renderQPZDGrid(data) {
+    var gridDiv = document.getElementById("qpzdGrid");
+
+    if (qpzdGridApi) {
+      qpzdGridApi.setRowData(data);
+      return;
+    }
+
+    var gridOptions = {
+      columnDefs: buildQPZDColumnDefs(),
+      rowData: data,
+      rowHeight: 28,
+      headerHeight: 32,
+      defaultColDef: {
+        sortable: true,
+        resizable: true,
+        filter: true,
+        minWidth: 90,
+      },
+      animateRows: true,
+      enableCellTextSelection: true,
+      ensureDomOrder: true,
+      suppressCellFocus: true,
+      onGridReady: function (params) {
+        qpzdGridApi = params.api;
+      },
+    };
+
+    new agGrid.Grid(gridDiv, gridOptions);
+  }
+
+  function loadQPZDData() {
+    var limit = document.getElementById("qpzdLimitSelect").value;
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+
+    // spinner hidden — using skeleton shimmer instead
+    // document.getElementById("qpzdLoading").style.display = "flex";
+    document.getElementById("qpzdSkeleton").style.display = "block";
+    document.getElementById("qpzdGrid").style.display = "none";
+
+    const params = buildFilterParams();
+    params.set("idx_label", idxLabel);
+    params.set("limit", limit);
+
+    var url =
+      "{% url 'AjaxCallForQualifiedPipelineZeroDemand' %}?" + params.toString();
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((result) => {
+        document.getElementById("qpzdLoading").style.display = "none";
+        document.getElementById("qpzdSkeleton").style.display = "none";
+        document.getElementById("qpzdGrid").style.display = "block";
+        if (result.success) renderQPZDGrid(result.data);
+        else
+          document.getElementById("qpzdGrid").innerHTML =
+            '<div class="alert alert-danger m-4">' +
+            (result.error || "Unknown error") +
+            "</div>";
+      })
+      .catch((err) => {
+        document.getElementById("qpzdLoading").style.display = "none";
+        document.getElementById("qpzdSkeleton").style.display = "none";
+        document.getElementById("qpzdGrid").style.display = "block";
+        document.getElementById("qpzdGrid").innerHTML =
+          '<div class="alert alert-danger m-4">Failed to load data from server.</div>';
+        console.error(err);
+      });
+  }
+
+  function exportQPZDToExcel() {
+    if (!qpzdGridApi) {
+      alert("Data not loaded yet.");
+      return;
+    }
+
+    var rows = [];
+    qpzdGridApi.forEachNodeAfterFilterAndSort(function (node) {
+      rows.push({
+        "Opportunity ID": node.data["Opportunity ID"],
+        "Opportunity Name": node.data["Opportunity Name"],
+        "Account Name": node.data["Account Name"],
+        Vertical: node.data["Vertical"],
+        "Sales Stage": node.data["Sales Stage"],
+        "Net TCV": node.data["Net TCV"],
+        "Close Date": node.data["CloseDate"],
+      });
+    });
+
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Qualified Pipeline Zero Demand");
+    XLSX.writeFile(wb, "Qualified_Pipeline_Zero_Demand.xlsx");
+  }
+let __syncLock = false;
+ 
+  // =====================
+  // Top Quick Filters (Checkboxes)
+  // =====================
+  const TOP_FILTERS = {
+    salesStage: {
+      allId: null,
+      itemSelector: ".pvd-top-ss",
+      drawerSelector: ".uniqueSales",
+      drawerExclude: ["Duplicate"],
+      urlKey: "sales_stage[]",
+    },
+    dealSize: {
+      allId: null,
+      itemSelector: ".pvd-top-ds",
+      drawerSelector: ".uniquedeal",
+      drawerExclude: [],
+      urlKey: "deal_size[]",
+    },
+    
+    towers: {
+        allId: null,
+        itemSelector: ".pvd-top-tower",
+        drawerSelector: null,
+        drawerExclude: [],
+        urlKey: "towers[]",
+    },
+    
+    soStatus: {
+        allId: null,
+        itemSelector: ".pvd-top-so",
+        drawerSelector: null,
+        drawerExclude: [],
+        urlKey: "so_status[]",
+    },
+
+  };
+
+function moveLabelsInto(containerSelector, itemSelector) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+  document.querySelectorAll(itemSelector).forEach((input) => {
+    const label = input.closest("label.pvd-chk");
+    if (label) container.appendChild(label);
+  });
+}
+
+function renderTowerTopFilterInto(listSelector) {
+  const host = document.querySelector(listSelector);
+  if (!host || !Array.isArray(towerCols)) return;
+
+  if (host.dataset.rendered === "1") return;
+  towerCols.forEach((tower) => {
+    const label = document.createElement("label");
+    label.className = "pvd-chk";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = tower;
+    input.className = "pvd-top-tower";
+    input.checked = true;
+
+    const span = document.createElement("span");
+    span.textContent = tower;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    host.appendChild(label);
+  });
+  host.dataset.rendered = "1";
+
+  const params = new URLSearchParams(window.location.search);
+  const towersFromUrl = params.getAll(TOP_FILTERS.towers.urlKey);
+  if (towersFromUrl.length > 0) setTopGroupValues(TOP_FILTERS.towers, towersFromUrl);
+}
+
+var SO_STATUS_OPTIONS = ["OPEN", "EXTERNAL FULFILMENT", "INTERNAL FULFILMENT"];
+function renderSoStatusTopFilterInto(listSelector) {
+  const host = document.querySelector(listSelector);
+  if (!host) return;
+
+  if (host.dataset.rendered === "1") return;
+
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.getAll(TOP_FILTERS.soStatus.urlKey);
+  const initial = (fromUrl.length > 0) ? new Set(fromUrl) : new Set(["OPEN"]);
+
+  SO_STATUS_OPTIONS.forEach((opt) => {
+    const label = document.createElement("label");
+    label.className = "pvd-chk";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = opt;
+    input.className = "pvd-top-so";
+    input.checked = initial.has(opt);
+
+    const span = document.createElement("span");
+    span.textContent = opt;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    host.appendChild(label);
+  });
+  host.dataset.rendered = "1";
+
+  if (fromUrl.length > 0) setTopGroupValues(TOP_FILTERS.soStatus, fromUrl);
+}
+let __openDD = null;
+
+function openDropdown(ddEl) {
+  if (__openDD && __openDD !== ddEl) closeDropdown(__openDD);
+  const btn = ddEl.querySelector(".pvd-dd-toggle");
+  const panel = ddEl.querySelector(".pvd-dd-panel");
+  if (!panel) return;
+  panel.style.display = "block";
+  btn.setAttribute("aria-expanded", "true");
+  __openDD = ddEl;
+}
+function closeDropdown(ddEl) {
+  const btn = ddEl.querySelector(".pvd-dd-toggle");
+  const panel = ddEl.querySelector(".pvd-dd-panel");
+  if (!panel) return;
+  panel.style.display = "none";
+  btn.setAttribute("aria-expanded", "false");
+  if (__openDD === ddEl) __openDD = null;
+}
+function closeAnyDropdown(e) {
+  if (!__openDD) return;
+  if (!__openDD.contains(e.target)) closeDropdown(__openDD);
+}
+document.addEventListener("click", closeAnyDropdown);
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && __openDD) closeDropdown(__openDD);
+});
+
+
+$(document).on("click", ".pvd-dd-toggle", function () {
+  const root = this.closest(".pvd-dd");
+  const expanded = this.getAttribute("aria-expanded") === "true";
+  if (expanded) {
+    closeDropdown(root);
+  } else {
+    openDropdown(root);
+    // Map dropdown id -> top group name
+    const idToName = { ddSalesStage: 'salesStage', ddDealSize: 'dealSize', ddTowers: 'towers', ddSOStatus: 'soStatus' };
+    const name = idToName[root.id];
+    if (name) updateSelectAllLinkFor(name);
+  }
+});
+
+
+function updateFilterSummary(name) {
+  let cfg = TOP_FILTERS[name];
+  let summaryEl = null;
+  if (name === "salesStage") summaryEl = document.getElementById("sumSalesStage");
+  if (name === "dealSize")   summaryEl = document.getElementById("sumDealSize");
+  if (name === "towers")     summaryEl = document.getElementById("sumTowers");
+  if (name === "soStatus")   summaryEl = document.getElementById("sumSOStatus");
+  if (!summaryEl) return;
+
+  const vals = getTopGroupValues(cfg);
+  if (vals.includes("All")) summaryEl.textContent = "All";
+  else if (vals.length === 1) summaryEl.textContent = vals[0];
+  else summaryEl.textContent = `${vals.length} selected`;
+}
+
+
+function setGroupAll(cfg, checked) {
+  __syncLock = true;
+  $(cfg.itemSelector).prop("checked", !!checked);
+  __syncLock = false;
+  applyTopGroupRules(cfg);
+  syncDrawerFromTop();
+}
+
+function setGroupDefault(name) {
+  __syncLock = true;
+  if (name === "salesStage") {
+    $(TOP_FILTERS.salesStage.itemSelector).prop("checked", false);
+    const defaultStages = ['1. Engagement','2. Shaping','3. Solutioning','4. End-Game','5. Negotiation'];
+    $(TOP_FILTERS.salesStage.itemSelector).each(function(){
+      if (defaultStages.includes(this.value)) $(this).prop("checked", true);
+    });
+  } else if (name === "dealSize") {
+    $(TOP_FILTERS.dealSize.itemSelector).prop("checked", true);
+  } else if (name === "towers") {
+    $(TOP_FILTERS.towers.itemSelector).prop("checked", true);
+  } else if (name === "soStatus") {
+    $(TOP_FILTERS.soStatus.itemSelector).prop("checked", false);
+    $(TOP_FILTERS.soStatus.itemSelector).filter(function(){ return this.value === "OPEN"; }).prop("checked", true);
+  }
+  __syncLock = false;
+  applyTopGroupRules(TOP_FILTERS[name]);
+  syncDrawerFromTop();
+}
+
+  
+  function buildChangeSelector(cfg) {
+    return cfg && cfg.allId ? ("#" + cfg.allId + ", " + cfg.itemSelector) : cfg.itemSelector;
+  }
+  function updatePvdTitleBasedOnSOStatus() {
+    const selected = getTopGroupValues(TOP_FILTERS.soStatus); 
+    const titleEl = document.querySelector(".pvd-title");
+
+    let newTitle = "Pipeline vs All Demand by SL";
+
+    if (selected.length === 1 && selected[0] === "OPEN") {
+        newTitle = "Pipeline vs Open Demand by SL";
+    }else if (selected.length === 1 && selected[0] === "EXTERNAL FULFILMENT") {
+        newTitle = "Pipeline vs External Fulfilment Demand by SL";
+    }else if (selected.length === 1 && selected[0] === "INTERNAL FULFILMENT") {
+        newTitle = "Pipeline vs Internal Fulfilment Demand by SL";
+    }else if (selected.length === 2 && selected[0] === "EXTERNAL FULFILMENT") {
+        newTitle = "Pipeline vs Fulfilment Demand by SL";
+    }
+
+    titleEl.textContent = newTitle;
+}
+  
+  var SO_STATUS_OPTIONS = ["OPEN", "EXTERNAL FULFILMENT", "INTERNAL FULFILMENT"];
+
+
+function renderSoStatusTopFilter() {
+  const host = document.getElementById("topSoStatusGroup");
+  if (!host) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.getAll(TOP_FILTERS.soStatus.urlKey); // "so_status[]"
+
+  const initial = (fromUrl.length > 0) ? new Set(fromUrl) : new Set(["OPEN"]);
+
+  SO_STATUS_OPTIONS.forEach((opt) => {
+    const label = document.createElement("label");
+    label.className = "pvd-chk";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = opt;
+    input.className = "pvd-top-so";
+    input.checked = initial.has(opt);
+
+    const span = document.createElement("span");
+    span.textContent = opt;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    host.appendChild(label);
+  });
+
+  if (fromUrl.length > 0) {
+    setTopGroupValues(TOP_FILTERS.soStatus, fromUrl);
+  }
+}
+
+
+ 
+  function renderTowerTopFilter() {
+    const group = document.getElementById("topTowerGroup");
+    if (!group || !Array.isArray(towerCols)) return;
+
+    towerCols.forEach((tower) => {
+      const label = document.createElement("label");
+      label.className = "pvd-chk";
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = tower;
+      input.className = "pvd-top-tower";
+      input.checked = true;
+
+      const span = document.createElement("span");
+      span.textContent = tower;
+
+      label.appendChild(input);
+      label.appendChild(span);
+      group.appendChild(label);
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const towersFromUrl = params.getAll(TOP_FILTERS.towers.urlKey);
+    if (towersFromUrl.length > 0) {
+      setTopGroupValues(TOP_FILTERS.towers, towersFromUrl);
+    }
+  }
+
+  function getSelectedTowers() {
+    const vals = getTopGroupValues(TOP_FILTERS.towers);
+    if (vals.includes("All")) return towerCols.slice();
+    return vals;
+  }
+  function getDrawerValues(selector, excludeList) {
+    const exclude = new Set(excludeList || []);
+    return $(selector + ":checked")
+      .map((_, el) => $(el).val())
+      .get()
+      .filter(v => !exclude.has(v));
+  }
+ 
+  function setDrawerCheckboxes(selector, values) {
+    __syncLock = true;
+    const set = new Set(values || []);
+    $(selector).each(function () {
+      const val = $(this).val();
+      $(this).prop("checked", set.has(val));
+    });
+    __syncLock = false;
+  }
+ 
+ 
+function getTopGroupValues(cfg) {
+  const $items = $(cfg.itemSelector);
+  const checked = $items.filter(":checked").map((_, el) => el.value).get();
+  const total = $items.length;
+ 
+  // If nothing selected OR everything selected => treat as All
+  if (checked.length === 0 || checked.length === total) return ["All"];
+  return checked;
+}
+ 
+function applyTopGroupRules(cfg) {
+  /*
+  const $items = $(cfg.itemSelector);
+  const total = $items.length;
+  const checkedCount = $items.filter(":checked").length;
+ 
+  // If user unchecks everything -> revert to "All" by checking all
+  if (total > 0 && checkedCount === 0) {
+    __syncLock = true;
+    $items.prop("checked", true);
+    __syncLock = false;
+  }
+    */
+}
+ 
+function ensureAllCheckedWhenEffectiveAll(name) {
+  const cfg = TOP_FILTERS[name];
+  const vals = getTopGroupValues(cfg);  // returns ["All"] when none or all are checked
+  if (vals.includes("All")) {
+    __syncLock = true;
+    $(cfg.itemSelector).prop("checked", true);  // visually mark all as checked
+    __syncLock = false;
+  }
+  updateFilterSummary(name);
+  // This helper exists in your file after our previous changes; it flips "Select all" ↔ "Unselect all"
+  if (typeof updateSelectAllLinkFor === "function") {
+    updateSelectAllLinkFor(name);
+  }
+}
+
+function getTopGroupState(cfg) {
+  const $items = $(cfg.itemSelector);
+  const total = $items.length;
+  if (total === 0) return 'none';
+  const checked = $items.filter(':checked').length;
+  if (checked === 0) return 'none';
+  if (checked === total) return 'all';
+  return 'some';
+}
+
+function updateSelectAllLinkFor(name) {
+  const cfg = TOP_FILTERS[name];
+  const state = getTopGroupState(cfg);
+  const link = document.querySelector(`.pvd-dd-link[data-dd-action="select-all"][data-for="${name}"]`);
+  if (!link) return;
+
+  link.textContent = (state === 'all') ? 'Unselect all' : 'Select all';
+}
+
+function setTopGroupValues(cfg, values) {
+  __syncLock = true;
+  const $items = $(cfg.itemSelector);
+  const vals = values || ["All"];
+ 
+  if (vals.includes("All")) {
+    $items.prop("checked", true);
+  } else {
+    const set = new Set(vals);
+    $items.each(function () {
+      $(this).prop("checked", set.has(this.value));
+    });
+    applyTopGroupRules(cfg);
+  }
+  __syncLock = false;
+}
+ 
+ 
+  function updateUrlParamsFromTop() {
+    const params = new URLSearchParams(window.location.search);
+ 
+    params.delete(TOP_FILTERS.salesStage.urlKey);
+    params.delete(TOP_FILTERS.dealSize.urlKey);
+    params.delete(TOP_FILTERS.towers.urlKey);
+    params.delete(TOP_FILTERS.soStatus.urlKey);
+
+    const ss = getTopGroupValues(TOP_FILTERS.salesStage);
+    if (ss.includes("All")) {
+      $(TOP_FILTERS.salesStage.itemSelector).each(function () {
+        params.append(TOP_FILTERS.salesStage.urlKey, this.value);
+      });
+    } else {
+      ss.forEach(v => params.append(TOP_FILTERS.salesStage.urlKey, v));
+    }
+ 
+ 
+    const ds = getTopGroupValues(TOP_FILTERS.dealSize);
+    if (ds.includes("All")) {
+      $(TOP_FILTERS.dealSize.itemSelector).each(function () {
+        params.append(TOP_FILTERS.dealSize.urlKey, this.value);
+      });
+    } else {
+      ds.forEach(v => params.append(TOP_FILTERS.dealSize.urlKey, v));
+    }
+
+    
+    const tw = getTopGroupValues(TOP_FILTERS.towers);
+      if (tw.includes("All")) {
+        $(TOP_FILTERS.towers.itemSelector).each(function () {
+          params.append(TOP_FILTERS.towers.urlKey, this.value);
+        });
+      } else {
+        tw.forEach(v => params.append(TOP_FILTERS.towers.urlKey, v));
+      }
+
+      
+    const so = getTopGroupValues(TOP_FILTERS.soStatus);
+      if (so.includes("All")) {
+        $(TOP_FILTERS.soStatus.itemSelector).each(function () {
+          params.append(TOP_FILTERS.soStatus.urlKey, this.value);
+        });
+      } else {
+        so.forEach((v) => params.append(TOP_FILTERS.soStatus.urlKey, v));
+      }
+
+ 
+ 
+    const base = window.location.origin + window.location.pathname;
+    const newUrl = params.toString() ? `${base}?${params.toString()}` : base;
+    window.history.replaceState({}, "", newUrl);
+  }
+ 
+  function refreshAllDataFromTopFilters() {
+    updateUrlParamsFromTop();
+    loadPVDStats();
+    loadPVDData();
+    loadQPZDData();
+    const idxLabel = "{{ idx_label_selected|escapejs }}";
+    loadChartData(idxLabel, "all");
+    loadReqStartDateChartData();
+    loadAccountNameChartData();
+    loadSunburstChartData();
+  }
+ 
+  function syncDrawerFromTop() {
+    const ss = getTopGroupValues(TOP_FILTERS.salesStage);
+    const ds = getTopGroupValues(TOP_FILTERS.dealSize);
+ 
+    if (ss.includes("All")) {
+      const allStages = $(TOP_FILTERS.salesStage.drawerSelector)
+        .map((_, el) => $(el).val())
+        .get()
+        .filter(v => !TOP_FILTERS.salesStage.drawerExclude.includes(v));
+      setDrawerCheckboxes(TOP_FILTERS.salesStage.drawerSelector, allStages);
+    } else {
+      setDrawerCheckboxes(TOP_FILTERS.salesStage.drawerSelector, ss);
+    }
+ 
+    if (ds.includes("All")) {
+      const allSizes = $(TOP_FILTERS.dealSize.drawerSelector)
+        .map((_, el) => $(el).val())
+        .get();
+      setDrawerCheckboxes(TOP_FILTERS.dealSize.drawerSelector, allSizes);
+    } else {
+      setDrawerCheckboxes(TOP_FILTERS.dealSize.drawerSelector, ds);
+    }
+  }
+ 
+  function syncTopFromDrawer() {
+    let ss = getDrawerValues(TOP_FILTERS.salesStage.drawerSelector, TOP_FILTERS.salesStage.drawerExclude);
+    let ds = getDrawerValues(TOP_FILTERS.dealSize.drawerSelector, TOP_FILTERS.dealSize.drawerExclude);
+ 
+    const totalStages = $(TOP_FILTERS.salesStage.drawerSelector)
+      .map((_, el) => $(el).val())
+      .get()
+      .filter(v => !TOP_FILTERS.salesStage.drawerExclude.includes(v));
+    const totalSizes = $(TOP_FILTERS.dealSize.drawerSelector)
+      .map((_, el) => $(el).val())
+      .get();
+ 
+    if (ss.length === 0 || ss.length === totalStages.length) ss = ["All"];
+    if (ds.length === 0 || ds.length === totalSizes.length) ds = ["All"];
+ 
+    setTopGroupValues(TOP_FILTERS.salesStage, ss);
+    setTopGroupValues(TOP_FILTERS.dealSize, ds);
+  }
+ 
+function applyTopFiltersNow() {
+  updateUrlParamsFromTop();
+  
+  loadPVDStats();
+
+  loadPVDData();
+  loadQPZDData();
+
+  const idxLabel = "{{ idx_label_selected|escapejs }}";
+  loadChartData(idxLabel, "all");
+  loadReqStartDateChartData();
+  loadAccountNameChartData();
+  loadSunburstChartData();
+
+  
+  ensureAllCheckedWhenEffectiveAll("salesStage");
+  ensureAllCheckedWhenEffectiveAll("dealSize");
+  ensureAllCheckedWhenEffectiveAll("towers");
+  ensureAllCheckedWhenEffectiveAll("soStatus");
+
+}
+
+function renderSalesStageTopFilterInto(listSelector) {
+  const host = document.querySelector(listSelector);
+  if (!host) return;
+
+  // avoid double render
+  if (host.dataset.rendered === "1") return;
+
+  const defaultStages = [
+      '1. Engagement',
+      '2. Shaping',
+      '3. Solutioning',
+      '4. End-Game',
+      '5. Negotiation'
+  ];
+  const exclude = new Set(["Duplicate"]);
+  const seen = new Set();
+  $(TOP_FILTERS.salesStage.drawerSelector).each(function () {
+    const val = (this.value || "").trim();
+    if (!val || exclude.has(val) || seen.has(val)) return;
+    seen.add(val);
+
+    const label = document.createElement("label");
+    label.className = "pvd-chk";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = val;
+    input.className = "pvd-top-ss";
+    input.checked = true;
+    input.checked = defaultStages.includes(val);
+
+
+    const span = document.createElement("span");
+    span.textContent = val;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    host.appendChild(label);
+  });
+
+  host.dataset.rendered = "1";
+
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.getAll(TOP_FILTERS.salesStage.urlKey);
+  if (fromUrl.length > 0) setTopGroupValues(TOP_FILTERS.salesStage, fromUrl);
+}
+
+function renderDealSizeTopFilterInto(listSelector) {
+  const host = document.querySelector(listSelector);
+  if (!host) return;
+
+  if (host.dataset.rendered === "1") return;
+
+  const seen = new Set();
+  $(TOP_FILTERS.dealSize.drawerSelector).each(function () {
+    const val = (this.value || "").trim();
+    if (!val || seen.has(val)) return;
+    seen.add(val);
+
+    const label = document.createElement("label");
+    label.className = "pvd-chk";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = val;
+    input.className = "pvd-top-ds";
+    input.checked = true;                  // default to all; URL will refine below
+
+    const span = document.createElement("span");
+    span.textContent = val;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    host.appendChild(label);
+  });
+
+  host.dataset.rendered = "1";
+
+  // Reflect URL selection if present
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.getAll(TOP_FILTERS.dealSize.urlKey);
+  if (fromUrl.length > 0) setTopGroupValues(TOP_FILTERS.dealSize, fromUrl);
+}
+
+
+  var market_units = [];
+  $(document).ready(function () {
+    renderTowerTopFilter();
+    renderSoStatusTopFilter();
+
+    
+    renderSalesStageTopFilterInto("#listSalesStage");
+    renderDealSizeTopFilterInto("#listDealSize");
+
+    //moveLabelsInto("#listSalesStage", TOP_FILTERS.salesStage.itemSelector);
+    //moveLabelsInto("#listDealSize",   TOP_FILTERS.dealSize.itemSelector);
+    renderTowerTopFilterInto("#listTowers");
+    renderSoStatusTopFilterInto("#listSOStatus");
+    
+
+    // Initial summaries
+    updateFilterSummary("salesStage");
+    updateFilterSummary("dealSize");
+    updateFilterSummary("towers");
+    updateFilterSummary("soStatus");
+
+
+    // Ensure the action labels match the initial states
+    updateSelectAllLinkFor("salesStage");
+    updateSelectAllLinkFor("dealSize");
+    updateSelectAllLinkFor("towers");
+    updateSelectAllLinkFor("soStatus");
+
+
+   
+    $(document).on("change", buildChangeSelector(TOP_FILTERS.salesStage), function () {
+      if (__syncLock) return;
+      __syncLock = true;
+      applyTopGroupRules(TOP_FILTERS.salesStage, this);
+      __syncLock = false;
+      syncDrawerFromTop();
+      updateFilterSummary("salesStage");
+      updateSelectAllLinkFor("salesStage");
+    });
+
+    // --- Deal Size (no data refresh here) ---
+    $(document).on("change", buildChangeSelector(TOP_FILTERS.dealSize), function () {
+      if (__syncLock) return;
+      __syncLock = true;
+      applyTopGroupRules(TOP_FILTERS.dealSize, this);
+      __syncLock = false;
+      syncDrawerFromTop();
+      updateFilterSummary("dealSize");
+      updateSelectAllLinkFor("dealSize");
+    });
+
+    // --- Towers (no drawer, no data refresh) ---
+    $(document).on("change", buildChangeSelector(TOP_FILTERS.towers), function () {
+      if (__syncLock) return;
+      __syncLock = true;
+      applyTopGroupRules(TOP_FILTERS.towers, this);
+      __syncLock = false;
+      updateFilterSummary("towers");
+      updateSelectAllLinkFor("towers");
+    });
+
+    
+    $(document).on("change", buildChangeSelector(TOP_FILTERS.soStatus), function () {
+      if (__syncLock) return;
+      __syncLock = true;
+      applyTopGroupRules(TOP_FILTERS.soStatus, this);
+      __syncLock = false;
+      updateFilterSummary("soStatus");
+      updateSelectAllLinkFor("soStatus");
+    });
+
+    
+    $(document).on("click", ".pvd-dd-link", function () {
+      const action = this.getAttribute("data-dd-action");
+      const forName = this.getAttribute("data-for");
+      if (!action || !forName) return;
+
+      if (action === "select-all") {
+        //setGroupAll(TOP_FILTERS[forName], true);
+
+        const cfg = TOP_FILTERS[forName];
+        const state = getTopGroupState(cfg);
+        setGroupAll(cfg, state === 'all' ? false : true);
+        updateSelectAllLinkFor(forName);
+
+      } else if (action === "reset") {
+        setGroupDefault(forName);
+        updateSelectAllLinkFor(forName);
+      }
+      updateFilterSummary(forName);
+      syncDrawerFromTop();
+    });
+
+
+
+    $(document).on("click", "#applyTopFilters", function () {
+      applyTopFiltersNow();
+      updatePvdTitleBasedOnSOStatus();
+    });
+
+    // Drawer changes should reflect on top filters too
+  $(document).on("change", ".uniqueSales, .uniquedeal", function () {
+    if (__syncLock) return;
+    syncTopFromDrawer();
+  });
+ 
+  // On initial load: make sure top reflects drawer (and drawer reflects URL defaults)
+  //syncTopFromDrawer();
+    syncDrawerFromTop();
+    function enforceAllLogic($el, selectedText) {
+      let vals = $el.val() || [];
+
+      // If user clicked "All" -> keep only "All"
+      if (selectedText === "All") {
+        $el.val(["All"]).trigger("change");
+        return;
+      }
+
+      // If user selected something else while All is selected -> remove All
+      if (vals.includes("All")) {
+        vals = vals.filter((v) => v !== "All");
+        $el.val(vals).trigger("change");
+      }
+
+      // If user unselects everything -> default back to All
+      if (($el.val() || []).length === 0) {
+        $el.val(["All"]).trigger("change");
+      }
+    }
+
+    // --- BU: remove All if other selected; keep only All when All selected ---
+    $("#unique_mcu")
+      .on("select2:select", function (e) {
+        enforceAllLogic($(this), e.params.data.text);
+      })
+      .on("select2:unselect", function () {
+        enforceAllLogic($(this), "");
+      });
+
+    // --- SBU: same logic ---
+    $("#unique_sbu")
+      .on("select2:select", function (e) {
+        enforceAllLogic($(this), e.params.data.text);
+      })
+      .on("select2:unselect", function () {
+        enforceAllLogic($(this), "");
+      });
+
+    if (!$("#unique_account_name").data("select2")) {
+      $("#unique_account_name").select2({ placeholder: "All" });
+    }
+
+    // enforce All logic for account too (same as BU/SBU)
+    $("#unique_account_name")
+      .on("select2:select", function (e) {
+        enforceAllLogic($(this), e.params.data.text);
+      })
+      .on("select2:unselect", function () {
+        enforceAllLogic($(this), "");
+      });
+
+    // Ensure drawer dropdowns are visible and use select2 for multi-selects
+    // (Market Unit is custom checkboxes, so skip select2 there)
+
+    ["#unique_mcu", "#unique_sbu"].forEach(function (id) {
+      $(id).show();
+      $(id).select2({ placeholder: "All" });
+    });
+
+    const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+
+    // Market units selected coming from backend (JSON string)
+    let opt_opp_region_new = JSON.parse(
+      `{{ opt_opp_region_new_filter|escapejs }}`,
+    );
+    let selectedMU = opt_opp_region_new.join(",");
+
+    const selectedDrawerValuesList = [
+      selectedMU,
+      `{{ selected_bu }}`,
+      `{{ selected_sbu }}`,
+    ];
+
+    const listOfDrawerDropdownIds = [
+      "#unq_region", // (logical index 0 - handled as checkbox list)
+      "#unique_mcu", // BU
+      "#unique_sbu", // SBU
+    ];
+
+    const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) =>
+      $(id),
+    );
+
+    const compareStringsIgnoreCaseFn = (x, y) => {
+      x = x.toLowerCase();
+      y = y.toLowerCase();
+      if (x < y) return -1;
+      if (x > y) return 1;
+      return 0;
+    };
+
+    const marketUnitOrder = [
+      "UK&I",
+      "Southern Europe & Middle East",
+      "Northern Europe",
+      "DACH",
+      "EMEA Others",
+      "CE Others",
+    ];
+    const compareMarketUnitsFn = (x, y) => {
+      const ix = marketUnitOrder.indexOf(x);
+      const iy = marketUnitOrder.indexOf(y);
+      if (ix !== -1 && iy !== -1) return ix - iy;
+      if (ix !== -1) return -1;
+      if (iy !== -1) return 1;
+      return compareStringsIgnoreCaseFn(x, y);
+    };
+
+    function buildDrawerDropdowns(selectedValuesList) {
+      // build option sets for each dropdown level based on previous selections
+      const optionLists = new Array(listOfDrawerDropdownIds.length)
+        .fill(0)
+        .map(() => new Set());
+
+      for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+        rawDrawerDropdownData.forEach((row) => {
+          let ok = true;
+          for (let j = 0; j < i; j++) {
+            ok &&= selectedValuesList[j].includes("All")
+              ? true
+              : selectedValuesList[j].includes(row[j]);
+          }
+          if (ok) optionLists[i].add(row[i]);
+        });
+      }
+
+      // sort and add 'All'
+      for (let i = 0; i < optionLists.length; i++) {
+        optionLists[i] = [...optionLists[i]]
+          .filter((v) => v)
+          .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn);
+        optionLists[i].unshift("All");
+      }
+
+      // insert BU & SBU options (skip MU checkbox container here)
+      // index 1 -> #unique_mcu, index 2 -> #unique_sbu
+      [1, 2].forEach((index) => {
+        const element = listOfDrawerDropdownElements[index];
+        element.empty();
+        optionLists[index].forEach((opt) => {
+          const selected = (selectedValuesList[index] || "").includes(opt);
+          element.append(new Option(opt, opt, false, selected));
+        });
+        element.trigger("change.select2");
+      });
+
+      market_units = optionLists[0];
+    }
+
+    function prepare_market_units() {
+      let template = "";
+      let selected_market = selectedMU;
+
+      for (let i = 1; i < market_units.length; i++) {
+        const mu = market_units[i];
+        const selectedArr = selected_market.includes(",")
+          ? selected_market.split(",")
+          : [selected_market];
+
+        const checked =
+          (selected_market === "All" && !selected_market.includes(",")) ||
+          selectedArr.includes(mu);
+        template += `
+          <span class="mx-1">
+            <input class="form-check-input market_unit_option" type="checkbox"
+                  name="unq_region[]" value="${mu}" ${checked ? "checked" : ""}
+                  onchange="change_market_unit(this)">
+            <label style="font-size:0.8rem;" class="form-check-label">${mu}</label>
+          </span>`;
+      }
+
+      $(".unq_region").html(template);
+    }
+
+    window.change_market_unit = function () {
+      let selectedValues = listOfDrawerDropdownIds.map(
+        (id) => $(id).val() || ["All"],
+      );
+      let checkedMU = $(".market_unit_option:checked")
+        .map((_, el) => $(el).val())
+        .get();
+      selectedValues[0] = checkedMU.length ? checkedMU : ["All"];
+
+      // reset BU/SBU to All on MU change
+      selectedValues[1] = ["All"];
+      selectedValues[2] = ["All"];
+
+      buildDrawerDropdowns(selectedValues);
+    };
+
+    $("#unique_mcu").on("select2:select", function () {
+      let selectedValues = listOfDrawerDropdownIds.map(
+        (id) => $(id).val() || ["All"],
+      );
+      let checkedMU = $(".market_unit_option:checked")
+        .map((_, el) => $(el).val())
+        .get();
+      selectedValues[0] = checkedMU.length ? checkedMU : ["All"];
+
+      // reset SBU on BU change
+      selectedValues[2] = ["All"];
+      buildDrawerDropdowns(selectedValues);
+    });
+
+    $("#unique_sbu").on("select2:select", function () {
+      let selectedValues = listOfDrawerDropdownIds.map(
+        (id) => $(id).val() || ["All"],
+      );
+      let checkedMU = $(".market_unit_option:checked")
+        .map((_, el) => $(el).val())
+        .get();
+      selectedValues[0] = checkedMU.length ? checkedMU : ["All"];
+      buildDrawerDropdowns(selectedValues);
+    });
+
+    buildDrawerDropdowns(selectedDrawerValuesList);
+    prepare_market_units();
+
+    var idxLabel = chartIdxLabel || "{{ idx_label_selected|escapejs }}";
+    loadPVDStats();
+    loadPVDData();
+    loadQPZDData();
+    loadChartData(idxLabel, "all");
+    loadReqStartDateChartData();
+    loadAccountNameChartData();
+    loadSunburstChartData();
+    updatePvdTitleBasedOnSOStatus();
+
+    $('#reset').click(async function (e) {
+    e.preventDefault()
+    window.location.href = `${window.location.origin}${window.location.pathname}`
+    });
+  });
+</script>
+
+{% endblock %}

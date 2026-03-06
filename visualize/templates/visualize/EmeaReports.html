@@ -1,0 +1,2584 @@
+{% extends 'visualize/common.html' %}
+{% load static %}
+{% block content %}
+<body style="background-color: black;">
+<style>
+     #mapping_container {
+    position: relative;
+    top: 10px;
+    outline: 2px solid white;
+    background-color: white;
+    margin: auto;
+    height: 400px;
+    width: 650px;
+    padding: 0;
+    border: none;
+    font-weight: 1000;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .grid {
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: 1px solid white;
+    display: inline-block;
+  }
+
+  .grid-container {
+    display: grid;
+    background-color: white;
+    padding: 5px;
+    width: fit-content;
+    margin: auto auto;
+  }
+
+  .grid-container>div {
+    border: none;
+    text-align: center;
+    padding: 0px 0;
+    font-size: 30px;
+  }
+  ul {
+  list-style-type: none;
+  margin: 10px;
+  padding: 0;
+  font-size: 15px;
+}
+li{
+    text-align: center;
+}
+/* tabulator table style */
+.new-bg .tabulator-cell {
+  background-color: #c2def0;
+  font-size: 20px;
+  color:#00f;
+  font-weight: bold;
+  
+}
+
+.tabulator .tabulator-header {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    border-bottom: 1px solid #999;
+    background-color: rgb(68,114,196);
+    color: #f8f8f8;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+   
+}
+.tabulator-col .tabulator-col-sorter i {
+      display: none;
+    }
+    /* #QulUnQualTable.tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[role="columnheader"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title{
+      color: #4472c4 !important;
+      background: #D9E2F3;
+    } */
+    .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-random {
+      display: inline-block;
+      color: #ffffff;
+    }
+  
+    .tabulator-sortable[aria-sort="asc"] .tabulator-col-sorter i.fa-sort-random {
+      display: none;
+    }
+  
+    .tabulator-sortable[aria-sort="desc"] .tabulator-col-sorter i.fa-sort-random {
+      display: none;
+    }
+  
+    .tabulator-sortable[aria-sort="asc"] .tabulator-col-sorter i.fa-sort-amount-asc {
+      display: inline-block;
+      color: #ffffff;
+    }
+.tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-asc {
+      display: none;
+    }
+    .tabulator-col .tabulator-col-group[title=""] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="TotalCost"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols  .tabulator-col[title="TFTE"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="CostFTE"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="FTE %"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+  .tabulator-cell {
+      color: black;
+      font-weight: normal;
+      font-size: 10px !important;
+      background-color: rgb(217, 226, 243);  
+      padding: 8px !important;
+  }
+  /* shows only single filter icon in col  */
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-random {
+      display: none;
+      color: #ffffff;
+  }
+  /* hides the equalizer sort icon in column */
+  .tabulator-col .tabulator-col-sorter i {
+      display: none;
+  }
+  .tabulator-headers {
+      font-size: 11px;
+  }
+  /* removes default background color of the table */
+  .tabulator {
+      border: none;
+      background: none;
+  }
+  /* applies the background color for header one */
+  .tabulator .tabulator-header .tabulator-col {
+      border-right: 1px solid #8eb7e5;
+      background: #4472c4;
+  }
+
+  .tabulator-row {
+      background-color: rgb(217, 226, 243) !important;
+  }
+
+  /* .tabulator-col-sorter {
+      position: initial !important;
+      justify-content: center;
+  } */
+  .tabulator-col[aria-sort="none"] .tabulator-col-sorter i{
+      display:none;
+      color:#999;
+  }
+
+.tabulator-row .tabulator-cell {
+  border-right: 1px solid #8eb7e5;
+  border-bottom: 1px solid #8eb7e5;
+}
+
+.tabulator-row .tabulator-frozen.tabulator-frozen-left {
+  border-right: 1px solid #8eb7e5;
+}
+.new-bg .tabulator-cell {
+  background-color: #c2def0;
+  font-size: 20px;
+  color:#00f;
+  font-weight: bold;
+  
+}
+
+.tabulator-cell.col-special {
+  background-color: #c2def0 !important;
+  font-size: 20px;
+  color:#00f;
+  font-weight: bold;
+}
+.tabulator-row .tabulator-cell a {
+      white-space: pre-wrap;
+  }
+
+.table-scroll{
+  
+  max-height: 400px;
+
+  
+}
+
+.tabulator-cell {
+  /* color: #0000ff; */
+  background-color: #D9E2F3;
+  font-size: 9px;
+}
+.tabulator-cell:hover {
+  /* text-decoration: underline; */
+}
+#example-table .tabulator-cell:hover {
+    text-decoration: none;
+    overflow: visible;
+    z-index: 2;
+    white-space: normal;
+    background-color: #ffffff;
+   
+}
+.tabulator-cell:first-child{
+  color:#fff;
+  background-color: rgb(68,114,196);
+  font-size: 9px;
+  text-decoration: none;
+}
+.tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-random {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-random {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-random {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: none;
+  }
+
+
+
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-random {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-random {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-random {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-amount-asc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="descending"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: inline-block;
+    color: #ffffff;
+  }
+
+  .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: none;
+  }
+
+  .tabulator-sortable[aria-sort="ascending"] .tabulator-col-sorter i.fa-sort-amount-desc {
+    display: none;
+  }
+
+  .tabulator-col>.tabulator-col-group-cols>.tabulator-col-group>.tabulator-col-content {
+    /* background-color: rgb(217, 226, 243); */
+    color:white;
+  }
+
+  .tabulator-col>.tabulator-col-group-cols>.tabulator-col-group>.tabulator-col-content:hover {
+    /* background-color: rgb(217, 226, 243); */
+    color:white;
+  }
+  .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols {
+      border-top: 1px solid #8eb7e5;
+    }
+    .tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title{
+      color: white;
+    }
+    .tabulator {
+      border: none;
+      background: none;
+    }
+  
+    .tabulator-headers {
+      font-size: 11px;
+    }
+    .tabulator-col .tabulator-col-sorter i {
+      display: none;
+    }
+  
+    .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-random {
+      display: inline-block;
+      color: #ffffff;
+    }
+  
+    .tabulator-sortable[aria-sort="asc"] .tabulator-col-sorter i.fa-sort-random {
+      display: none;
+    }
+  
+    .tabulator-sortable[aria-sort="desc"] .tabulator-col-sorter i.fa-sort-random {
+      display: none;
+    }
+  
+    .tabulator-sortable[aria-sort="asc"] .tabulator-col-sorter i.fa-sort-amount-asc {
+      display: inline-block;
+      color: #ffffff;
+    }
+  
+    .tabulator-sortable[aria-sort="none"] .tabulator-col-sorter i.fa-sort-amount-asc {
+      display: none;
+    }
+    .tabulator-col .tabulator-col-group[title=""] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="TotalCost"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols  .tabulator-col[title="TFTE"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="CostFTE"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols .tabulator-col[title="FTE %"] .tabulator-col-content .tabulator-col-title-holder .tabulator-col-title {
+      color: white !important;
+    }
+    .tabulator .tabulator-tableHolder .tabulator-placeholder span{
+      color:black;
+    }
+.bluish {
+  background-color: rgb(227, 227, 243);
+  max-width: 60%;
+  /* overflow-x: auto;
+  overflow-y: auto; */
+  overflow: scroll;
+  flex-grow:1;
+  max-height: 120vh;
+  margin: 1px;
+}
+.bluish1 {
+  background-color: #dfecdf;
+  max-width: 40%;
+  overflow: scroll;
+  flex:1;
+  max-height: 120vh;
+  margin: 1px;
+}
+td{
+    background-color: #d9e2f3 !important;
+  }
+  .fixTableHead { 
+      overflow-y: auto; 
+      max-height: 400px; 
+    } 
+    .fixTableHead thead th { 
+      position: sticky; 
+      top: 0;  
+    } 
+    th p{
+      color: white;
+      margin-top:10px;
+    }
+    table { 
+      border-collapse: separate !important;         
+      width: 100%; 
+    } 
+    th { 
+      color: white;
+      background-color: #4472c4;
+    }
+    td p{
+      margin-top: 10px;
+      /* text-align:ceter; */
+      /* width:105px; */
+      /* word-wrap: break-word; */
+      font-size:12px;
+      /* font-weight:bold; */
+      margin-left: 1px;
+    }
+    th .sortable{
+
+    }
+</style>
+<!-- <div style="background-color: #e3e3f3;margin: 5px;">
+    <h1 style="font-size: 30px;font-weight:bold;text-align:center">Wins and Pipeline</h1>
+</div> -->
+<!-- <div  style="margin: 10 10 0 10;">
+  <label style="color:whitesmoke;font-size: 12px;"> 
+    <span style="color: red;">* </span><b id="line11"></b> TCV wins <b>YTD {{idx_label_selected}}</b> with the WR of <b id="line12"></b>.
+    <span style="color: red;">** </span><b>Book to Bill ratio 1.02</b> (based on rolling 12-month data Aug 2023 to Jul 2024).
+    <span style="color: red;">*** </span><b id="line3"></b> of opportunities in stage 4 and 5: to be prioritized to accelerate revenues for Q3 and Q4 FY2024.
+  </label>
+  <label style="color:whitesmoke;font-size: 12px;">  
+    <span style="color: red;">**** </span>Win Ratio of ‘New and Competitive’ deals is <b id="line41"></b> while that of Renewal / Expansion is <b id="line42"></b>. However, <b id="line43"></b> of the <b id="line44"></b> qualified pipeline is ‘New, New and Competitive’.
+    <span style="color: red;">***** </span>The average WIN size <b id="line5"></b>.
+  </label>
+</div> -->
+<div style="height: 100%;display:flex;gap: 1px;margin: 10px;">
+  <div class="bluish">
+      <div style="display: flex;gap:10px;margin: 5px;justify-content: center;">
+        <div style="width: 500px;background-color: midnightblue;max-height: 360px;margin: 5px;">
+            <h4 style="text-align:center;font-size:larger;font-weight: bold;color: white;">YTD {{idx_label_selected}}</h4>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Wins (New, New & Competitive)</li> 
+                        <li style="font-weight:bold" id="WinsNew$"> $1.2 B </li>
+                        <!-- <li style="color: red;">(Losses $ 3.79 Bn)</li>  -->
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <!-- <li style="">Wins (Renewal / Expansion)</li> -->
+                        <li>Wins (Renewal)</li>
+                        <li style="font-weight:bold" id="WinsRenewal$">$1.23 B</li>
+                        <!-- <li style="color: red;">(Losses $ 125 Mn)</li> -->
+                    </ul>
+                </div>
+            </div>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Win Ratio(New Clients)</li>
+                        <!-- <p style="width:120px">$1.23 B</p> -->
+                        <li style="font-weight:bold" id="WinRatio_NewClient"></li>
+                    </ul>
+                </div>
+                <div hidden style="background-color: white;width: 30%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Win Ratio(New & Competitive)</li>
+                        <!-- <p style="width:120px">$1.23 B</p> -->
+                        <li style="font-weight:bold" id="WinRatio_NewComp"></li>
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <!-- <li style="">Wins (Renewal / Expansion)</li> -->
+                        <!-- <p style="width:120px">$1.23 B</p> -->
+                        <li>Wins (Renewal)</li>
+                        <li style="font-weight:bold" id="WinRatio_Renewal"></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="width: 200px;background-color: midnightblue;max-height: 360px;margin: 5px;">
+            <h4 style="text-align:center;font-size:larger;font-weight: bold;color: white;">Opportunity Source</h4>
+            <div style="background-color: white;margin: 15px;height: 60px;">
+                <ul>
+                    <li>Proactive</li>
+                    <li style="font-weight:bold" id="Proactive$"></li>
+                    <!-- <li style="color: red;">(Lost $49 Mn)</li> -->
+                </ul>
+            </div>
+            <div style="background-color: white;margin: 15px;height: 60px;">
+                <ul>
+                    <li>Customers</li>
+                    <li style="font-weight:bold" id="Direct$"></li>
+                    <!-- <li style="color: red;">(Lost 387 Mn)</li> -->
+                </ul>
+            </div>
+            <div style="background-color: white;margin: 15px;height: 60px;">
+                <ul>
+                <li>Proactive/TPA</li>
+                <li style="font-weight:bold" id="TPA$"></li>
+                <!-- <li style="color: red;">(Lost $22 Mn)</li> -->
+                </ul>
+            </div>
+            <div style="background-color: white;margin: 15px;height: 60px;">
+              <ul>
+              <li>UnAssigned</li>
+              <li style="font-weight:bold" id="Unassigned$"></li>
+              <!-- <li style="color: red;">(Lost $22 Mn)</li> -->
+              </ul>
+          </div>
+        </div>
+      </div>
+      <div style="margin: 5 55 5 55;display: flex;justify-content: center;background-color: rgb(68,114,196);">
+        <table>
+          <thead>
+  
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <p style="margin: 10px;text-align: left;">
+                  <b id="line11"></b> TCV wins <b>YTD {{idx_label_selected}}</b> with the WR of <b id="line12"></b>.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p style="margin: 10px;text-align: left;">
+                  <b id="line3"></b> of opportunities in stage 4 and 5: to be prioritized to accelerate revenues for <b id="line31"></b>.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p style="margin: 10px;text-align: left;">
+                    Win Ratio of ‘New and Competitive’ deals is <b id="line41"></b> while that of Renewal is <b id="line42"></b>. However, <b id="line43"></b> of the <b id="line44"></b> qualified pipeline is ‘New, New and Competitive’.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p style="margin: 10px;text-align: left;">
+                  The average WIN size <b id="line5"></b>.
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div hidden style="display: flex;gap:10px;margin: 5px;justify-content: center;">
+      
+        <div style="width: 350px;background-color: cornflowerblue;max-height: 300px;margin: 5px;">
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Pipeline</li> 
+                        <li > Unqualified </li>
+                        <li style="font-weight:bold" id="PipeUnQualified">(Losses $ 3.79 Bn)</li> 
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Pipeline</li>
+                        <li >Qualified</li>
+                        <li style="font-weight:bold" id="PipeQualified">(Losses $ 125 Mn)</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Pipeline</li> 
+                        <li >Renewal / Expn.</li>
+                        <li style="font-weight:bold" id="PipeRenewal">(Losses $ 3.79 Bn)</li> 
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Pipeline</li>
+                        <li >New Clients</li>
+                        <li style="font-weight:bold" id="PipeNew">(Losses $ 125 Mn)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="width: 350px;background-color: cornflowerblue;max-height: 300px;margin: 5px;">
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Qualified Pipeline</li> 
+                        <li > Stage 4, 5 </li>
+                        <li style="font-weight:bold" id="Qual4,5Stage"></li> 
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Proactive Proposal</li>
+                        <li >Pipeline</li>
+                        <li style="font-weight:bold" id="ProactiveProposal"></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Qualified Pipeline</li> 
+                        <li >New, New & Comp.</li>
+                        <li style="font-weight:bold" id="QualNew"></li> 
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                    <ul>
+                        <li style="">Qualified Pipeline</li>
+                        <li >Renewal / Expn.</li>
+                        <li style="font-weight:bold" id="QualRenewal"></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+      </div>
+  </div>
+  <div class="bluish1">
+    <!-- <div style="margin: 5 55 5 55;display: flex;justify-content: center;background-color: rgb(68,114,196);">
+      <table>
+        <thead>
+
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <p style="margin: 10px;text-align: left;">
+                <b id="line11"></b> TCV wins <b>YTD {{idx_label_selected}}</b> with the WR of <b id="line12"></b>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <p style="margin: 10px;text-align: left;">
+                <b id="line3"></b> of opportunities in stage 4 and 5: to be prioritized to accelerate revenues for <b id="line31"></b>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <p style="margin: 10px;text-align: left;">
+                  Win Ratio of ‘New and Competitive’ deals is <b id="line41"></b> while that of Renewal is <b id="line42"></b>. However, <b id="line43"></b> of the <b id="line44"></b> qualified pipeline is ‘New, New and Competitive’.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <p style="margin: 10px;text-align: left;">
+                The average WIN size <b id="line5"></b>.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div> -->
+      <div style="margin: 5 55 5 55;display: none;justify-content: center;background-color: rgb(68,114,196);">
+      <ul style="list-style-type:disc;margin-top: 1px;color: white;">
+          <li style="margin: 10px;text-align: left;">
+              <b id="line11"></b> TCV wins <b>YTD {{idx_label_selected}}</b> with the WR of <b id="line12"></b>.
+          </li>
+          <li style="margin: 10px;text-align: left;">
+              <b>Book to Bill ratio 1.02</b> (based on rolling 12-month data Aug 2023 to Jul 2024).
+          </li>
+          <li style="margin: 10px;text-align: left;">
+              <b id="line3"></b> of opportunities in stage 4 and 5: to be prioritized to accelerate revenues for Q3 and Q4 FY2024.
+          </li>
+          <li style="margin: 10px;text-align: left;">
+              Win Ratio of ‘New and Competitive’ deals is <b id="line41"></b> while that of Renewal / Expansion is <b id="line42"></b>. However, <b id="line43"></b> of the <b id="line44"></b> qualified pipeline is ‘New, New and Competitive’.
+          </li>
+          <li style="margin: 10px;text-align: left;">
+              The average WIN size <b id="line5"></b>.
+          </li>
+      </ul>
+  </div>
+    <div style="display: flex;justify-content: center;">
+      <div id="loading-imagechart">
+        <img src="{% static 'image/loader2.gif' %}"/>
+      </div>
+      <div id="wintable" style="margin: 5px;"></div> 
+    </div>
+    <div style="display: flex;justify-content: center;">
+      <div id="loading-imagechartAvg">
+        <img src="{% static 'image/loader2.gif' %}"/>
+      </div>
+      <div id="AvgTcvTable" style="margin: 5px;"></div>
+    </div>
+    <!-- <div style="display: flex;justify-content: center;">
+      <div id="PipeQulUnq" style="margin: 5px;"></div>
+    </div>
+    <div style="display: flex;justify-content: center;">
+      <div id="qulpnnc" style="margin: 5px;"></div>
+    </div> -->
+    <!-- <div style="display: flex;justify-content: center;">
+      <div id="QulUnQualTable" style="margin: 5px;"></div>
+    </div> -->
+  </div>
+</div>
+<div style="margin: 10px;justify-content: left;background-color: rgb(227, 227, 243);">
+  <h4 style="font-size: 18px;font-weight:bold;text-align:-webkit-center">Qualified and UnQualified</h4>
+  <div style="display: flex;">
+    <div id="loading-imagechartqulunqul" style="margin: 5px;">
+      <img src="{% static 'image/loader2.gif' %}"/>
+    </div>
+    <div id="QulUnQualTable" style="margin: 5px;"></div>
+  </div>
+    <!-- <div style="display: flex;gap:10px;margin: 5px;">
+        <div style="width: 500px;background-color: midnightblue;max-height: 360px;margin: 5px;">
+            <h4 style="text-align:center;font-size:larger;font-weight: bold;color: white;">YTD {{idx_label_selected}}</h4>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Wins (New, New & Competitive)</li> 
+                        <li style="font-weight:bold" id="WinsNew$"> $1.2 B </li>
+                        <li style="color: red;">(Losses $ 3.79 Bn)</li> 
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 48%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Wins (Renewal / Expansion)</li>
+                        <li style="font-weight:bold" id="WinsRenewal$">$1.23 B</li>
+                        <li style="color: red;">(Losses $ 125 Mn)</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="display:flex;">
+                <div style="background-color: white;width: 30%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Win Ratio(New Clients)</li>
+                        <p style="width:120px">$1.23 B</p>
+                        <li style="font-weight:bold" id="WinRatio_NewClient"></li>
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 30%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Win Ratio(New & Competitive)</li>
+                        <p style="width:120px">$1.23 B</p>
+                        <li style="font-weight:bold" id="WinRatio_NewComp"></li>
+                    </ul>
+                </div>
+                <div style="background-color: white;width: 30%;margin: 20px;height: 120px;">
+                    <ul>
+                        <li style="">Wins (Renewal / Expansion)</li>
+                        <p style="width:120px">$1.23 B</p>
+                        <li style="font-weight:bold" id="WinRatio_Renewal"></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="width: 200px;background-color: midnightblue;max-height: 360px;margin: 5px;">
+            <h4 style="text-align:center;font-size:larger;font-weight: bold;color: white;">Opportunity Source</h4>
+            <div style="background-color: white;margin: 20px;height: 80px;">
+                <ul>
+                    <li>Proactive</li>
+                    <li style="font-weight:bold" id="Proactive$"></li>
+                    <li style="color: red;">(Lost $49 Mn)</li>
+                </ul>
+            </div>
+            <div style="background-color: white;margin: 20px;height: 80px;">
+                <ul>
+                    <li>Customers</li>
+                    <li style="font-weight:bold" id="Direct$"></li>
+                    <li style="color: red;">(Lost 387 Mn)</li>
+                </ul>
+            </div>
+            <div style="background-color: white;margin: 20px;height: 80px;">
+                <ul>
+                <li>Proactive/TPA</li>
+                <li style="font-weight:bold" id="TPA$"></li>
+                <li style="color: red;">(Lost $22 Mn)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div style="margin: 5px;display: none;">
+        <ul style="list-style-type:disc;margin-top: 30px;color: white;">
+            <li style="margin: 10px;text-align: left;">
+                <b id="line11"></b> TCV wins <b>YTD {{idx_label_selected}}</b> with the WR of <b id="line12"></b>.
+            </li>
+            <li style="margin: 10px;text-align: left;">
+                <b>Book to Bill ratio 1.02</b> (based on rolling 12-month data Aug 2023 to Jul 2024).
+            </li>
+            <li style="margin: 10px;text-align: left;">
+                <b id="line3"></b> of opportunities in stage 4 and 5: to be prioritized to accelerate revenues for Q3 and Q4 FY2024.
+            </li>
+            <li style="margin: 10px;text-align: left;">
+                Win Ratio of ‘New and Competitive’ deals is <b id="line41"></b> while that of Renewal / Expansion is <b id="line42"></b>. However, <b id="line43"></b> of the <b id="line44"></b> qualified pipeline is ‘New, New and Competitive’.
+            </li>
+            <li style="margin: 10px;text-align: left;">
+                The average WIN size <b id="line5"></b>.
+            </li>
+        </ul>
+    </div> -->
+    <!---THiS IS BOX ITEMS-->
+    <!-- <div style="display: flex;gap:10px;margin: 5px;justify-content: center;">
+      <div id="wintable" style="margin: 5px;"></div> 
+      <div id="AvgTcvTable" style="margin: 5px;"></div>
+  </div> -->
+    <!---- Box items End---->
+</div>
+<!----Second Table----->
+<!-- <div style="display: flex;gap:10px;margin: 5px;">
+    
+    <div style="width: 350px;background-color: cornflowerblue;max-height: 300px;margin: 5px;">
+        <div style="display:flex;">
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Pipeline</li> 
+                    <li > Unqualified </li>
+                    <li style="font-weight:bold" id="PipeUnQualified">(Losses $ 3.79 Bn)</li> 
+                </ul>
+            </div>
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Pipeline</li>
+                    <li >Qualified</li>
+                    <li style="font-weight:bold" id="PipeQualified">(Losses $ 125 Mn)</li>
+                </ul>
+            </div>
+        </div>
+        <div style="display:flex;">
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Pipeline</li> 
+                    <li >Renewal / Expn.</li>
+                    <li style="font-weight:bold" id="PipeRenewal">(Losses $ 3.79 Bn)</li> 
+                </ul>
+            </div>
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Pipeline</li>
+                    <li >New Clients</li>
+                    <li style="font-weight:bold" id="PipeNew">(Losses $ 125 Mn)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div style="width: 350px;background-color: cornflowerblue;max-height: 300px;margin: 5px;">
+        <div style="display:flex;">
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Qualified Pipeline</li> 
+                    <li > Stage 4, 5 </li>
+                    <li style="font-weight:bold" id="Qual4,5Stage"></li> 
+                </ul>
+            </div>
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Proactive Proposal</li>
+                    <li >Pipeline</li>
+                    <li style="font-weight:bold" id="ProactiveProposal"></li>
+                </ul>
+            </div>
+        </div>
+        <div style="display:flex;">
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Qualified Pipeline</li> 
+                    <li >New, New & Comp.</li>
+                    <li style="font-weight:bold" id="QualNew"></li> 
+                </ul>
+            </div>
+            <div style="background-color: white;width: 48%;margin: 10px;height: 120px;">
+                <ul>
+                    <li style="">Qualified Pipeline</li>
+                    <li >Renewal / Expn.</li>
+                    <li style="font-weight:bold" id="QualRenewal"></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div> -->
+<h4 id="displaywinration" style="margin: 5px;color:black;display: none;" ></h4>
+<!-- <div style="display: flex;gap:10px;margin: 5px;justify-content: center;"> -->
+    <!-- <h4>Total Wins</h4> -->
+    <!-- <div id="wintable" style="margin: 5px;"></div> -->
+    <!-- <h4>Total Wins Average Deal size</h4> -->
+    <!-- <div id="AvgTcvTable" style="margin: 5px;"></div> -->
+    <!-- <div id="WinNewNewCompTable" style="margin: 5px;"></div> -->
+    
+<!-- </div> -->
+<!-- <div style="display: flex;gap:10px;margin: 5px;background-color: #e3e3f3;">
+    <div id="WinRenExpTable" style="margin: 5px;"></div>
+    <div id="WinNewClTable" style="margin: 5px;"></div>
+    <div id="WinNewCompTable" style="margin: 5px;"></div>
+</div> -->
+<!-- <div style="display: flex;gap:10px;margin: 5px;background-color: #e3e3f3;">
+    <div id="WinLosstable" style="margin: 5px;"></div>
+    <div id="Windiretable" style="margin: 5px;"></div>
+    <div id="Winparttable" style="margin: 5px;"></div>
+    
+</div> -->
+
+<!-- <div style="display: flex;gap:10px;margin: 5px;justify-content: center;"> -->
+    <!-- <div id="PipeQulUnq" style="margin: 5px;"></div> -->
+    <!-- <div id="PipeRenExp" style="margin: 5px;"></div>
+    <div id="PipeNewCl" style="margin: 5px;"></div>
+    <div id="PipeProact" style="margin: 5px;"></div> -->
+<!-- </div> -->
+<!-- <div style="display: flex;gap:10px;margin: 5px;justify-content: center;"> -->
+    <!-- <div id="qulst45" style="margin: 5px;"></div> -->
+    <!-- <div id="qulpnnc" style="margin: 5px;"></div> -->
+    <!-- <div id="qulprenw" style="margin: 5px;"></div> -->
+<!-- </div> -->
+
+<script>
+    
+    grid_body = JSON.parse(`{{ tableData|safe }}`);
+    firsttableids = ['WinsNew$',
+                    'WinsRenewal$',
+                    'WinRatio_NewClient',
+                    'WinRatio_NewComp',
+                    'WinRatio_Renewal'
+                    ]
+    for(x in firsttableids){
+        elem = document.getElementById(firsttableids[x])
+        if(firsttableids[x].includes('Ratio')){
+          val = !grid_body[0][firsttableids[x]]?0:grid_body[0][firsttableids[x]]
+            elem.innerText = parseFloat(val).toFixed(2)+' %'
+            elem.setAttribute('title',val+' %')
+        }else{
+          val = !grid_body[0][firsttableids[x]]?0:grid_body[0][firsttableids[x]]
+            elem.innerText = '$'+parseFloat(val).toFixed(2)+' M'
+            elem.setAttribute('title',val+' M')
+        }
+    }
+    secondtableids = ['Proactive$','Direct$','TPA$','Unassigned$']
+    for(x in secondtableids){
+        elem = document.getElementById(secondtableids[x])
+        val = !grid_body[0][secondtableids[x]]?0:grid_body[0][secondtableids[x]]
+            elem.innerText = 'Won $ '+ parseFloat(val).toFixed(2)+' Mn'
+            elem.setAttribute('title',val+' Mn')
+        
+    }
+    thirdtableids = ['PipeQualified',
+                    'PipeUnQualified',
+                    'PipeRenewal',
+                    'PipeNew']
+    for(x in thirdtableids){
+        elem = document.getElementById(thirdtableids[x])
+            val = !grid_body[0][thirdtableids[x]]?0:grid_body[0][thirdtableids[x]]
+            elem.innerText = '$ '+ parseFloat(val).toFixed(2)+' M'
+            elem.setAttribute('title',val+' M')
+        
+    }
+    forthtableids = ['Qual4,5Stage','QualNew','QualRenewal','ProactiveProposal']
+    for(x in forthtableids){
+        elem = document.getElementById(forthtableids[x])
+        if(forthtableids[x] === 'QualNew' || forthtableids[x] === 'ProactiveProposal' ){
+            val = !grid_body[0][forthtableids[x]]?0:grid_body[0][forthtableids[x]]
+            elem.innerText = '$ '+ parseFloat(val).toFixed(2)+' M'
+            elem.setAttribute('title',val+' M')
+        }else{
+          val = !grid_body[0][forthtableids[x]]?0:grid_body[0][forthtableids[x]]
+            elem.innerText = '$ '+ parseFloat(val).toFixed(2)+' M'
+            elem.setAttribute('title',val+' M')
+        }
+    }
+    /////// Paragraph lines
+    elem = document.getElementById("line5")
+    val = !grid_body[0]['AVGTCV']?0:grid_body[0]['AVGTCV']
+    elem.innerText = '$'+parseFloat(val).toFixed(2)+'K'
+    elem.setAttribute('title',val+'K')
+/////// line11,line12
+    elem = document.getElementById("line11")
+    val = !grid_body[0]['Won$']?0:grid_body[0]['Won$']
+    elem.innerText = '$'+parseFloat(val).toFixed(2)+' M'
+    elem.setAttribute('title',val+' M')
+    elem = document.getElementById("line12")
+    val = !grid_body[0]['WinRatio']?0:grid_body[0]['WinRatio']
+    elem.innerText = parseFloat(val).toFixed(2)+'%'
+    elem.setAttribute('title',val+'%')
+///////////////////////////// line3
+    elem = document.getElementById("line3")
+    val = !grid_body[0]['Qual4,5Stage']?0:grid_body[0]['Qual4,5Stage']
+    elem.innerText = '$'+parseFloat(val).toFixed(2)+' Mn'
+    elem.setAttribute('title',val+' Mn')
+    elem = document.getElementById("line31")
+    val = !grid_body[0]['Qual4,5Stage']?0:grid_body[0]['Descr']
+    elem.innerText = val
+    elem.setAttribute('title',val)
+/////////////////////////// line41,lin42,line43,line44
+    elem = document.getElementById("line41")
+    val = !grid_body[0]['WinRatio_NewComp']?0:grid_body[0]['WinRatio_NewComp']
+    elem.innerText = parseFloat(val).toFixed(2)+'%'
+    elem.setAttribute('title',val+'%')
+    elem = document.getElementById("line42")
+    val = !grid_body[0]['WinRatio_Renewal']?0:grid_body[0]['WinRatio_Renewal']
+    elem.innerText = parseFloat(val).toFixed(2)+'%'
+    elem.setAttribute('title',val+'%')
+    elem = document.getElementById("line43")
+    val = !grid_body[0]['QualNew']?0:grid_body[0]['QualNew']
+    elem.innerText = '$'+parseFloat(val).toFixed(2)+' M'
+    elem.setAttribute('title',val+' M')
+    elem = document.getElementById("line44")
+    val = !grid_body[0]['PipeQualified']?0:grid_body[0]['PipeQualified']
+    elem.innerText = '$'+parseFloat(val).toFixed(2)+' M'
+    elem.setAttribute('title',val+' M')
+////////////////////////////
+         
+// WinstableData = JSON.parse(`{{ WinstableData|safe }}`);
+// var winratiotext;
+// for(x in WinstableData){
+//     if(WinstableData[x]['R_BU'] === 'WinRatio'){
+//         winratiotext = parseFloat(WinstableData[x]['TotalTCV']).toFixed(2)+'%'
+//     }
+// }
+// PipelinetableData = JSON.parse(`{{ PipelinetableData|safe }}`);
+// QualPipetableData = JSON.parse(`{{ QualPipetableData|safe }}`);
+// ratioelem = document.getElementById('displaywinration')
+// ratioelem.innerText = 'Win Ratio '+winratiotext
+// rows = [...new Set(WinstableData.map(item => item.R_BU))];
+// columns = [...new Set(WinstableData.map(item => item['Sales Stage']))];
+// columnsMod = columns.filter(function(item) {
+//     return item !== 'Total' && item !== 'WinRatio'
+// })
+// rowsMod = rows.filter(function(item) {
+//     return  item !== 'WinRatio'
+// })
+
+// columnsMod.push('Grand Total')
+// columnsMod.unshift('Sales');
+// rowsMod.splice(rowsMod.indexOf('Total'),1)
+// rowsMod.push('Total')
+// console.log(columnsMod,rowsMod)
+/////////// Making Table Data /////
+// function CreateData(rowsMod,columnsMod,WinstableData){
+// finaltabledata = [];
+//         for(x in rowsMod){
+//             newobj = {'Sales':rowsMod[x]}
+//             grandTotal = 0;
+//             for(y in columnsMod){
+//                 for(z in WinstableData){
+//                     if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] ){
+//                         newobj[columnsMod[y]] = WinstableData[z]['TotalTCV']
+//                         grandTotal = grandTotal+WinstableData[z]['TotalTCV']
+//                     }
+//                 }
+//             }
+//             newobj['Grand Total'] = grandTotal
+//             finaltabledata.push(newobj)
+//         }
+//         if(finaltabledata.length === 1){
+//           return[]
+//         }else{
+//         return finaltabledata
+//         }
+// }
+// wintable
+// function CreateColumnsData(montht,TitleName,extension){
+//     column_data = [];
+//     for(s of montht){
+//         column_data.push({
+//             title:s=='Sales'?'':s+extension,
+//             field:s,
+//             // cssClass:'white',
+//             cssClass:s === 'Grand Total' ? 'col-Special'  : 'white',
+//             headerHozAlign: 'center',
+//             formatter: s=='Sales'?null:s.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+//             width:s === 'Sales'?'60':'90',
+//             // height:'50',
+//             headerHozAlign: 'center',
+//             resizable: true,
+//             hozAlign:s === "Sales"?'left':'right',
+//             sorter: 'string',
+//             headerTooltip:true,
+//             tooltip: true,
+//         })
+//                 }
+//     returcols =[{title:TitleName,headerHozAlign: 'center',columns:column_data}]
+    
+//     return returcols
+// }
+// function CReateTable(id,columndata,rows,columns,tableData,TitleName,extension){
+//         var table = new Tabulator(id, {
+//                             layout: 'fitColumns',
+                            
+//                             columns:CreateColumnsData(columndata,TitleName,extension),
+//                             data:CreateData(rows,columns,tableData),
+//                             headerSort:false,
+//                             rowFormatter: (row) => {
+//                             if(row.getData()['Sales'] == "Total") {
+//                               row.getElement().classList.add('new-bg');
+//                             }
+//                             },
+                            
+//                         });
+//             }
+// CReateTable("#wintable",columnsMod,rowsMod,columnsMod,WinstableData,"Total Wins ($ B)",' (in $B)')
+            ///AVGTCV Table
+// AvgtableData = JSON.parse(`{{ AvgtableData|safe }}`);
+// rowsAvg = [...new Set(AvgtableData.map(item => item.R_BU))];
+// columnsAvg = [...new Set(AvgtableData.map(item => item['Sales Stage']))];
+// columnsAvgMod = columnsAvg.filter(function(item) {
+//     return item !== 'Total' && item !== 'WinRatio'
+// })
+// rowsAvgMod = rowsAvg.filter(function(item) {
+//     return  item !== 'WinRatio'
+// })
+// columnsAvgMod.push('Grand Total')
+// columnsAvgMod.unshift('Sales');
+// rowsAvgMod.splice(rowsAvgMod.indexOf('Total'),1)
+// rowsAvgMod.push('Total')
+// console.log("523",columnsAvgMod,rowsAvgMod,columnsAvgMod,AvgtableData)
+// CReateTable("#AvgTcvTable",columnsAvgMod,rowsAvgMod,columnsAvgMod,AvgtableData,'Total Wins Average Deal size (in $K)',' (in $K)')
+// CReateTable("#WinNewNewCompTable",columnsMod,rowsMod,columnsMod,WinstableData,' Wins (New, New & Competitive)')
+// CReateTable("#WinRenExpTable",columnsMod,rowsMod,columnsMod,WinstableData,'Wins (Renewals & Expansion)')
+// CReateTable("#WinNewClTable",columnsMod,rowsMod,columnsMod,WinstableData,'Wins (New Clients)')
+// CReateTable("#WinNewCompTable",columnsMod,rowsMod,columnsMod,WinstableData,' Wins (New & Competitive)')
+// CReateTable("#WinLosstable",columnsMod,rowsMod,columnsMod,WinstableData,'Wins / Loss (Proactive)')
+// CReateTable("#Windiretable",columnsMod,rowsMod,columnsMod,WinstableData,'Wins (Direct from Customer)')
+// CReateTable("#Winparttable",columnsMod,rowsMod,columnsMod,WinstableData,'Wins (Partners  TPA)')
+////// PipelIne Report ////
+// pipelinecolumns = ['Sales','UnQualified','Qualified'];
+// console.log("557",PipelinetableData)
+
+// columnsMod = ['Sales','UnQualified','Qualified','Grand Total']
+// rowspipe = [...new Set(PipelinetableData.map(item => item.R_BU))];
+// rowspipemod = rowspipe.filter(function(item) {
+//     return  item !== 'WinRatio'
+// })
+// rowspipemod.splice(rowspipemod.indexOf('Total'),1)
+// rowspipemod.push('Total')
+// console.log("582",PipelinetableData)
+// function CreatePipelineData(rowspipemod,columnsMod,PipelinetableData){
+//     finaltabledata = [];
+//         for(x in rowspipemod){
+//             newobj = {'Sales':rowspipemod[x]}
+//             grandTotal = 0;
+//             // for(y in columnsMod){
+//                 for(z in PipelinetableData){
+//                     if( rowspipemod[x] === PipelinetableData[z]['R_BU'] ){
+//                         newobj['Qualified'] = PipelinetableData[z]['Qualified']
+//                         newobj['UnQualified'] = PipelinetableData[z]['UnQualified']
+//                         grandTotal = PipelinetableData[z]['Qualified']+ PipelinetableData[z]['UnQualified']
+//                     // }
+//                 }
+//             }
+//             newobj['Grand Total'] = grandTotal
+//             finaltabledata.push(newobj)
+//             // console.log(newobj,"599")
+//         }
+//         if(finaltabledata.length === 1){
+//           return[]
+//         }else{
+//         return finaltabledata
+//         }
+// }
+// function CreatePipelineColumnsData(montht,TitleName){
+//     column_data = [];
+//     for(s of montht){
+//         column_data.push({
+//             title:s=='Sales'?'':s,
+//             field:s,
+//             // cssClass:'white',
+//             cssClass:s === 'Grand Total' ? 'col-Special'  : 'white',
+//             headerHozAlign: 'center',
+//             formatter: s=='Sales'?null:s.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+//             width:s === 'Sales'?'60':'120',
+//             // height:'50',
+//             headerHozAlign: 'center',
+//             resizable: true,
+//             hozAlign:s === "Sales"?'left':'right',
+//             sorter: 'string',
+//             tooltip: true,
+//         })
+//                 }
+//     returcols =[{title:TitleName,headerHozAlign: 'center',columns:column_data}]
+//                 // console.log(column_data)
+//     return returcols
+// }
+// function CreatePipelineDataTable(id,TitleName){
+//             var table = new Tabulator(id, {
+//                                         layout: 'fitColumns',
+//                                         // headerHozAlign: 'right',
+//                                         // autoColumns: true,
+//                                         columns:CreatePipelineColumnsData(columnsMod,TitleName),
+//                                         data:CreatePipelineData(rowspipemod,columnsMod,PipelinetableData),
+//                                         headerSort:false,
+//                                         rowFormatter: (row) => {
+//                                         if(row.getData()['Sales'] == "Total") {
+//                                           row.getElement().classList.add('new-bg');
+//                                         }
+//                                         },
+//                                         // cellClick:function(e, cell){
+//                                         //               var RowHead =  cell._cell.row.data.rowhead;
+//                                         //               var monthName = cell._cell.column.field;
+//                                         //               if(monthName != 'Total'){
+//                                         //               getEmployeeDataForMonth({'month':monthName,'pop_grade':RowHead,'pop_promotion':'Promoted'});
+//                                         //                         }
+//                                         //                       },
+//                                     });
+//                     }
+// CreatePipelineDataTable("#PipeQulUnq",'Unqualified & Qualified Pipeline')
+// CreatePipelineDataTable("#PipeRenExp",'Renewal & Expansion Pipeline')
+// CreatePipelineDataTable("#PipeNewCl",'New Clients Pipeline')
+// CreatePipelineDataTable("#PipeProact",'Proactive Proposal Pipeline')
+///////////////////// QualPipeLineTbl ///////////////
+// QualPipetableData = JSON.parse(`{{ QualPipetableData|safe }}`);
+// console.log(QualPipetableData)
+// for(x in QualPipetableData){
+//     if(QualPipetableData[x]['Sales Stage'] === '3. Solutioning'){
+//         QualPipetableData[x]['Sales Stage'] = 'Solutioning'
+//     }else if(QualPipetableData[x]['Sales Stage'] === '4. End-Game'){
+//         QualPipetableData[x]['Sales Stage'] = 'End-Game'
+//     }else{
+//         QualPipetableData[x]['Sales Stage'] = 'Negotiation'
+//     }
+// }
+// Qulrows = [...new Set(QualPipetableData.map(item => item.R_BU))];
+// Qulcolumns = [...new Set(QualPipetableData.map(item => item['Sales Stage']))];
+// QulcolumnsMod = Qulcolumns.filter(function(item) {
+//     return item !== 'Total' && item !== 'WinRatio'
+// })
+// QulrowsMod = Qulrows.filter(function(item) {
+//     return  item !== 'WinRatio'
+// })
+// 4. End-Game
+// 4. End-Game
+// QulcolumnsMod.push('Grand Total')
+// QulcolumnsMod.unshift('Sales');
+// Qulcolumns45Mod = []
+// Qulcolumns45Mod = Qulcolumns45Mod.concat(QulcolumnsMod)
+// Qulcolumns45Mod.splice(Qulcolumns45Mod.indexOf('Solutioning'),1)
+// Qulcolumns45Mod.unshift('Sales');
+// QulrowsMod.splice(QulrowsMod.indexOf('Total'),1)
+// QulrowsMod.push('Total')
+// console.log("654",Qulcolumns45Mod,QulcolumnsMod,QulrowsMod)
+///////////////////////////////////////////////////////////////////////////
+// console.log("654",QualPipetableData)
+// function CreateStageData(rowsMod,columnsMod,WinstableData,type){ //console.log(columnsMod,"663")
+// finaltabledata = [];
+//         for(x in rowsMod){
+//             newobj = {'Sales':rowsMod[x]}
+//             grandTotal = 0;
+//             for(y in columnsMod){
+//                 for(z in WinstableData){
+//                     if(type === 'new'){
+//                         if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] && (WinstableData[z]['R_Deal Type']=== 'New' || WinstableData[z]['R_Deal Type'] === 'New and Competitive') ){
+//                             newobj[columnsMod[y]] = WinstableData[z]['Qualified']
+//                             grandTotal = grandTotal+WinstableData[z]['Qualified']
+                            
+//                         }
+//                     }else if(type === 'Renewal'){
+//                         if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] && WinstableData[z]['R_Deal Type']=== 'Renewal/Expansion'  ){
+//                             newobj[columnsMod[y]] = WinstableData[z]['Qualified']
+//                             grandTotal = grandTotal+WinstableData[z]['Qualified']
+                            
+//                         }
+//                     }else{
+//                         if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] ){
+//                             newobj[columnsMod[y]] = !newobj[columnsMod[y]]?WinstableData[z]['Qualified']:newobj[columnsMod[y]]+WinstableData[z]['Qualified']
+//                             grandTotal = grandTotal+WinstableData[z]['Qualified']
+                            
+//                         }
+//                     }
+//                 }
+//             }
+//             newobj['Grand Total'] = grandTotal
+//             finaltabledata.push(newobj)
+//             // console.log(newobj,"719")
+//         }
+//         // console.log(finaltabledata)
+//         if(finaltabledata.length === 1){
+//           return[]
+//         }else{
+//         return finaltabledata
+//         }
+// }
+// wintable
+// function CreateStageColumnsData(montht,TitleName){
+//     column_data = [];
+//     for(s of montht){
+//         column_data.push({
+//             title:s=='Sales'?'':s === 'End-Game'?'4. End-Game':s === 'Solutioning'?'3. Solutioning':s === 'Negotiation'?'5. Negotiation':s,
+//             field:s,
+//             // cssClass:'white',
+//             cssClass:s === 'Grand Total' ? 'col-Special'  : 'white',
+//             headerHozAlign: 'center',
+//             formatter: s=='Sales'?null:s.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+//             width:s === 'Sales'?'60':'90',
+//             // height:'50',
+//             headerHozAlign: 'center',
+//             resizable: true,
+//             hozAlign:s === "Sales"?'left':'right',
+//             sorter: 'string',
+//             tooltip: true,
+//         })
+//                 }
+//     returcols =[{title:TitleName,headerHozAlign: 'center',columns:column_data}]
+//     // console.log(column_data)
+//     return returcols
+// }
+// oppurtype = JSON.parse(`{{opt_opp_type|safe}}`)
+// accounttype = `{{selected_acc_type}}`
+// sourcetype = `{{selected_opp_source}}`
+// console.log(sourcetype,accounttype,oppurtype)
+// function CReateQulPipeTable(id,columndata,rows,columns,tableData,type,TitleName){
+//         var table = new Tabulator(id, {
+//                             layout: 'fitColumns',
+//                             // headerHozAlign: 'right',
+//                             // autoColumns: true,
+//                             columns:CreateStageColumnsData(columndata,TitleName),
+//                             data:CreateStageData(rows,columns,tableData,type),
+//                             headerSort:false,
+//                             rowFormatter: (row) => {
+//                             if(row.getData()['Sales'] == "Total") {
+//                               row.getElement().classList.add('new-bg');
+//                             }
+//                             },
+//                         });
+//             }
+            // CReateQulPipeTable("#qulst45",Qulcolumns45Mod,QulrowsMod,Qulcolumns45Mod,QualPipetableData,'All','Qualified Pipeline (Stage 4 & 5)')
+            // CReateQulPipeTable("#qulpnnc",QulcolumnsMod,QulrowsMod,QulcolumnsMod,QualPipetableData,'All','Qualified Pipeline') //'Qualified Pipeline (New, New & Compettive)')
+</script>
+<script>
+  $(document).ready(async function () {
+      const checkboxs = document.querySelectorAll('input[name="vertical[]"]:checked');
+          let values=[];
+          checkboxs.forEach((checkbox)=>{
+          values.push(checkbox.value);
+          })
+      vertical = values.join(',');
+          
+      const checkboxs1 = document.querySelectorAll('input[name="region[]"]:checked');
+      let values1=[];
+      checkboxs1.forEach((checkbox)=>{
+      values1.push(checkbox.value);
+      })
+      market = values1.join(',');
+      const checkboxs2 = document.querySelectorAll('input[name="sales_stageNew[]"]:checked');
+      let values2=[];
+      checkboxs2.forEach((checkbox)=>{
+      values2.push(checkbox.value);
+      })
+      salesstage = values2.join(',');
+      const checkboxs3 = document.querySelectorAll('input[name="deal_size[]"]:checked');
+      let values3=[];
+      checkboxs3.forEach((checkbox)=>{
+      values3.push(checkbox.value);
+      })
+      dealsize = values3.join(',');
+  
+      const checkboxs4 = document.querySelectorAll('input[name="type[]"]:checked');
+      let values4=[];
+      checkboxs4.forEach((checkbox)=>{
+      values4.push(checkbox.value);
+      })
+      type = values4.join(',');
+  
+      const checkboxs5 = document.querySelectorAll('input[name="tier_data[]"]:checked');
+      let values5=[];
+      checkboxs5.forEach((checkbox)=>{
+      values5.push(checkbox.value);
+      })
+      tierdata = values5.join(',');
+      // console.log(tierdata)
+      var winzone_value = document.getElementById("winzone_id").value
+      // vertical = values.join(',');
+      // type[],sales_stage[],deal_size[],tier_data[]
+      let res = await axios.get('{% url "AjaxCallForWinstableData" %}',{
+      params:{
+          'idx_label':$('#idx_label').val(),
+          'unique_mcu':$('#unique_mcu').val(),
+          'unique_sbu':$('#unique_sbu').val(),
+          'unique_account_name':$('#unique_account_name').val(),
+          'opp_Source':$('#opp_Source').val(),
+          'Acc_Type':$('#Acc_Type').val(),
+          'vertical':vertical,
+          'salesstage':salesstage,
+          'market':market,
+          'winzone_id':winzone_value,
+          'dealsize':dealsize,
+          'opptype':type,
+          'tierdata':tierdata
+      }
+      });
+      
+      // console.log(res)
+      ////////////// won lost ////////////////////
+      WinstableData= res['data']['tableData']
+      // console.log(WinstableData)
+
+      // Define layout
+      // WinstableData = JSON.parse(`{{ WinstableData|safe }}`);
+      var winratiotext;
+      for(x in WinstableData){
+          if(WinstableData[x]['R_BU'] === 'WinRatio'){
+              winratiotext = parseFloat(WinstableData[x]['TotalTCV']).toFixed(2)+'%'
+          }
+      }
+
+      ratioelem = document.getElementById('displaywinration')
+      ratioelem.innerText = 'Win Ratio '+winratiotext
+      rows = [...new Set(WinstableData.map(item => item.R_BU))];
+      columns = [...new Set(WinstableData.map(item => item['Sales Stage']))];
+      columnsMod = columns.filter(function(item) {
+          return item !== 'Total' && item !== 'WinRatio'
+      })
+      rowsMod = rows.filter(function(item) {
+          return  item !== 'WinRatio'
+      })
+
+      columnsMod.push('Grand Total')
+      columnsMod.unshift('Sales');
+      rowsMod.splice(rowsMod.indexOf('Total'),1)
+      rowsMod.push('Total')
+      // console.log(columnsMod,rowsMod)
+      /////////// Making Table Data /////
+      function CreateData(rowsMod,columnsMod,WinstableData){
+      finaltabledata = [];
+              for(x in rowsMod){
+                  newobj = {'Sales':rowsMod[x]}
+                  grandTotal = 0;
+                  for(y in columnsMod){
+                      for(z in WinstableData){
+                          if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] ){
+                              newobj[columnsMod[y]] = WinstableData[z]['TotalTCV']
+                              grandTotal = grandTotal+WinstableData[z]['TotalTCV']
+                          }
+                      }
+                  }
+                  // console.log(newobj)
+                  newobj['Grand Total'] = grandTotal
+                  finaltabledata.push(newobj)
+              }
+              if(finaltabledata.length === 1){
+                return[]
+              }else{
+              return finaltabledata
+              }
+      }
+
+      function formatterFunc(value){
+        if(!isNaN(value)){
+          return '$ '+value.toFixed(1)
+        }else{
+          return 0
+        }
+      }
+      // wintable
+      function CreateColumnsData(montht,TitleName,extension){
+          column_data = [];
+          for(s of montht){
+              column_data.push({
+                  title:s=='Sales'?'':s+extension,
+                  field:s,
+                  // cssClass:'white',
+                  cssClass:s === 'Grand Total' ? 'col-Special'  : 'white',
+                  headerHozAlign: 'center',
+                  formatter: s=='Sales'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                  width:s === 'Sales'?'60':'90',
+                  // height:'50',
+                  headerHozAlign: 'center',
+                  resizable: true,
+                  hozAlign:s === "Sales"?'left':'right',
+                  sorter: 'string',
+                  headerTooltip:true,
+                  tooltip: true,
+              })
+                      }
+          returcols =[{title:TitleName,headerHozAlign: 'center',columns:column_data}]
+          // console.log(column_data)
+          return returcols
+      }
+      function CReateTable(id,columndata,rows,columns,tableData,TitleName,extension){
+              var table = new Tabulator(id, {
+                                  layout: 'fitColumns',
+                                  maxHeight:'250px',
+                                  // headerHozAlign: 'right',
+                                  // autoColumns: true,
+                                  columns:CreateColumnsData(columndata,TitleName,extension),
+                                  data:CreateData(rows,columns,tableData),
+                                  placeholder:tableData.length===1?'No Data Found':null,
+                                  headerSort:false,
+                                  rowFormatter: (row) => {
+                                  if(row.getData()['Sales'] == "Total") {
+                                    row.getElement().classList.add('new-bg');
+                                  }
+                                  },
+                                  // cellClick:function(e, cell){
+                                  //               var RowHead =  cell._cell.row.data.rowhead;
+                                  //               var monthName = cell._cell.column.field;
+                                  //               if(monthName != 'Total'){
+                                  //               getEmployeeDataForMonth({'month':monthName,'pop_grade':RowHead,'pop_promotion':'Promoted'});
+                                  //                         }
+                                  //                       },
+                              });
+                  }
+      CReateTable("#wintable",columnsMod,rowsMod,columnsMod,WinstableData,"Total Wins ($ M)",' (in $M)')
+
+      // Plotting the chart
+      // Plotly.newPlot('byWonLost', tracesdealsInPipeline, layout);
+      document.getElementById("loading-imagechart").style.display = "none";
+      
+  })
+</script>
+<script>
+  $(document).ready(async function () {
+      const checkboxs = document.querySelectorAll('input[name="vertical[]"]:checked');
+      // console.log(checkboxs,"1024")
+          let values=[];
+          checkboxs.forEach((checkbox)=>{
+          values.push(checkbox.value);
+          })
+      vertical = values.join(',');
+          
+      const checkboxs1 = document.querySelectorAll('input[name="region[]"]:checked');
+      let values1=[];
+      checkboxs1.forEach((checkbox)=>{
+      values1.push(checkbox.value);
+      })
+      market = values1.join(',');
+      const checkboxs2 = document.querySelectorAll('input[name="sales_stageNew[]"]:checked');
+      let values2=[];
+      checkboxs2.forEach((checkbox)=>{
+      values2.push(checkbox.value);
+      })
+      salesstage = values2.join(',');
+      const checkboxs3 = document.querySelectorAll('input[name="deal_size[]"]:checked');
+      let values3=[];
+      checkboxs3.forEach((checkbox)=>{
+      values3.push(checkbox.value);
+      })
+      dealsize = values3.join(',');
+  
+      const checkboxs4 = document.querySelectorAll('input[name="type[]"]:checked');
+      let values4=[];
+      checkboxs4.forEach((checkbox)=>{
+      values4.push(checkbox.value);
+      })
+      type = values4.join(',');
+  
+      const checkboxs5 = document.querySelectorAll('input[name="tier_data[]"]:checked');
+      let values5=[];
+      checkboxs5.forEach((checkbox)=>{
+      values5.push(checkbox.value);
+      })
+      tierdata = values5.join(',');
+      // console.log(tierdata)
+      var winzone_value = document.getElementById("winzone_id").value
+      // vertical = values.join(',');
+      // type[],sales_stage[],deal_size[],tier_data[]
+      let res = await axios.get('{% url "AjaxCallForAvgWinstableData" %}',{
+      params:{
+          'idx_label':$('#idx_label').val(),
+          'unique_mcu':$('#unique_mcu').val(),
+          'unique_sbu':$('#unique_sbu').val(),
+          'unique_account_name':$('#unique_account_name').val(),
+          'opp_Source':$('#opp_Source').val(),
+          'Acc_Type':$('#Acc_Type').val(),
+          'vertical':vertical,
+          'salesstage':salesstage,
+          'market':market,
+          'winzone_id':winzone_value,
+          'dealsize':dealsize,
+          'opptype':type,
+          'tierdata':tierdata
+      }
+      });
+      
+      // console.log(res)
+      ////////////// won lost ////////////////////
+      AvgtableData= res['data']['tableData']
+      // console.log(AvgtableData)
+
+      // Define layout
+      // WinstableData = JSON.parse(`{{ WinstableData|safe }}`);
+      // var winratiotext;
+      // for(x in WinstableData){
+      //     if(WinstableData[x]['R_BU'] === 'WinRatio'){
+      //         winratiotext = parseFloat(WinstableData[x]['TotalTCV']).toFixed(2)+'%'
+      //     }
+      // }
+
+      // ratioelem = document.getElementById('displaywinration')
+      // ratioelem.innerText = 'Win Ratio '+winratiotext
+      // rows = [...new Set(WinstableData.map(item => item.R_BU))];
+      // columns = [...new Set(WinstableData.map(item => item['Sales Stage']))];
+      // columnsMod = columns.filter(function(item) {
+      //     return item !== 'Total' && item !== 'WinRatio'
+      // })
+      // rowsMod = rows.filter(function(item) {
+      //     return  item !== 'WinRatio'
+      // })
+
+      // columnsMod.push('Grand Total')
+      // columnsMod.unshift('Sales');
+      // rowsMod.splice(rowsMod.indexOf('Total'),1)
+      // rowsMod.push('Total')
+      // console.log(columnsMod,rowsMod)
+      /////////// Making Table Data /////
+      function CreateData(rowsMod,columnsMod,WinstableData){
+      finaltabledata = [];
+              for(x in rowsMod){
+                  newobj = {'Sales':rowsMod[x]}
+                  grandTotal = 0;
+                  for(y in columnsMod){
+                      for(z in WinstableData){
+                          if( rowsMod[x] === WinstableData[z]['R_BU'] && columnsMod[y] === WinstableData[z]['Sales Stage'] ){
+                              newobj[columnsMod[y]] = WinstableData[z]['TotalTCV']
+                              grandTotal = grandTotal+WinstableData[z]['TotalTCV']
+                          }
+                      }
+                  }
+                  newobj['Grand Total'] = grandTotal
+                  finaltabledata.push(newobj)
+              }
+              if(finaltabledata.length === 1){
+                return[]
+              }else{
+              return finaltabledata
+              }
+      }
+      // wintable
+      function formatterFunc(value){
+        if(!isNaN(value)){
+          return '$ '+value.toFixed(1)
+        }else{
+          return 0
+        }
+      }
+      function CreateColumnsData(montht,TitleName,extension){
+          column_data = [];
+          for(s of montht){
+              column_data.push({
+                  title:s=='Sales'?'':s+extension,
+                  field:s,
+                  // cssClass:'white',
+                  cssClass:s === 'Grand Total' ? 'col-Special'  : 'white',
+                  headerHozAlign: 'center',
+                  // formatter: s=='Sales'?null:s.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+                  formatter: s=='Sales'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                  width:s === 'Sales'?'60':'90',
+                  // height:'50',
+                  headerHozAlign: 'center',
+                  resizable: true,
+                  hozAlign:s === "Sales"?'left':'right',
+                  sorter: 'string',
+                  headerTooltip:true,
+                  tooltip: true,
+              })
+                      }
+          returcols =[{title:TitleName,headerHozAlign: 'center',columns:column_data}]
+          // console.log(column_data)
+          return returcols
+      }
+      function CReateTable(id,columndata,rows,columns,tableData,TitleName,extension){
+              var table = new Tabulator(id, {
+                                  layout: 'fitColumns',
+                                  maxHeight:'250px',
+                                  // headerHozAlign: 'right',
+                                  // autoColumns: true,
+                                  columns:CreateColumnsData(columndata,TitleName,extension),
+                                  data:CreateData(rows,columns,tableData),
+                                  placeholder:tableData.length===1?'No Data Found':null,
+                                  headerSort:false,
+                                  rowFormatter: (row) => {
+                                  if(row.getData()['Sales'] == "Total") {
+                                    row.getElement().classList.add('new-bg');
+                                  }
+                                  },
+                                  // cellClick:function(e, cell){
+                                  //               var RowHead =  cell._cell.row.data.rowhead;
+                                  //               var monthName = cell._cell.column.field;
+                                  //               if(monthName != 'Total'){
+                                  //               getEmployeeDataForMonth({'month':monthName,'pop_grade':RowHead,'pop_promotion':'Promoted'});
+                                  //                         }
+                                  //                       },
+                              });
+                  }
+      // CReateTable("#wintable",columnsMod,rowsMod,columnsMod,WinstableData,"Total Wins ($ B)",' (in $B)')
+      // AvgtableData = JSON.parse(`{{ AvgtableData|safe }}`);
+      rowsAvg = [...new Set(AvgtableData.map(item => item.R_BU))];
+      columnsAvg = [...new Set(AvgtableData.map(item => item['Sales Stage']))];
+      columnsAvgMod = columnsAvg.filter(function(item) {
+          return item !== 'Total' && item !== 'WinRatio'
+      })
+      rowsAvgMod = rowsAvg.filter(function(item) {
+          return  item !== 'WinRatio'
+      })
+      columnsAvgMod.push('Grand Total')
+      columnsAvgMod.unshift('Sales');
+      rowsAvgMod.splice(rowsAvgMod.indexOf('Total'),1)
+      rowsAvgMod.push('Total')
+      // console.log("523",columnsAvgMod,rowsAvgMod,columnsAvgMod,AvgtableData)
+      CReateTable("#AvgTcvTable",columnsAvgMod,rowsAvgMod,columnsAvgMod,AvgtableData,'Total Wins Average Deal size (in $K)',' (in $K)')
+
+      // Plotting the chart
+      // Plotly.newPlot('byWonLost', tracesdealsInPipeline, layout);
+      document.getElementById("loading-imagechartAvg").style.display = "none";
+      
+  })
+</script>
+<script>
+  $(document).ready(async function () {
+      const checkboxs = document.querySelectorAll('input[name="vertical[]"]:checked');
+      // console.log(checkboxs,"1632")
+          let values=[];
+          checkboxs.forEach((checkbox)=>{
+          values.push(checkbox.value);
+          })
+      vertical = values.join(',');
+          // console.log(vertical,"1638")
+      const checkboxs1 = document.querySelectorAll('input[name="region[]"]:checked');
+      let values1=[];
+      checkboxs1.forEach((checkbox)=>{
+      values1.push(checkbox.value);
+      })
+      market = values1.join(',');//console.log(market,"1644")
+      const checkboxs2 = document.querySelectorAll('input[name="sales_stageNew[]"]:checked');
+      let values2=[];
+      checkboxs2.forEach((checkbox)=>{
+      values2.push(checkbox.value);
+      })
+      salesstage = values2.join(',');//console.log(salesstage,"1650")
+      const checkboxs3 = document.querySelectorAll('input[name="deal_size[]"]:checked');
+      let values3=[];
+      checkboxs3.forEach((checkbox)=>{
+      values3.push(checkbox.value);
+      })
+      dealsize = values3.join(',');
+      // console.log(dealsize,"1657")
+      const checkboxs4 = document.querySelectorAll('input[name="type[]"]:checked');
+      let values4=[];
+      checkboxs4.forEach((checkbox)=>{
+      values4.push(checkbox.value);
+      })
+      type = values4.join(',');
+      // console.log(type,"1664")
+      const checkboxs5 = document.querySelectorAll('input[name="tier_data[]"]:checked');
+      let values5=[];
+      checkboxs5.forEach((checkbox)=>{
+      values5.push(checkbox.value);
+      })
+      var tierdata = values5.join(',');
+      // console.log(tierdata,"1671")
+      var winzone_value = document.getElementById("winzone_id").value
+      // vertical = values.join(',');
+      // type[],sales_stage[],deal_size[],tier_data[]
+      let res = await axios.get('{% url "AjaxCallForQulUnQualtableData" %}',{
+      params:{
+          'idx_label':$('#idx_label').val(),
+          'unique_mcu':$('#unique_mcu').val(),
+          'unique_sbu':$('#unique_sbu').val(),
+          'unique_account_name':$('#unique_account_name').val(),
+          'opp_Source':$('#opp_Source').val(),
+          'Acc_Type':$('#Acc_Type').val(),
+          'vertical':vertical,
+          'salesstage':salesstage,
+          'market':market,
+          'winzone_id':winzone_value,
+          'dealsize':dealsize,
+          'opptype':type,
+          'tierdata':tierdata
+      }
+      });
+      
+      // console.log(res)
+      ////////////// won lost ////////////////////
+      CombineQualPipetableData= res['data']['tableData']
+      // console.log(CombineQualPipetableData)
+
+  function HandleNANValues(cell){
+            if(typeof cell === NaN){
+              return '$ ' +0
+            }else{
+              return '$ '+cell
+            }
+  }
+            /////////////////////////////// final table //////////////////          
+                    // CombineQualPipetableData = JSON.parse(`{{ CombineQualPipetableData|safe }}`);
+                    // console.log(CombineQualPipetableData);
+                    QulNonqulrows = [...new Set(CombineQualPipetableData.map(item => item.R_BU))];
+                    qul_unqul = ['Sales Stage','UnQualified','Qualified'];
+                    qul_cols = [];
+                    unqul_cols = [];
+                    function createcolsdata(qul_or_unqul){
+                      arr = [];
+                      for(x in CombineQualPipetableData){
+                        if(CombineQualPipetableData[x]['Descr'] === qul_or_unqul){
+                          if(!arr.includes(CombineQualPipetableData[x]['Sales Stage'])){
+                            arr.push(CombineQualPipetableData[x]['Sales Stage'])
+                          }
+                        }
+                      }
+                      return arr;
+                    }
+                    qul_cols = createcolsdata('Qualified').sort()
+                    unqul_cols = createcolsdata('UnQualified').sort()
+                    // console.log(unqul_cols,"1194")
+                    if(qul_cols.length ===0){
+                      qul_unqul= ['Sales Stage','UnQualified'];
+                      unqualifiedcols = unqul_cols.slice();
+                      unqualifiedcols.push('Total')
+                    }else if(unqul_cols.length ===0){
+                      qul_unqul= ['Sales Stage','Qualified'];
+                      qualifiedcols = qul_cols.slice();
+                      qualifiedcols.push('Total')
+                    }
+                    else if(unqul_cols.length ===0 && qul_cols.length ===0){
+                      qul_unqul= [];
+                      // qualifiedcols = qul_cols.slice();
+                      // qualifiedcols.push('Total')
+                    }
+                    else{
+                    qualifiedcols = qul_cols.slice();
+                    qualifiedcols.push('Total')
+
+                    unqualifiedcols = unqul_cols.slice();
+                    unqualifiedcols.push('Total')
+                    }
+                    function formatterFunc(value){
+                      if(!isNaN(value)){
+                        return '$ '+value.toFixed(1)
+                      }else{
+                        return 0
+                      }
+                    }
+                    function MakingOfColsforQualAndUnqualTable(colname){
+                      subcols = [];
+                      for(var a of colname){
+                        if(a === 'Sales Stage'){
+                            subcols.push({
+                                                    title:'',
+                                                    field: a,
+                                                    width:'60',
+                                                    //  cssClass:ColorCodeForBilled(bill),
+                                                  // cssClass:col === 'Grand Total' ? 'white col-special pt3 pb2'  : 'white pt3 pb2',
+                                                    headerHozAlign: 'center',
+                                                    resizable: false,
+                                                    hozAlign:'left',
+                                                    sorter: 'number',
+                                                    tooltip: true,
+                                                    headerVertical:false,
+                                                    vertAlign:'left',
+                                                    visible:true,
+                                                    headerSort:false,
+                                                    headerTooltip:true,
+                                                    formatter: a=='Sales Stage'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                                                    // formatter:a=='Sales Stage'?null:a.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => HandleNANValues(cell.getValue()), // '$ '+Number(cell.getValue()).toFixed(1),  
+                                                  
+                                                    
+                                })
+                          }
+                          else if(a === 'Qualified'){
+                              subcols.push({
+                                                  title:a+' (in $M)',
+                                                  // field: a,
+                                                  // width:'90',
+                                                  //  cssClass:ColorCodeForBilled(bill),
+                                                // cssClass:col === 'Grand Total' ? 'white col-special pt3 pb2'  : 'white pt3 pb2',
+                                                  headerHozAlign: 'center',
+                                                  resizable: false,
+                                                  hozAlign:'left',
+                                                  sorter: 'number',
+                                                  tooltip: true,
+                                                  headerVertical:false,
+                                                  vertAlign:'left',
+                                                  visible:true,
+                                                  headerSort:false,
+                                                  headerTooltip:true,
+                                                  // formatter:a=='Sales Stage'?null:a.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+                                                  formatter: a=='Sales Stage'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                                                  headerClick:async function(e, column){
+                                                  e.stopPropagation();
+                                                  if(e.target.classList.contains('fa-random')||e.target.classList.contains('fa-sort-amount-asc')||e.target.classList.contains('fa-sort-amount-desc')){
+                                                    return;
+                                                    // console.log("Here 1230")
+                                                  }else{
+                                                    // console.log("Here 1232")
+                                                    openModalContentDemand({'SelectedValue':'Qualified (in $M)','Month':subcols,columnSelected:column._column.definition.title})
+                                                  }
+                                                },
+                                                  titleFormatter: function(column){
+                                                                      return '<i class="fa fa-minus" style="margin:3;font-size:12px;"></i>' + column.getValue() ;//cell.getColumn().getDefinition().title
+                                                                    },
+                                                  columns:qualifiedcols.map((b)=>{ 
+                                                  return{
+                                                    title: b+' (in $M)',
+                                                    field: b === 'Total'?'Qualified':b.substring(3),
+                                                    width:'115',
+                                                    // cssClass:'white',
+                                                    headerHozAlign: 'center',
+                                                    resizable: false,
+                                                    hozAlign:'right',
+                                                    // sorter: 'string',
+                                                    tooltip: true,
+                                                    headerTooltip:true,
+                                                    headerSort:false,
+                                                    // formatter:b=='Sales Stage'?null:b.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell =>'$ '+Number(cell.getValue()).toFixed(1),  
+                                                    formatter: b=='Sales Stage'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                                                    visible: b === 'Total'?true:true}}),
+                                                                // frozen:true,
+                                                                // formatter:cell=>MYformatter(cell),
+                                                  
+                              })
+                              
+                            }
+                            else if(a === 'UnQualified'){
+                              subcols.push({
+                                                  title:a+' (in $M)',
+                                                  field: a,
+                                                  // width:'90',
+                                                  //  cssClass:ColorCodeForBilled(bill),
+                                                // cssClass:col === 'Grand Total' ? 'white col-special pt3 pb2'  : 'white pt3 pb2',
+                                                  headerHozAlign: 'center',
+                                                  resizable: false,
+                                                  hozAlign:'left',
+                                                  sorter: 'number',
+                                                  tooltip: true,
+                                                  headerVertical:false,
+                                                  vertAlign:'left',
+                                                  visible:true,
+                                                  headerSort:false,
+                                                  headerTooltip:true,
+                                                  // formatter:a=='Sales Stage'?null:a.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+                                                  formatter: a=='Sales Stage'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                                                  headerClick:async function(e, column){
+                                                    // console.log(e.target.classList)
+                                                  e.stopPropagation();
+                                                  if(e.target.classList.contains('fa-random')||e.target.classList.contains('fa-sort-amount-asc')||e.target.classList.contains('fa-sort-amount-desc')){
+                                                    return;
+                                                    // console.log("Here")
+                                                  }else{
+                                                    // console.log("Here else")
+                                                    openModalContentDemand({'SelectedValue':'UnQualified (in $M)','Month':subcols,columnSelected:column._column.definition.title})
+                                                  }
+                                                },
+                                                titleFormatter: function(column){
+                                                                      return '<i class="fa fa-minus" style="margin:3;font-size:12px;"></i>' + column.getValue() ;//cell.getColumn().getDefinition().title
+                                                                    },
+                                                  columns:unqualifiedcols.map((b)=>{ 
+                                                          return{
+                                                            width:'130',
+                                                            title: b+' (in $M)',
+                                                            field: b === 'Total'?'UnQualified':b.substring(3),
+                                                            // cssClass:'white',
+                                                            headerHozAlign: 'center',
+                                                            resizable: false,
+                                                            hozAlign:'right',
+                                                            // sorter: 'string',
+                                                            tooltip: true,
+                                                            headerTooltip:true,
+                                                            headerSort:false,
+                                                            formatter: b=='Sales Stage'?null:cell => (formatterFunc(Number(cell.getValue()))),
+                                                            // formatter:b=='Sales Stage'?null:b.endsWith('%')?cell => (Number(cell.getValue()).toFixed(1))+'%':cell => '$ '+Number(cell.getValue()).toFixed(1),  
+                                                            visible: b === 'Total'?true:true}}),
+                                                  // frozen:true,
+                                                  // formatter:cell=>MYformatter(cell),
+                                                  
+                              })
+                            }
+                            
+                          }
+
+                          subcols.push({
+                                                  title:'Grand Total'+' (in $M)',
+                                                  field:'Grand Total',
+                                                  width:'90',
+                                                  formatter:cell => '$ '+Number(cell.getValue()).toFixed(1),
+                                                  //  cssClass:ColorCodeForBilled(bill),
+                                                  cssClass:'white col-special pt3 pb2' ,
+                                                  headerHozAlign: 'center',
+                                                  resizable: false,
+                                                  hozAlign:'right',
+                                                  sorter: 'number',
+                                                  tooltip: true,
+                                                  headerVertical:false,
+                                                  vertAlign:'left',
+                                                  visible:true,
+                                                  headerSort:false,
+                                                  headerTooltip:true,})
+                          // colsdata = [{title:"Qualified and UnQualified",columns:subcols}]                        
+                          return subcols
+                    }
+                    callcolsdata = MakingOfColsforQualAndUnqualTable(qul_unqul)
+                    ///////////// MakingcombQulandUnQuaData /////
+                    qul_unqulfinal = ['Qualified','UnQualified']
+                    qul_colsf = [];
+                    for(x in qul_cols){
+                      qul_colsf.push(qul_cols[x].substring(3))
+                    }
+                    unqul_colsf =[]
+                    for(x in unqul_cols){
+                      unqul_colsf.push(unqul_cols[x].substring(3))
+                    }
+                    // qul_cols
+                    // unqul_cols
+                    finalqulunquldatacomines = []
+
+                    removespace = [];
+                    for(x in CombineQualPipetableData){
+                      obbj = CombineQualPipetableData[x]
+                      val = CombineQualPipetableData[x]['Sales Stage'].substring(3)
+                      obbj['Sales Stage']=val
+                      removespace.push(obbj)
+                    }
+                    // console.log(removespace)
+
+                    for(x in QulNonqulrows){
+                      objfinal = {};
+                      t_QulNonqulcol = 0;
+                      if(CombineQualPipetableData.length == 1){
+                        finalqulunquldatacomines = []
+                      }
+                      else{
+                      if(QulNonqulrows[x] !== 'Total'){
+                      objfinal['Sales Stage'] = QulNonqulrows[x]
+                      for(y in qul_unqulfinal){
+                        for(z in removespace){
+                          // for(Q in qul_cols){
+                            // console.log(removespace[z],qul_colsf.includes(removespace[z]['Sales Stage']),qul_colsf)
+                            if(qul_colsf.includes(removespace[z]['Sales Stage']) && qul_unqulfinal[y] === removespace[z]['Descr'] && removespace[z]['UnQualified'] === 0 && removespace[z]['R_BU'] ===  QulNonqulrows[x]){
+                              
+                                  objfinal[removespace[z]['Sales Stage']] =  !objfinal[removespace[z]['Sales Stage']]?removespace[z]['Qualified']:objfinal[removespace[z]['Sales Stage']]+removespace[z]['Qualified']
+                                  objfinal['Qualified']=!objfinal['Qualified']?removespace[z]['Qualified']:objfinal['Qualified']+removespace[z]['Qualified'];
+                                  t_QulNonqulcol = t_QulNonqulcol+objfinal[removespace[z]['Sales Stage']]
+                            }else{
+                              
+                                  if(unqul_colsf.includes(removespace[z]['Sales Stage']) &&  qul_unqulfinal[y] === removespace[z]['Descr'] && removespace[z]['Qualified'] === 0 && removespace[z]['R_BU'] ===  QulNonqulrows[x]){
+                                    // console.log(removespace[z],"IN else")
+                                    objfinal[removespace[z]['Sales Stage']] =  !objfinal[removespace[z]['Sales Stage']]?removespace[z]['UnQualified']:objfinal[removespace[z]['Sales Stage']]+removespace[z]['UnQualified']
+                                    objfinal['UnQualified']=!objfinal['UnQualified']?removespace[z]['UnQualified']:objfinal['UnQualified']+removespace[z]['UnQualified'];
+                                }
+                              }
+                        }
+                      }
+                      //
+                      objfinal['UnQualified'] = !objfinal['UnQualified']?0:objfinal['UnQualified']
+                      objfinal['Qualified'] = !objfinal['Qualified']?0:objfinal['Qualified'] 
+                      objfinal['Grand Total'] = objfinal['UnQualified']+objfinal['Qualified']
+                      }
+                      else{
+                        if(removespace[z]['R_BU'] && removespace[z]['R_BU'] == 'Total'){
+                          objfinal['Sales Stage'] = 'Total'
+                          objfinal['UnQualified'] = removespace[z]['UnQualified']
+                          objfinal['Qualified'] = removespace[z]['Qualified']
+                          objfinal['Grand Total'] = objfinal['UnQualified']+objfinal['Qualified']
+                          // qul_cols
+                          // unqul_cols
+                                for(x in qul_colsf){
+                                  var totalTaxes = 0;
+                                  var proper = qul_colsf[x]
+                                  $.each(removespace, function () {
+                                    if(this['Sales Stage'] === qul_colsf[x]){
+                                      totalTaxes += this.Qualified;
+                                      }
+                                  });
+                                  // console.log(totalTaxes,proper)
+                                  objfinal[qul_colsf[x]] = totalTaxes
+                                }
+                                for(x in unqul_colsf){
+                                  var totalTaxes = 0;
+                                  var proper = unqul_colsf[x]
+                                  $.each(removespace, function () {
+                                    if(this['Sales Stage'] === unqul_colsf[x]){
+                                      totalTaxes += this.UnQualified;
+                                      }
+                                  });
+                                  objfinal[unqul_colsf[x]] = totalTaxes
+                                }
+                        }
+                      }
+                      finalqulunquldatacomines.push(objfinal)  
+                      
+                      }
+                      }
+                    // if(finalqulunquldatacomines.length ===1){
+                    //   finalqulunquldatacomines = []
+                    // }
+                    // console.log(finalqulunquldatacomines)
+                    ///////////////////////////////////////
+                    var QulUnQualtable = new Tabulator("#QulUnQualTable", {
+                                                layout: 'fitColumns',
+                                                maxHeight:'450px',
+                                                // headerHozAlign: 'right',
+                                                // autoColumns: true,
+                                                // dataTree:true,
+                                                columns:callcolsdata ,//MakingOfColsforQualAndUnqualTable(qul_unqul),
+                                                data:finalqulunquldatacomines,
+                                                placeholder:finalqulunquldatacomines.length===0?'No Data Found':null,
+                                                headerSort:false,
+                                                rowFormatter: (row) => {
+                                                if(row.getData()['Sales Stage'] == "Total") {
+                                                  row.getElement().classList.add('new-bg');
+                                                }
+                                                },
+                        })
+
+
+                    ////////////////////////
+                    function openModalContentDemand(obj) {
+                        // console.log(obj,'obj');
+                        var dumObj=[];
+                        if (obj.SelectedValue === 'Qualified (in $M)') {
+                          obj.Month.map((a) => {
+                            if (a.title == obj.columnSelected && a.columns) { //console.log(a,"1417")
+                              a.columns.forEach((b) => { //console.log(b,"1418",b.visible)
+                              
+                              var trfalval = !b.visible
+                                // console.log(trfalval,"1421")
+                                if(b['title'] !== 'Total (in $M)' ){ //console.log(trfalval,"1422")
+                                  b['visible'] = trfalval;
+                                  a.titleFormatter = function(column) {
+                                  var iconClass = b.visible ? 'fa-minus' : 'fa-plus';
+                                  return `<i class="fa ${iconClass}" style="margin: 3px; font-size: 12px;"></i>`+column.getValue();
+                                };
+                              }
+                              });
+                              // console.log(a,"1428")
+                              dumObj.push(a);
+                            }else{
+                              // console.log(a,"1433")
+                              dumObj.push(a);
+                            }
+                          });
+                        } 
+                        else if (obj.SelectedValue == 'UnQualified (in $M)') {
+                          obj.Month.map((a) => {
+                            if (a.title == obj.columnSelected && a.columns) { //console.log(a,"1439")
+                              a.columns.forEach((b) => { console.log(b,"1440")
+                              var trfalval = !b.visible
+                                if(b.title !== 'Total (in $M)' ){ //console.log(a)
+                                  b['visible'] = trfalval;
+                                  a.titleFormatter = function(column) {
+                                  var iconClass = b.visible ? 'fa-minus' : 'fa-plus';
+                                  return `<i class="fa ${iconClass}" style="margin: 3px; font-size: 12px;"></i>`+column.getValue();
+                                };
+                              }
+                              });
+                              //console.log(a,"1450")
+                              dumObj.push(a);
+                            }else{
+                              dumObj.push(a);
+                            }  
+                          })
+                        }
+                        // console.log(dumObj,"1455")
+                        QulUnQualtable.setColumns(dumObj)
+                        // var widthCustom = document.getElementById("demandtable");
+                        // var widthvalue = widthCustom.offsetWidth;
+                        // var setWidth = document.getElementById("demandWidth");
+                        // setWidth.style.width=widthvalue
+                    }
+                    document.getElementById("loading-imagechartqulunqul").style.display = "none";
+              })
+</script>
+<script>
+    var market_units = [];
+    $(document).ready(function () {
+      for (let entry of listOfDrawerDropdownIds) {
+        $(entry).show()
+        if(entry != "#unq_region"){
+          $(entry).select2({
+          placeholder: "All"
+        })
+        }
+      
+      }
+    })
+    const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+    // console.log(rawDrawerDropdownData)
+    let opt_opp_region_new = JSON.parse(`{{ opt_opp_region_new_filter|escapejs }}`);
+    let result = opt_opp_region_new.join(',');
+    // console.log(result)
+    // opt_opp_region_new = opt_opp_region_new.join(',')
+    const selectedDrawerValuesList = [
+      result,
+      `{{ selected_bu }}`,
+      `{{ selected_sbu }}`,
+      `{{ selected_opp_source }}`,
+      `{{ selected_acc_type }}`,
+    ];
+    const listOfDrawerDropdownIds = [
+      '#unq_region',
+      '#unique_mcu',
+      '#unique_sbu',
+      '#opp_Source',
+      '#Acc_Type',
+    ];
+  
+  
+    const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) => $(id));
+  
+    const equalsAll = (value) => value === 'All';
+  
+    const compareStringsIgnoreCaseFn = (x, y) => {
+      x = x.toLowerCase();
+      y = y.toLowerCase();
+      if (x < y) return -1;
+      if (x > y) return 1;
+      return 0;
+    };
+
+    // Custom sort order for Market Units
+    const marketUnitOrder = ['UK&I', 'Southern Europe & Middle East', 'Northern Europe', 'DACH', 'EMEA Others', 'CE Others'];
+    
+    const compareMarketUnitsFn = (x, y) => {
+      const indexX = marketUnitOrder.indexOf(x);
+      const indexY = marketUnitOrder.indexOf(y);
+      
+      // If both are in the defined order, sort by their index
+      if (indexX !== -1 && indexY !== -1) {
+        return indexX - indexY;
+      }
+      // If only x is in the order, it comes first
+      if (indexX !== -1) return -1;
+      // If only y is in the order, it comes first
+      if (indexY !== -1) return 1;
+      // If neither is in the order, sort alphabetically
+      return compareStringsIgnoreCaseFn(x, y);
+    };
+  
+    function buildDrawerDropdowns(selectedValuesList) {
+      // creating unique lists i.e. sets for options out of filtered dropdown data
+      const optionLists = new Array(listOfDrawerDropdownIds.length)
+        .fill(0)
+        .map((_) => new Set());
+  
+      for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+        
+        rawDrawerDropdownData.forEach((row) => {
+          let result = true;
+          // looping from 1st dropdown to all the way to current dropdown's previous dropdown
+          for (let j = 0; j < i; j++) {
+           
+            result &&= selectedValuesList[j].includes("All")
+              ? true
+              : selectedValuesList[j].includes(row[j])
+          }
+  
+          if (result) optionLists[i].add(row[i]);
+          
+        });
+      }
+      // sorting the filtered data, removing falsy values, adding All at the start of the lists
+      for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+        optionLists[i] = [...optionLists[i]]
+          .filter((v) => v)
+          .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn); // Use custom sort for Market Unit (index 0)
+        optionLists[i].unshift('All');
+      }
+      // inserting the generated dropdown data as options into the dom
+      listOfDrawerDropdownElements.forEach((element, index) => { 
+        element.empty();
+        optionLists[index].forEach((optionText, id) => {
+          if(selectedValuesList[index].includes(optionText)){
+            element.append(
+                new Option(
+                  optionText,
+                  optionText,
+                  false,
+                  true
+                )
+            )
+          }
+          else{
+            element.append(
+              new Option(
+                optionText,
+                optionText,
+                false,
+                false
+              )
+            )
+          }
+        }
+        );
+      });
+      market_units = optionLists[0]
+    }
+  
+    function prepare_market_units(){
+      let template = ""
+      let selected_market = result
+      for(let i in market_units){
+          if(i>0){
+            if(!selected_market.includes(',') && selected_market == "All"){
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+                <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+               template = template + checkbox_label
+            }
+            else{
+              let selected_market_array = selected_market.split(',')
+              if(selected_market_array.includes(market_units[i])){
+                let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+                <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+                template = template + checkbox_label
+              }
+              else{
+                let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' onchange='change_market_unit(this)'>
+                <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+               template = template + checkbox_label
+              }
+            }
+  
+          }
+  
+      }
+      $('.unq_region').html(template)
+    }
+  
+    function change_market_unit(element){    
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{   
+        return $(`${id}`).val()
+      });
+      let checked_market_unit_option_array = $(".market_unit_option:checked").map(function(_, el) {
+          return $(el).val();
+         }).get();
+      listOfCurrentlySelectedValues[0] = checked_market_unit_option_array
+      for (let i = 1; i < 3; i++) {
+        listOfCurrentlySelectedValues[i][0] = 'All';
+      }
+      buildDrawerDropdowns(listOfCurrentlySelectedValues);
+    }
+  
+    $('#unique_mcu').on('select2:select', function (e) {
+        let data = e.params.data;
+        if ($('#unique_mcu').val().includes("All")) {
+          $('#unique_mcu').val(null).trigger('change');
+          $('#unique_mcu').val(data.text).trigger('change');
+        }
+        if (data.text == "All") {
+          $('#unique_mcu').val(null).trigger('change');
+          $('#unique_mcu').val("All").trigger('change');
+        }
+        listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+        return $(`${id}`).val()
+      }
+      );
+      let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_mcu`);
+      for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+        listOfCurrentlySelectedValues[i][0] = 'All';
+      }
+      let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+          return $(el).val();
+         }).get();
+      listOfCurrentlySelectedValues[0] = checked_option_array
+      buildDrawerDropdowns(listOfCurrentlySelectedValues);
+    })
+  
+    $('#unique_sbu').on('select2:select', function (e) {
+        let data = e.params.data;
+        if ($('#unique_sbu').val().includes("All")) {
+          $('#unique_sbu').val(null).trigger('change');
+          $('#unique_sbu').val(data.text).trigger('change');
+        }
+        if (data.text == "All") {
+          $('#unique_sbu').val(null).trigger('change');
+          $('#unique_sbu').val("All").trigger('change');
+        }
+        listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+        return $(`${id}`).val()
+      }
+      );
+      let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_sbu`);
+      for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+        listOfCurrentlySelectedValues[i][0] = 'All';
+      }
+      let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+          return $(el).val();
+         }).get();
+      listOfCurrentlySelectedValues[0] = checked_option_array
+      buildDrawerDropdowns(listOfCurrentlySelectedValues);
+    })
+    $('#Acc_Type').on('select2:select', function (e) {
+        let data = e.params.data;
+        if ($('#Acc_Type').val().includes("All")) {
+          $('#Acc_Type').val(null).trigger('change');
+          $('#Acc_Type').val(data.text).trigger('change');
+        }
+        if (data.text == "All") {
+          $('#Acc_Type').val(null).trigger('change');
+          $('#Acc_Type').val("All").trigger('change');
+        }
+        listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+        return $(`${id}`).val()
+      }
+      );
+      let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#Acc_Type`);
+      for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+        listOfCurrentlySelectedValues[i][0] = 'All';
+      }
+      let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+          return $(el).val();
+         }).get();
+      listOfCurrentlySelectedValues[0] = checked_option_array
+      buildDrawerDropdowns(listOfCurrentlySelectedValues);
+    })
+    $('#opp_Source').on('select2:select', function (e) {
+        let data = e.params.data;
+        if ($('#opp_Source').val().includes("All")) {
+          $('#opp_Source').val(null).trigger('change');
+          $('#opp_Source').val(data.text).trigger('change');
+        }
+        if (data.text == "All") {
+          $('#opp_Source').val(null).trigger('change');
+          $('#opp_Source').val("All").trigger('change');
+        }
+        listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+        return $(`${id}`).val()
+      }
+      );
+      let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#opp_Source`);
+      for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+        listOfCurrentlySelectedValues[i][0] = 'All';
+      }
+      let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+          return $(el).val();
+         }).get();
+      listOfCurrentlySelectedValues[0] = checked_option_array
+      buildDrawerDropdowns(listOfCurrentlySelectedValues);
+    })
+  
+    buildDrawerDropdowns(selectedDrawerValuesList);
+    prepare_market_units()
+  
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+    // $('#unique_horizonal').show();
+    // $('#unique_horizontal').select2({
+    //   placeholder: 'All'
+    // });
+  
+    // $('#unique_horizontal').on('select2:select', function (e) {
+    //   var data = e.params.data;
+    //   console.log("data", data)
+    //   if ($('#unique_horizontal').val().includes("All")) {
+    //     $('#unique_horizontal').val(null).trigger('change');
+    //     $('#unique_horizontal').val(data.text).trigger('change');
+    //   }
+    //   if (data.text == "All") {
+    //     $('#unique_horizontal').val(null).trigger('change');
+    //     $('#unique_horizontal').val("All").trigger('change');
+    //   }
+    // });
+    
+    // $('#unique_mcu').show();
+    // $('#unique_mcu').select2({
+    //   placeholder: 'All'
+    // });
+  
+    // $('#unique_mcu').on('select2:select', function (e) {
+    //   var data = e.params.data;
+    //   console.log("data", data)
+    //   if ($('#unique_mcu').val().includes("All")) {
+    //     $('#unique_mcu').val(null).trigger('change');
+    //     $('#unique_mcu').val(data.text).trigger('change');
+    //   }
+    //   if (data.text == "All") {
+    //     $('#unique_mcu').val(null).trigger('change');
+    //     $('#unique_mcu').val("All").trigger('change');
+    //   }
+    // });
+    // $('#unique_sbu').show();
+    // $('#unique_sbu').select2({
+    //   placeholder: 'All'
+    // });
+  
+    // $('#unique_sbu').on('select2:select', function (e) {
+    //   var data = e.params.data;
+    //   console.log("data", data)
+    //   if ($('#unique_sbu').val().includes("All")) {
+    //     $('#unique_sbu').val(null).trigger('change');
+    //     $('#unique_sbu').val(data.text).trigger('change');
+    //   }
+    //   if (data.text == "All") {
+    //     $('#unique_sbu').val(null).trigger('change');
+    //     $('#unique_sbu').val("All").trigger('change');
+    //   }
+    // });
+  
+    $('#unique_account_name').show();
+    $('#unique_account_name').select2({
+      placeholder: 'All'
+    });
+  
+    $('#unique_account_name').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log("data", data)
+      if ($('#unique_account_name').val().includes("All")) {
+        $('#unique_account_name').val(null).trigger('change');
+        $('#unique_account_name').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_account_name').val(null).trigger('change');
+        $('#unique_account_name').val("All").trigger('change');
+      }
+    });
+    
+  
+    // $('#multiselect').change(function (e) {
+    //   // console.log("checked clicked")
+    //   if (!e.currentTarget.checked) {
+    //     $('#toggleLabel').html("Or")
+    //   }
+    //   else {
+    //     $('#toggleLabel').html("And")
+    //   }
+    // })
+  
+    /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+    $('#reset').click(async function (e) {
+      e.preventDefault()
+      window.location.href = `${window.location.origin}${window.location.pathname}`
+  
+    })
+  </script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+  /* Back-to-top floating button */
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+</style>
+<!-- Back to top button -->
+<button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+  <i class="fas fa-chevron-up"></i>
+</button>
+</body>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,901 @@
+{% extends 'visualize/common.html' %} {% load static %} {% block content %}
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+<link
+  href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  /* ══════ Page theme ══════ */
+  body {
+    background: #070707 !important;
+    color: #e0e0e0;
+    font-family: "Roboto", sans-serif;
+  }
+
+  .du-container {
+    max-width: 1400px;
+    margin: 30px auto;
+    padding: 0 18px;
+  }
+
+  /* ══════ Stepper ══════ */
+  .du-stepper {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+  .du-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: #111318;
+    border: 1px solid #1e2330;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    position: relative;
+    transition: all 0.25s;
+  }
+  .du-step.active {
+    background: #0a1a34;
+    border-color: #0e6bcd;
+    color: #4a9eff;
+  }
+  .du-step.done {
+    background: #0d2810;
+    border-color: #1a7a2e;
+    color: #3dd95b;
+  }
+  .du-step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 13px;
+    border: 2px solid #555;
+    flex-shrink: 0;
+  }
+  .du-step.active .num {
+    border-color: #0e6bcd;
+    color: #4a9eff;
+  }
+  .du-step.done .num {
+    border-color: #1a7a2e;
+    color: #3dd95b;
+  }
+  .du-step-arrow {
+    color: #333;
+    font-size: 20px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  /* ══════ Cards ══════ */
+  .du-card {
+    background: #0e1117;
+    border: 1px solid #1e2330;
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 22px;
+  }
+  .du-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .du-card p {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 14px;
+  }
+
+  /* ══════ Form elements ══════ */
+  .du-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #bbb;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .du-input,
+  .du-select {
+    background: #111318;
+    border: 1px solid #2f3542;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 100%;
+  }
+  .du-input:focus,
+  .du-select:focus {
+    border-color: #0e6bcd;
+    outline: none;
+  }
+  .du-file-zone {
+    border: 2px dashed #2f3542;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .du-file-zone:hover,
+  .du-file-zone.dragover {
+    border-color: #0e6bcd;
+  }
+  .du-file-zone i {
+    font-size: 36px;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .du-file-zone .hint {
+    font-size: 12px;
+    color: #666;
+  }
+
+  /* ══════ Buttons ══════ */
+  .du-btn {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .du-btn-primary {
+    background: #0e6bcd;
+    color: #fff;
+  }
+  .du-btn-primary:hover {
+    background: #0a56a8;
+  }
+  .du-btn-success {
+    background: #1a7a2e;
+    color: #fff;
+  }
+  .du-btn-success:hover {
+    background: #15621f;
+  }
+  .du-btn-danger {
+    background: #c0392b;
+    color: #fff;
+  }
+  .du-btn-danger:hover {
+    background: #96281b;
+  }
+  .du-btn-secondary {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #333;
+  }
+  .du-btn-secondary:hover {
+    background: #2a2a2a;
+  }
+  .du-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .du-btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+  }
+
+  /* ══════ Mapping table ══════ */
+  .du-map-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .du-map-table th {
+    background: #161b22;
+    color: #aaa;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #2f3542;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .du-map-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #1a1f28;
+    vertical-align: middle;
+  }
+  .du-map-table tr:hover td {
+    background: rgba(14, 107, 205, 0.06);
+  }
+  .du-badge-exact {
+    background: #0d2810;
+    color: #3dd95b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .du-badge-fuzzy {
+    background: #332b08;
+    color: #f5a623;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .du-badge-unmapped {
+    background: #2c0b0b;
+    color: #e74c3c;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  .du-map-scroll {
+    max-height: 450px;
+    overflow-y: auto;
+    border: 1px solid #1e2330;
+    border-radius: 8px;
+  }
+
+  /* ══════ Preview grid ══════ */
+  .du-preview-scroll {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #1e2330;
+    border-radius: 8px;
+  }
+  .du-preview-table {
+    width: max-content;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .du-preview-table th {
+    background: #161b22;
+    color: #aaa;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-bottom: 1px solid #2f3542;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .du-preview-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid #1a1f28;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #ccc;
+  }
+
+  /* ══════ Errors list ══════ */
+  .du-errors {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .du-error-item {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 12px;
+    color: #e74c3c;
+    border-bottom: 1px solid #1a1f28;
+  }
+  .du-error-item .col-tag {
+    color: #f5a623;
+    font-weight: 600;
+  }
+
+  /* ══════ Result banner ══════ */
+  .du-result {
+    padding: 18px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 16px;
+  }
+  .du-result.success {
+    background: #0d2810;
+    border: 1px solid #1a7a2e;
+    color: #3dd95b;
+  }
+  .du-result.fail {
+    background: #2c0b0b;
+    border: 1px solid #c0392b;
+    color: #e74c3c;
+  }
+
+  /* ══════ Spinner overlay ══════ */
+  .du-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .du-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #4a9eff;
+  }
+  .du-overlay-text {
+    color: #ccc;
+    margin-top: 14px;
+    font-size: 14px;
+  }
+
+  /* ══════ Stats row ══════ */
+  .du-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .du-stat {
+    background: #111318;
+    border: 1px solid #1e2330;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+  .du-stat b {
+    color: #4a9eff;
+  }
+
+  /* hide steps */
+  .du-panel {
+    display: none;
+  }
+  .du-panel.active {
+    display: block;
+  }
+
+  /* search box for mapping */
+  .du-search {
+    max-width: 280px;
+    margin-bottom: 10px;
+  }
+</style>
+
+<body>
+  <div class="du-container">
+    <!-- ═══ Stepper ═══ -->
+    <div class="du-stepper" id="duStepper">
+      <div class="du-step active" data-step="1">
+        <span class="num">1</span> Upload File
+      </div>
+      <span class="du-step-arrow">›</span>
+      <div class="du-step" data-step="2">
+        <span class="num">2</span> Map Columns
+      </div>
+      <span class="du-step-arrow">›</span>
+      <div class="du-step" data-step="3">
+        <span class="num">3</span> Preview &amp; Validate
+      </div>
+      <span class="du-step-arrow">›</span>
+      <div class="du-step" data-step="4">
+        <span class="num">4</span> Confirm &amp; Execute
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1: Upload ═══ -->
+    <div class="du-panel active" id="panelStep1">
+      <div class="du-card">
+        <h3>
+          <i class="fas fa-cloud-upload-alt" style="color: #4a9eff"></i> Upload
+          Demand File
+        </h3>
+        <p>
+          Select an <b>.xlsx</b> file and choose the <b>UploadedOn</b> date that
+          will be stamped on every row in demand_history.
+        </p>
+
+        <div
+          style="
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+          "
+        >
+          <div style="flex: 1; min-width: 260px">
+            <label class="du-label"
+              >UploadedOn Date <span style="color: #e74c3c">*</span></label
+            >
+            <input
+              type="date"
+              id="duUploadedOn"
+              class="du-input"
+              style="max-width: 240px"
+            />
+          </div>
+        </div>
+
+        <div class="du-file-zone" id="duDropZone" style="margin-top: 18px">
+          <i class="fas fa-file-excel"></i><br />
+          <span style="font-size: 14px; font-weight: 600"
+            >Drop .xlsx file here or click to browse</span
+          ><br />
+          <span class="hint">Maximum 100 MB</span>
+          <input
+            type="file"
+            id="duFileInput"
+            accept=".xlsx"
+            style="display: none"
+          />
+        </div>
+        <div
+          id="duFileName"
+          style="
+            margin-top: 8px;
+            font-size: 13px;
+            color: #4a9eff;
+            display: none;
+          "
+        >
+          <i class="fas fa-file-alt"></i> <span></span>
+        </div>
+
+        <div class="du-btn-row">
+          <button class="du-btn du-btn-primary" id="btnStep1Next" disabled>
+            Upload &amp; Auto-Map <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2: Mapping ═══ -->
+    <div class="du-panel" id="panelStep2">
+      <div class="du-card">
+        <h3>
+          <i class="fas fa-columns" style="color: #f5a623"></i> Column Mapping
+        </h3>
+        <p>
+          Review the auto-mapped columns. Fix any
+          <span style="color: #e74c3c">unmapped</span> or
+          <span style="color: #f5a623">fuzzy</span> matches using the dropdowns.
+        </p>
+
+        <div class="du-stats" id="mapStats"></div>
+
+        <input
+          type="text"
+          class="du-input du-search"
+          id="mapSearch"
+          placeholder="Search columns…"
+        />
+
+        <div class="du-map-scroll">
+          <table class="du-map-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Excel Header</th>
+                <th>Status</th>
+                <th>Mapped to DB Column</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="mapBody"></tbody>
+          </table>
+        </div>
+
+        <div class="du-btn-row">
+          <button class="du-btn du-btn-secondary" id="btnStep2Back">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="du-btn du-btn-primary" id="btnStep2Next">
+            Preview &amp; Validate <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3: Preview ═══ -->
+    <div class="du-panel" id="panelStep3">
+      <div class="du-card">
+        <h3>
+          <i class="fas fa-table" style="color: #0e6bcd"></i> Data Preview &amp;
+          Validation
+        </h3>
+        <p>
+          Showing first 20 rows after applying your column mapping. Review any
+          validation errors below.
+        </p>
+
+        <div class="du-stats" id="previewStats"></div>
+
+        <div id="previewErrors"></div>
+
+        <div class="du-preview-scroll" id="previewScroll">
+          <table class="du-preview-table">
+            <thead id="previewHead"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+
+        <div class="du-btn-row">
+          <button class="du-btn du-btn-secondary" id="btnStep3Back">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="du-btn du-btn-success" id="btnStep3Next">
+            <i class="fas fa-check-circle"></i> Confirm &amp; Execute
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 4: Execute ═══ -->
+    <div class="du-panel" id="panelStep4">
+      <div class="du-card">
+        <h3>
+          <i class="fas fa-database" style="color: #3dd95b"></i> Execution
+          Result
+        </h3>
+        <div id="execResult"></div>
+        <div class="du-btn-row" style="margin-top: 22px">
+          <button class="du-btn du-btn-primary" id="btnNewUpload">
+            <i class="fas fa-redo"></i> New Upload
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- /du-container -->
+
+  <!-- Overlay spinner -->
+  <div class="du-overlay" id="duOverlay" style="display: none">
+    <div style="text-align: center">
+      <div class="spinner-border" role="status"></div>
+      <div class="du-overlay-text" id="duOverlayText">Processing…</div>
+    </div>
+  </div>
+</body>
+
+<script>
+  (function () {
+    const csrfToken = "{{ csrf_token }}";
+    const prefix = "/GGMPipelineInsights/";
+
+    // ─── state ───
+    let currentStep = 1;
+    let mappingData = null; // response from step-1
+    let confirmedMapping = {}; // {excel_header: db_col}
+
+    // ─── stepper UI ───
+    function setStep(n) {
+      currentStep = n;
+      document.querySelectorAll(".du-step").forEach((el) => {
+        const s = +el.dataset.step;
+        el.classList.remove("active", "done");
+        if (s === n) el.classList.add("active");
+        else if (s < n) el.classList.add("done");
+      });
+      document
+        .querySelectorAll(".du-panel")
+        .forEach((p) => p.classList.remove("active"));
+      document.getElementById("panelStep" + n).classList.add("active");
+    }
+
+    // ─── overlay ───
+    function showOverlay(msg) {
+      document.getElementById("duOverlayText").textContent =
+        msg || "Processing…";
+      document.getElementById("duOverlay").style.display = "flex";
+    }
+    function hideOverlay() {
+      document.getElementById("duOverlay").style.display = "none";
+    }
+
+    // ═══ STEP 1: File upload ═══
+    const dropZone = document.getElementById("duDropZone");
+    const fileInput = document.getElementById("duFileInput");
+    let selectedFile = null;
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", () =>
+      dropZone.classList.remove("dragover"),
+    );
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(f) {
+      selectedFile = f;
+      const nameEl = document.getElementById("duFileName");
+      nameEl.querySelector("span").textContent =
+        f.name + " (" + (f.size / 1024 / 1024).toFixed(1) + " MB)";
+      nameEl.style.display = "block";
+      document.getElementById("btnStep1Next").disabled = false;
+    }
+
+    document.getElementById("btnStep1Next").addEventListener("click", () => {
+      const uploadedOn = document.getElementById("duUploadedOn").value;
+      if (!uploadedOn) {
+        alert("Please select an UploadedOn date.");
+        return;
+      }
+      if (!selectedFile) return;
+
+      showOverlay("Uploading & reading headers…");
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      fd.append("uploaded_on", uploadedOn);
+
+      fetch(prefix + "demand_upload/upload_file/", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+        body: fd,
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          hideOverlay();
+          if (!data.success) {
+            alert("Error: " + data.error);
+            return;
+          }
+          mappingData = data;
+          renderMappingTable(data);
+          setStep(2);
+        })
+        .catch((err) => {
+          hideOverlay();
+          alert("Upload failed: " + err);
+        });
+    });
+
+    // ═══ STEP 2: Mapping table ═══
+    function renderMappingTable(data) {
+      const body = document.getElementById("mapBody");
+      body.innerHTML = "";
+
+      const dbOptions = data.db_columns
+        .map((c) => `<option value="${escAttr(c)}">${escHtml(c)}</option>`)
+        .join("");
+
+      let exact = 0,
+        fuzzy = 0,
+        unmapped = 0;
+
+      data.mapping.forEach((m, i) => {
+        const tr = document.createElement("tr");
+        tr.dataset.excel = m.excel.toLowerCase();
+
+        const badgeCls =
+          m.status === "exact"
+            ? "du-badge-exact"
+            : m.status === "fuzzy"
+              ? "du-badge-fuzzy"
+              : "du-badge-unmapped";
+        if (m.status === "exact") exact++;
+        else if (m.status === "fuzzy") fuzzy++;
+        else unmapped++;
+
+        tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td style="font-weight:600;color:#fff">${escHtml(m.excel)}</td>
+        <td><span class="${badgeCls}">${m.status}</span></td>
+        <td>
+          <select class="du-select map-select" data-excel="${escAttr(m.excel)}" style="max-width:340px">
+            <option value="">— skip —</option>
+            ${dbOptions}
+          </select>
+        </td>
+        <td style="color:#888">${m.score ? (m.score * 100).toFixed(0) + "%" : "—"}</td>
+      `;
+        // pre-select
+        const sel = tr.querySelector("select");
+        if (m.suggested_db) sel.value = m.suggested_db;
+        body.appendChild(tr);
+      });
+
+      document.getElementById("mapStats").innerHTML =
+        `<div class="du-stat"><b>${exact}</b> exact</div>` +
+        `<div class="du-stat"><b>${fuzzy}</b> fuzzy</div>` +
+        `<div class="du-stat"><b>${unmapped}</b> unmapped</div>` +
+        `<div class="du-stat"><b>${data.total_rows}</b> total rows</div>`;
+    }
+
+    // search filter
+    document.getElementById("mapSearch").addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      document.querySelectorAll("#mapBody tr").forEach((tr) => {
+        tr.style.display = tr.dataset.excel.includes(q) ? "" : "none";
+      });
+    });
+
+    document
+      .getElementById("btnStep2Back")
+      .addEventListener("click", () => setStep(1));
+
+    document.getElementById("btnStep2Next").addEventListener("click", () => {
+      // Collect confirmed mapping
+      confirmedMapping = {};
+      document.querySelectorAll("#mapBody .map-select").forEach((sel) => {
+        if (sel.value) confirmedMapping[sel.dataset.excel] = sel.value;
+      });
+
+      if (Object.keys(confirmedMapping).length === 0) {
+        alert("No columns are mapped. Please map at least one column.");
+        return;
+      }
+
+      showOverlay("Validating mapped data…");
+      fetch(prefix + "demand_upload/preview/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mapping: confirmedMapping, preview_rows: 20 }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          hideOverlay();
+          if (!data.success) {
+            alert("Error: " + data.error);
+            return;
+          }
+          renderPreview(data);
+          setStep(3);
+        })
+        .catch((err) => {
+          hideOverlay();
+          alert("Preview failed: " + err);
+        });
+    });
+
+    // ═══ STEP 3: Preview ═══
+    function renderPreview(data) {
+      // Stats
+      document.getElementById("previewStats").innerHTML =
+        `<div class="du-stat"><b>${data.total_rows}</b> total rows</div>` +
+        `<div class="du-stat"><b>${data.mapped_columns}</b> mapped columns</div>` +
+        `<div class="du-stat"><b>${data.errors.length}</b> validation issues</div>`;
+
+      // Errors
+      const errDiv = document.getElementById("previewErrors");
+      if (data.errors.length) {
+        let html = '<div class="du-errors" style="margin-bottom:12px">';
+        data.errors.forEach((e) => {
+          html += `<div class="du-error-item">
+          <span>Row ${e.row}</span>
+          <span class="col-tag">${escHtml(e.col)}</span>
+          <span>${escHtml(e.msg)}</span>
+        </div>`;
+        });
+        html += "</div>";
+        errDiv.innerHTML = html;
+      } else {
+        errDiv.innerHTML =
+          '<div style="color:#3dd95b;font-size:13px;margin-bottom:10px"><i class="fas fa-check-circle"></i> No validation errors found.</div>';
+      }
+
+      // Table
+      const head = document.getElementById("previewHead");
+      const body = document.getElementById("previewBody");
+      head.innerHTML =
+        "<tr>" +
+        data.columns.map((c) => `<th>${escHtml(c)}</th>`).join("") +
+        "</tr>";
+      body.innerHTML = "";
+      data.preview.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = data.columns
+          .map((c) => `<td>${escHtml(row[c] || "")}</td>`)
+          .join("");
+        body.appendChild(tr);
+      });
+    }
+
+    document
+      .getElementById("btnStep3Back")
+      .addEventListener("click", () => setStep(2));
+
+    document.getElementById("btnStep3Next").addEventListener("click", () => {
+      const uploadedOn = document.getElementById("duUploadedOn").value;
+      if (
+        !confirm(
+          `⚠️ This will DELETE all rows from dbo.demand, insert the new data, ` +
+            `and copy to dbo.demand_history with UploadedOn = ${uploadedOn}.\n\nProceed?`,
+        )
+      )
+        return;
+
+      showOverlay("Executing transaction… This may take a minute.");
+      fetch(prefix + "demand_upload/execute/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapping: confirmedMapping,
+          uploaded_on: uploadedOn,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          hideOverlay();
+          const div = document.getElementById("execResult");
+          if (data.success) {
+            div.innerHTML = `
+            <div class="du-result success">
+              <i class="fas fa-check-circle"></i> ${escHtml(data.message)}<br>
+              <div class="du-stats" style="margin-top:10px">
+                <div class="du-stat"><b>${data.deleted}</b> rows deleted</div>
+                <div class="du-stat"><b>${data.inserted}</b> rows inserted</div>
+                <div class="du-stat"><b>${data.history_inserted}</b> history rows</div>
+              </div>
+            </div>`;
+          } else {
+            div.innerHTML = `<div class="du-result fail"><i class="fas fa-times-circle"></i> ${escHtml(data.error)}</div>`;
+          }
+          setStep(4);
+        })
+        .catch((err) => {
+          hideOverlay();
+          alert("Execution failed: " + err);
+        });
+    });
+
+    // ═══ STEP 4: New upload ═══
+    document.getElementById("btnNewUpload").addEventListener("click", () => {
+      selectedFile = null;
+      document.getElementById("duFileInput").value = "";
+      document.getElementById("duFileName").style.display = "none";
+      document.getElementById("btnStep1Next").disabled = true;
+      mappingData = null;
+      confirmedMapping = {};
+      setStep(1);
+    });
+
+    // ─── helpers ───
+    function escHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+    function escAttr(s) {
+      return s
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+  })();
+</script>
+
+{% endblock %}

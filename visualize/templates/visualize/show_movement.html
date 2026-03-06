@@ -1,0 +1,1084 @@
+{% extends 'visualize/common.html' %}
+{% block content %}
+<style>
+  table {
+    background-color: rgb(151, 151, 150);
+    text-emphasis-color: black;
+    color: black;
+    font-size: 10pt;
+  }
+
+  .table_2 {
+    background-color: black;
+    text-emphasis-color: black;
+    color: black;
+    font-size: 10pt;
+  }
+
+  table.table1 {
+    background-color: black;
+    font-size: 10pt;
+    /* margin: auto; */
+  }
+
+  table.table1 label {
+    color: whitesmoke;
+  }
+
+  th {
+    text-align: center;
+  }
+
+  .table>tbody>tr>td {
+    background-color: rgb(217, 226, 243);
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+  }
+
+  .table>tbody>tr>th {
+    background-color: rgb(217, 226, 243);
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    font-weight: 650;
+  }
+
+  .table>tbody>tr>td {
+    font-size: 0.8rem;
+    font-weight: 640;
+  }
+
+  .table > thead > tr > th{
+    text-align: center;
+    /* padding: 2px; */
+    color: #FFFF;
+    background-color: #4472c4;
+    vertical-align: middle;
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    margin: 0;
+  }
+
+  .dfstyle {
+    font-size: 11pt;
+    font-family: Arial;
+    border-collapse: collapse;
+    border: 1px solid silver;
+    background-color: lightgray;
+
+  }
+
+  .dfstyle td,
+  th {
+    padding: 5px;
+  }
+
+  .dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+  }
+
+  .dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+  }
+
+  .container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 30px;
+    margin-left: 10px;
+    text-align: center;
+  }
+
+  .nopadding {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .select2-container--below,
+  .select2-container--open,
+  .select2-container .select2-selection--multiple>.select2-selection__choice>.dropdown-wrapper {
+    text-align: start !important;
+
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    height: 30px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple>.select2-selection__rendered {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    border-radius: 2px !important;
+    min-height: 25px !important;
+    min-width: 100px !important;
+    /* max-width: 200px !important; */
+  }
+
+  .select2-selection__choice__display {
+    font-size: 13px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple {
+    min-height: 25px !important;
+    text-align: start;
+  }
+</style>
+<style>
+  .ag-header-cell, .ag-header-group-cell{
+    background-color: #4472c4 !important;
+    color:white;
+  }
+  .ag-paging-panel{
+    background-color: #4472c4 !important;
+  }
+  .ag-row{
+    background-color: #d9e2f3 !important;
+  }
+  .ag-cell{
+    padding: 0px !important;
+    margin: 2px !important;
+  }
+  .ag-icon-menu {
+    color:white !important;
+  }
+  .ag-header-cell-label {
+    overflow: visible !important;
+    white-space: normal !important;
+    padding-right: 0px !important;
+    text-overflow: initial !important;
+    text-align: center  !important;
+    justify-content: center !important;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 18px;
+  }
+  
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 19px;
+    width: 20px;
+    /* left: 4px;
+    bottom: 4px; */
+    background-color: #2196F3;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  /* input:checked + .slider {
+    background-color: #2196F3;
+  } */
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(12px);
+    -ms-transform: translateX(12px);
+    transform: translateX(12px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 20px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+</style>
+<body style="background-color:#070707 !important;">
+<div>
+  <div class="row">
+    <div class="col text-center">
+      <h style="color:whitesmoke;font-size:20px;margin: 3px;">Pipeline Movement (A to B - Point in time)</h>
+    </div>
+  </div>
+<!-- <div class="container_2">
+  <br>
+
+  <body> -->
+    <div>
+      <div style="display:flex;justify-content:flex-end">
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">ChartView</h1>
+        </div>
+        <div style="margin-top: 5;">
+          <label class="switch">
+            <input type="checkbox" id="togBtn" value="false" name="disableYXLogo">
+            <div class="slider round"></div>
+          </label>
+        </div>
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">TableView</h1>
+        </div>  
+      </div>
+    </div>
+    <div id="chartDiv">
+      <table class="table_2" style="background-color:#070707 !important;">
+        <th>
+          {% autoescape off %}
+          {{ plot_div_pipe }}
+          {% endautoescape %}
+        </th>
+        <th>
+          {% autoescape off %}
+          {{ plot_div_change }}
+          {% endautoescape %}
+        </th>
+        <th>
+          {% autoescape off %}
+          {{ plot_div }}
+          {% endautoescape %}
+        </th>
+      </table>
+      {% autoescape off %}
+      {{ plot_div_2 }}
+      {% endautoescape %}
+  
+      <font color="lightyellow"></font>
+      <br>
+      {{ html_data_pivot |safe|escape }}
+      <br>
+      </font>
+      <div>
+        {% autoescape off %}
+        {{ plot_div_3 }}
+        {% endautoescape %}
+    
+        {% autoescape off %}
+        {{ plot_div_4 }}
+        {% endautoescape %}
+    
+        {% autoescape off %}
+        {{ plot_div_5 }}
+        {% endautoescape %}
+    
+        {% autoescape off %}
+        {{ plot_div_6 }}
+        {% endautoescape %}
+      </div>
+    </div>
+    <div id="tableDiv">
+      {% if showExtraTable %}
+      <div style="display:flex;justify-content:space-between">
+        <div style="width:25%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="margin:2px;width:305px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">Pipeline Totals</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onBtnTotalsExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:2px;">
+            <div id="bytotalTable" style="width:305px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+        <div style="width:25%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="margin:2px;width:305px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">Change in A w.r.t B</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onBtnChangeExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:2px;">
+            <div id="bychangeTable" style="width:305px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+        <div style="width:50%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="margin:2px;width:460px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">Moved Stages between A and B</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onBtnMovedExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:2px;">
+            <div id="bymovedTable" style="width:460px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <div style="width:60%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="margin:2px;width:730px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">Sales Stage level Movements</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onBtnTableExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:2px;">
+            <div id="bytableTable" style="width:730px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+        <div style="width:40%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="margin:2px;width:460px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">Summary of Opportunities in B not in A</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onBtnSummaryExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:2px;">
+            <div id="bysummaryTable" style="width:460px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:0px;border-color:white;border-style:solid;">
+        <div style="margin:5px;">
+          <div style="display: flex;justify-content: space-between;margin:3px;">
+            <label style="font-size:20px;color:white;">Deals in Pipeline by Account Name</label>
+            <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+            {% comment %} onclick="onBtnDelasExport()" {% endcomment %}
+            >EXPORT TO EXCEL</button>
+          </div>
+          <div id="bydealsTable" style="height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      {% endif %}
+      <div style="display:flex;justify-content:space-between">
+        <div style="width:34%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="width:325px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">By Close</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onCloseDateTableExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;">
+            <div id="byCloseDateTable" style="width:325px;height: 300px;margin:2px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+        <div style="width:33%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="width:325px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">By Creation</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onCreationDateTableExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;">
+            <div id="byCreationDateTable" style="width:325px;height:300px;margin:2px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+        <div style="width:33%;border-color:white;border-style:solid;">
+          <div style="display:flex;justify-content:center;">
+            <div style="width:325px;">
+              <div style="display: flex;justify-content: space-between">
+                <label style="font-size:20px;color:white;">By Won</label>
+                <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+                {% comment %} onclick="onWonDateTableExport()" {% endcomment %}
+                >EXPORT TO EXCEL</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;">
+            <div id="byWonDateTable" style="width:325px;height:300px;margin:2px;" class="ag-theme-balham"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <!-- </body>
+ -->
+</div>
+</body>
+<script>
+  $('#tableDiv').hide();
+  $("#togBtn").on('change', function() {
+      // initializeGrid();
+      if ($(this).is(':checked')) {
+        $('#chartDiv').hide();
+        $('#tableDiv').show();
+      }
+      else {
+        $('#chartDiv').show();
+        $('#tableDiv').hide();
+      }
+  });
+</script>
+<script>
+  closeData = JSON.parse(`{{ closeData|escapejs }}`)
+  creationData = JSON.parse(`{{ creationData|escapejs }}`)
+  wonData = JSON.parse(`{{ wonData|escapejs }}`)
+  var tooltipRenderer = function(params)
+  {
+      return '<span title="' + params.value + '">'+params.value+'</span>';
+  };
+  
+  function onCloseDateTableExport() {
+    var params = {
+      fileName: 'By Close.csv',
+    };
+    cdApi.exportDataAsCsv(params);
+  }
+  function onCreationDateTableExport() {
+    var params = {
+      fileName: 'By Creation.csv',
+    };
+    createApi.exportDataAsCsv(params);
+  }
+  function onWonDateTableExport() {
+    var params = {
+      fileName: 'By Won.csv',
+    };
+    wonApi.exportDataAsCsv(params);
+  }
+  columnDefs1 = [];
+  for(col of ['CloseDate','Cumulative TCV']){
+    columnDefs1.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS1 = {
+    rowData: closeData,
+    columnDefs:columnDefs1,
+    // domLayout:'autoHeight',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    cdApi = agGrid.createGrid(document.querySelector("#byCloseDateTable"), optionsSS1);
+  })
+
+  columnDefs2 = [];
+  for(col of ['Created Date','Cumulative TCV']){
+    columnDefs2.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS2 = {
+    rowData: creationData,
+    columnDefs:columnDefs2,
+    // domLayout:'autoHeight',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    createApi = agGrid.createGrid(document.querySelector("#byCreationDateTable"), optionsSS2);
+  })
+  columnDefs3 = [];
+  for(col of ['CloseDate','Cumulative TCV']){
+    columnDefs3.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS3 = {
+    rowData: wonData,
+    columnDefs:columnDefs3,
+    // domLayout:'autoHeight',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    wonApi = agGrid.createGrid(document.querySelector("#byWonDateTable"), optionsSS3);
+  })
+
+</script>
+<script>
+  var tooltipRenderer = function(params)
+  {
+      return '<span title="' + params.value + '">'+params.value+'</span>';
+  };
+  function onBtnTotalsExport() {
+    var params = {
+      fileName: 'Pipeline Totals.csv',
+    };
+    totalApi.exportDataAsCsv(params);
+  }
+  totalData = JSON.parse(`{{ totalData|escapejs }}`)
+  columnDefs4 = [];
+  for(col of ['Pipeline','TCV']){
+    columnDefs4.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS4 = {
+    rowData: totalData,
+    columnDefs:columnDefs4,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    totalApi = agGrid.createGrid(document.querySelector("#bytotalTable"), optionsSS4);
+  })
+  
+  function onBtnMovedExport() {
+    var params = {
+      fileName: 'Moved Stages between A and B.csv',
+    };
+    movedApi.exportDataAsCsv(params);
+  }
+  movedData = JSON.parse(`{{ movedData|escapejs }}`)
+  columnDefs5 = [];
+  for(col of ['Moved To Stage','TCV','Deals']){
+    columnDefs5.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS5 = {
+    rowData: movedData,
+    columnDefs:columnDefs5,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    movedApi = agGrid.createGrid(document.querySelector("#bymovedTable"), optionsSS5);
+  })
+  function onBtnChangeExport() {
+    var params = {
+      fileName: 'Change in A w.r.t B.csv',
+    };
+    changeApi.exportDataAsCsv(params);
+  }
+  changeData = JSON.parse(`{{ changeData|escapejs }}`)
+  columnDefs6 = [];
+  for(col of ['Stage Change','TCV']){
+    columnDefs6.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS6 = {
+    rowData: changeData,
+    columnDefs:columnDefs6,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    changeApi = agGrid.createGrid(document.querySelector("#bychangeTable"), optionsSS6);
+  })
+  function onBtnDelasExport() {
+    var params = {
+      fileName: 'Deals in Pipeline by Account Name.csv',
+    };
+    dealsApi.exportDataAsCsv(params);
+  }
+  dealsData = JSON.parse(`{{ dealsData|escapejs }}`)
+  columnDefs7 = [];
+  for(col of ['WinZone Opportunity ID','Opportunity Name','Account Name','CloseDate','Sales Stage','TCV']){
+    columnDefs7.push({
+      headerName:col,
+      field: col,
+      width:col=='Opportunity Name'||col=='Account Name'?380:col=='WinZone Opportunity ID'?210:160,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS7 = {
+    rowData: dealsData,
+    columnDefs:columnDefs7,
+    // domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    dealsApi = agGrid.createGrid(document.querySelector("#bydealsTable"), optionsSS7);
+  })
+  function onBtnSummaryExport() {
+    var params = {
+      fileName: 'Summary of oppoertunities in B not in A.csv',
+    };
+    summaryApi.exportDataAsCsv(params);
+  }
+  summaryData = JSON.parse(`{{ summaryData|escapejs }}`)
+  columnDefs8 = [];
+  for(col of ['Deal Size','Sales Stage','TCV']){
+    columnDefs8.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS8 = {
+    rowData: summaryData,
+    columnDefs:columnDefs8,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    summaryApi = agGrid.createGrid(document.querySelector("#bysummaryTable"), optionsSS8);
+  })
+
+  function onBtnTableExport() {
+    var params = {
+      fileName: 'Stage level Movements.csv',
+    };
+    tableApi.exportDataAsCsv(params);
+  }
+
+  tableData = JSON.parse(`{{ tableData|escapejs }}`)
+  tableColumns= JSON.parse(`{{ tableColumns|escapejs }}`)
+  filtertableCol = tableColumns.filter((a)=>{
+    return a!='Missing'
+  })
+  tableData.forEach((item,index)=>{
+    item['Moved To Stage'] = filtertableCol[index];
+  })
+  columnDefs9 = [{
+      headerName:'Moved To Stage',
+      field: 'Moved To Stage',
+      width:120,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    }];
+  for(col of tableColumns){
+    columnDefs9.push({
+      headerName:col,
+      field: col,
+      width:120,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS9 = {
+    rowData: tableData,
+    columnDefs:columnDefs9,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    tableApi = agGrid.createGrid(document.querySelector("#bytableTable"), optionsSS9);
+  })
+</script>
+<script>
+  var market_units = [];
+  $(document).ready(function () {
+    for (let entry of listOfDrawerDropdownIds) {
+      $(entry).show()
+      if(entry != "#unq_region"){
+        $(entry).select2({
+        placeholder: "All"
+      })
+      }
+    
+    }
+  })
+  const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+  // console.log(rawDrawerDropdownData)
+  let opt_opp_region_new = JSON.parse(`{{ opt_opp_region_new_filter|escapejs }}`);
+  let result = opt_opp_region_new.join(',');
+  console.log(result)
+  // opt_opp_region_new = opt_opp_region_new.join(',')
+  const selectedDrawerValuesList = [
+    result,
+    `{{ selected_bu }}`,
+    `{{ selected_sbu }}`,
+  ];
+  const listOfDrawerDropdownIds = [
+    '#unq_region',
+    '#unique_mcu',
+    '#unique_sbu',
+  ];
+
+
+  const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) => $(id));
+
+  const equalsAll = (value) => value === 'All';
+
+  const compareStringsIgnoreCaseFn = (x, y) => {
+    x = x.toLowerCase();
+    y = y.toLowerCase();
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+  };
+
+  const marketUnitOrder = ['UK&I', 'Southern Europe & Middle East', 'Northern Europe', 'DACH', 'EMEA Others', 'CE Others'];
+  const compareMarketUnitsFn = (x, y) => {
+    const indexX = marketUnitOrder.indexOf(x);
+    const indexY = marketUnitOrder.indexOf(y);
+    if (indexX !== -1 && indexY !== -1) return indexX - indexY;
+    if (indexX !== -1) return -1;
+    if (indexY !== -1) return 1;
+    return compareStringsIgnoreCaseFn(x, y);
+  };
+
+  function buildDrawerDropdowns(selectedValuesList) {
+    // creating unique lists i.e. sets for options out of filtered dropdown data
+    const optionLists = new Array(listOfDrawerDropdownIds.length)
+      .fill(0)
+      .map((_) => new Set());
+
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      
+      rawDrawerDropdownData.forEach((row) => {
+        let result = true;
+        // looping from 1st dropdown to all the way to current dropdown's previous dropdown
+        for (let j = 0; j < i; j++) {
+         
+          result &&= selectedValuesList[j].includes("All")
+            ? true
+            : selectedValuesList[j].includes(row[j])
+        }
+
+        if (result) optionLists[i].add(row[i]);
+        
+      });
+    }
+    // sorting the filtered data, removing falsy values, adding All at the start of the lists
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      optionLists[i] = [...optionLists[i]]
+        .filter((v) => v)
+        .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn);
+      optionLists[i].unshift('All');
+    }
+    // inserting the generated dropdown data as options into the dom
+    listOfDrawerDropdownElements.forEach((element, index) => { 
+      element.empty();
+      optionLists[index].forEach((optionText, id) => {
+        if(selectedValuesList[index].includes(optionText)){
+          element.append(
+              new Option(
+                optionText,
+                optionText,
+                false,
+                true
+              )
+          )
+        }
+        else{
+          element.append(
+            new Option(
+              optionText,
+              optionText,
+              false,
+              false
+            )
+          )
+        }
+      }
+      );
+    });
+    market_units = optionLists[0]
+  }
+
+  function prepare_market_units(){
+    let template = ""
+    let selected_market = result
+    for(let i in market_units){
+        if(i>0){
+          if(!selected_market.includes(',') && selected_market == "All"){
+            let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+          }
+          else{
+            let selected_market_array = selected_market.split(',')
+            if(selected_market_array.includes(market_units[i])){
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+              template = template + checkbox_label
+            }
+            else{
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+            }
+          }
+
+        }
+
+    }
+    $('.unq_region').html(template)
+  }
+
+  function change_market_unit(element){    
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{   
+      return $(`${id}`).val()
+    });
+    let checked_market_unit_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_market_unit_option_array
+    for (let i = 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  }
+
+  $('#unique_mcu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_mcu').val().includes("All")) {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_mcu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+  $('#unique_sbu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_sbu').val().includes("All")) {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_sbu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+
+  buildDrawerDropdowns(selectedDrawerValuesList);
+  prepare_market_units()
+
+  // $('#unique_horizonal').show();
+  // $('#unique_horizontal').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_horizontal').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_horizontal').val().includes("All")) {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val("All").trigger('change');
+  //   }
+  // });
+  
+  // $('#unique_mcu').show();
+  // $('#unique_mcu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_mcu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_mcu').val().includes("All")) {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val("All").trigger('change');
+  //   }
+  // });
+  // $('#unique_sbu').show();
+  // $('#unique_sbu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_sbu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_sbu').val().includes("All")) {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val("All").trigger('change');
+  //   }
+  // });
+
+  $('#unique_account_name').show();
+  $('#unique_account_name').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_account_name').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_account_name').val().includes("All")) {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val("All").trigger('change');
+    }
+  });
+  
+
+  // $('#multiselect').change(function (e) {
+  //   // console.log("checked clicked")
+  //   if (!e.currentTarget.checked) {
+  //     $('#toggleLabel').html("Or")
+  //   }
+  //   else {
+  //     $('#toggleLabel').html("And")
+  //   }
+  // })
+
+  /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+  $('#reset').click(async function (e) {
+    e.preventDefault()
+    window.location.href = `${window.location.origin}${window.location.pathname}`
+
+  })
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<div id="gotoTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'});document.documentElement.scrollTop=0;document.body.scrollTop=0;" title="Back to top" style="position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;width:44px;height:44px;display:none;align-items:center;justify-content:center;font-size:18px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.45);padding:0;background-color:#0b3d91;color:#fff;border:none;cursor:pointer;">
+  <i class="fas fa-chevron-up" style="margin:0;pointer-events:none;"></i>
+</div>
+<script>
+(function(){
+  var el=document.getElementById('gotoTopBtn');
+  if(!el)return;
+  function ck(){
+    try{
+      var s=Math.max(window.pageYOffset||0,document.documentElement.scrollTop||0,document.body.scrollTop||0);
+      el.style.display=s>300?'flex':'none';
+    }catch(e){el.style.display='flex';}
+  }
+  window.addEventListener('scroll',ck);
+  document.addEventListener('scroll',ck);
+  if(window.jQuery){$(window).on('scroll',ck);}
+  setInterval(ck,400);
+  ck();
+})();
+</script>
+{% endblock %}

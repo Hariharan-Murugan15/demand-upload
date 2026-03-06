@@ -1,0 +1,1524 @@
+{% load static %}
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <base href="{% static '/' %}">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" type="text/css" href="{% static 'css/font-awesome.min.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}" >
+  <link rel="stylesheet" type="text/css" href="{% static 'css/select2.min.css' %}" >
+  <script type="text/javascript" src={% static 'js/jquery.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/axios.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/lodash.min.js' %}></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> -->
+  <script type="text/javascript" src={% static 'js/tabulator.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/apexcharts.js' %}></script>
+  <script type="text/javascript" src={% static 'js/anychart-base.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/anychart-ui.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/anychart-exports.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/anychart-waterfall.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/plotly-2.32.0.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/agGrid.js' %}></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link type="text/css" rel="stylesheet" href={% static 'css/anychart-ui.min.css' %}>
+  <link type="text/css" rel="stylesheet" href={% static 'css/anychart-font.min.css' %}>
+  <link type="text/css" rel="stylesheet" href={% static 'css/apexcharts.css' %}>
+  <link rel="stylesheet" href={% static 'css/tabulator.min.css' %} />
+  <link rel="stylesheet" href="{% static 'visualize/css/pipeline_funnel.css' %}">
+
+  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
+  <!-- Bootstrap CSS -->
+  <!-- <script type="text/javascript" src={% static 'js/html2canvas.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/canvasjs.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/core.js' %}></script>
+  <script type="text/javascript" src={% static 'js/animated.js' %}></script>
+  <script type="text/javascript" src={% static 'js/download.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/select2.min.js' %}></script>
+  <script type="text/javascript" src={% static 'js/select2.js' %}></script>
+  <link rel="stylesheet" href={% static 'css/tachyons.min.css' %} /> -->
+  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script> -->
+ <!--sssss--> 
+
+  <title>Pipeline Insights</title>
+</head>
+<style>
+  /* --- General Page Styles --- */
+  hr { margin-top: 1rem; margin-bottom: 1rem; border: 0; border-top: 1px solid black; }
+  .bg-navbar { background-color: #00518a !important; }
+  .offcanvas { background-color: #070404 !important; }
+  .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+    cursor: default; padding-left: 2px; padding-right: 5px; color: black;
+  }
+  .select2-results__option--selectable { text-align: left; }
+  .viewsListItem { font-size: 0.8rem; }
+  .dropdown-item { text-align: left; }
+
+  /* --- POPUP STYLES --- */
+
+  /* EXPORT BUTTON STYLE (Red) */
+  .btn-custom-export {
+    background-color: #dc3545 !important;
+    color: white !important;
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 3px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.5;
+  }
+  .btn-custom-export:hover {
+    background-color: #bb2d3b !important;
+    text-decoration: none;
+    color: white !important;
+  }
+  .btn-custom-export i { margin-right: 5px; }
+
+  /* 1. Main Detail Table Container */
+  .detail-table-container {
+    border: 1px solid #8eb7e5;
+    margin-bottom: 15px;
+    transition: height 0.3s ease;
+  }
+  
+  .winzoneTable {
+    width: 100%;
+    margin-bottom: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+
+  /* Table Columns - Sticky Left for the label */
+  .winzoneTable th, .winzoneTable td:first-child {
+    background-color: #4472c4 !important; 
+    color: white !important;
+    font-size: 9pt;
+    font-weight: 600;
+    padding: 8px;
+    width: 40%;
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    text-align: left;
+    position: sticky; 
+    top: 0; 
+    left: 0;
+    z-index: 5; 
+  }
+
+  .winzoneTable td:last-child {
+    background-color: rgb(217, 226, 243) !important;
+    color: #000 !important;
+    font-size: 9pt;
+    font-weight: 400;
+    padding: 8px;
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    word-wrap: break-word;
+  }
+
+  /* Toggle Button */
+  .collapse-btn-row {
+    background-color: #e9ecef;
+    text-align: center;
+    padding: 8px;
+    cursor: pointer;
+    border: 1px solid #8eb7e5;
+    border-top: none;
+    color: #00518a;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  .collapse-btn-row:hover { background-color: #dee2e6; }
+
+  /* --- 2. MATRIX TABLES (Updated) --- */
+  
+  /* Container styling */
+  .matrix-responsive {
+    overflow-x: auto !important;
+    width: 100%;
+    margin-top: 5px;
+    border: 1px solid #8eb7e5;
+    background: white;
+    max-height: 500px;
+  }
+
+  /* Table Layout: Max-content ensures scroll trigger instead of squish */
+  .matrix-table {
+    width: max-content !important; 
+    border-collapse: separate; 
+    border-spacing: 0;
+    font-size: 9pt;
+  }
+
+  /* Common Header Style */
+  .matrix-header {
+    background-color: #4472c4 !important; 
+    color: white !important; 
+    font-weight: 600;
+    text-align: center; 
+    border: 1px solid #8eb7e5; 
+    position: sticky; 
+    top: 0; 
+    z-index: 20; 
+    justify-content: center;
+    padding: 2px !important;
+    line-height: 1;
+  }
+
+  /* Dynamic Header Heights */
+  .header-height-date { height: 120px !important; }
+  .header-height-grade { height: 35px !important; }
+
+  /* Sticky First Column (Service Line) */
+  .col-service-line {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    position: sticky; 
+    left: 0; 
+    z-index: 30; /* High Z to float over data */
+    background-color: #4472c4 !important;
+    color: white !important;
+    font-weight: 600;
+    border: 1px solid #8eb7e5;
+    text-align: left;
+    padding: 6px 5px !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+    font-size: 9pt !important;
+  }
+
+  /* Top Left Corner (Highest Z-Index) */
+  .matrix-corner-tl { z-index: 40 !important; top: 0; left: 0; }
+
+  /* Sticky Total Column (Right) */
+  .matrix-total-header {
+    position: sticky; 
+    right: 0; 
+    z-index: 40 !important; /* Above scrollable data */
+    background-color: #0b3d91 !important; 
+    color: white !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    border-left: 2px solid #8eb7e5 !important;
+    vertical-align: middle !important;
+  }
+
+  /* Specific Column Widths */
+  .col-width-date { min-width: 35px !important; }
+  .col-width-grade { min-width: 50px !important; }
+
+  /* Data Cells */
+  .matrix-cell {
+    background-color: rgb(217, 226, 243) !important; 
+    color: #000 !important;
+    border: 1px solid #8eb7e5; 
+    text-align: center; 
+    font-weight: 400 !important; 
+    font-size: 9pt !important;
+    white-space: nowrap;
+    padding: 1px 2px !important;
+  }
+
+  /* Row Total Cells (Sticky Right) */
+  .matrix-row-total {
+    position: sticky; 
+    right: 0; 
+    z-index: 30; 
+    background-color: #d1d8e0 !important; 
+    color: #000 !important;
+    font-weight: 600 !important;
+    font-size: 9pt !important;
+    text-align: center;
+    border: 1px solid #8eb7e5;
+    border-left: 2px solid #8eb7e5 !important;
+  }
+
+  /* Footer Row (Sticky Bottom) */
+  .matrix-footer-row td {
+    position: sticky; 
+    bottom: 0; 
+    z-index: 30; 
+    font-weight: 600;
+    background-color: #e9ecef !important; 
+    border-top: 2px solid #8eb7e5; 
+    border: 1px solid #8eb7e5; 
+    text-align: center;
+    font-size: 9pt !important;
+    color: #000 !important;
+  }
+
+  /* Footer Label */
+  .matrix-footer-label { 
+    z-index: 40 !important; /* Float over sticky columns */
+    text-align: left !important; 
+    padding-left: 5px !important; 
+  }
+
+  /* Grand Total (Bottom Right) */
+  .matrix-grand-total { 
+    z-index: 50 !important; /* Topmost Z-Index */
+    right: 0;
+    background-color: #d1d8e0 !important; 
+    border-left: 2px solid #8eb7e5 !important;
+  }
+
+  /* Vertical Text Wrapper */
+  .vertical-header-wrapper {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    text-align: left; 
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Utils */
+  .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; margin-top: 25px; }
+  .section-title { font-weight: bold; color: #333; margin: 0; font-size: 1rem; }
+
+  /* Navbar parent container */
+.navbar-container {
+  display: flex;
+  align-items: center;        /* Vertically center */
+  justify-content: space-between; /* Spread items */
+  width: 100%;
+  padding: 0 10px;
+}
+
+/* Left side grouping */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Dropdown styling */
+.menu-dropdown .dropdown-toggle {
+  cursor: pointer;
+}
+
+/* Center text container */
+.navbar-center {
+  text-align: center;
+  flex-grow: 1;
+}
+
+/* Right side */
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+/* Dropdown menu base size */
+.navbar .dropdown-menu {
+  font-size: 0.85rem !important; /* Slightly smaller */
+}
+
+/* Dropdown items: consistent weight + spacing */
+.navbar .dropdown-item span {
+  font-weight: bold;
+}
+
+/* Optional: improve clickable area */
+.navbar .dropdown-item {
+  padding-top: 4px;
+  padding-bottom: 2px;
+  padding-left: 8px;
+  padding-right: 2px;
+}
+</style>
+<!-- <body class="container-fluid ml-0 pl-0 bg-success"> -->
+<nav class="navbar navbar-dark bg-navbar px-0">
+  <div class="navbar-container">
+
+    <!-- Left: Toggle + Menu Dropdown -->
+    <div class="navbar-left">
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample"
+        aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <span class="dropdown menu-dropdown">
+        <span class="dropdown-toggle fw-bold text-white" id="dropdownMenu2" data-bs-toggle="dropdown"></span>
+
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenu2">
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="dashboard"
+              goto="{% url 'show_dashboard' %}">
+              <span class="ms-2">Dashboard</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="pipeline_table_view"
+              goto="{% url 'show_details_table' %}">
+              <span class="ms-2">Pipeline Table View</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="movement"
+              goto="{% url 'show_movement' %}">
+              <span class="ms-2">Movement</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="pipeline_summary_nav"
+              goto="{% url 'pipeline_summary' %}">
+              <span class="ms-2">Pipeline Summary</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="pipeline_vs_demand_nav"
+              goto="{% url 'pipeline_vs_demand' %}">
+              <span class="ms-2">Pipeline vs Demand</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="demand_upload_nav"
+              goto="{% url 'demand_upload_page' %}">
+              <span class="ms-2">Demand Upload</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" id="won_lost" onclick="goTo(this)">
+              <span class="ms-2">Won Lost</span>
+          </a></li>
+
+          <li style="cursor: pointer;"><a class="dropdown-item menu-item" id="accounts" onclick="goTo(this)">
+              <span class="ms-2">Accounts</span>
+          </a></li>
+
+          <li hidden><a class="dropdown-item menu-item" onclick="handleViewChange(this)" id="uploadView"
+              goto="{% url 'show_UploadData' %}">
+              <span class="ms-2">UploadView</span>
+          </a></li>
+        </ul>
+      </span>
+    </div>
+
+    <!-- Center Title -->
+    <div class="navbar-center">
+      <span class="text-white fw-bold fs-3">Pipeline Insights EMEA</span>
+    </div>
+
+    <!-- Right: Search -->
+    <div class="navbar-right d-flex align-items-center">
+      <form id="myForm" method="get" onSubmit="return false;" class="d-flex align-items-center m-0">
+        <input list="winzone_id_list" autocomplete="off" type="text" id="winzone_id"
+          name="winzone_id" placeholder="Search by Winzone ID" class="form-control"
+          onkeydown="if(event.key === 'Enter'){ event.preventDefault(); show_winzone(); }">
+      </form>
+
+      <button class="btn btn-primary ms-2 text-white d-inline-flex align-items-center justify-content-center"
+              type="button" onclick="show_winzone()"
+              style="padding: 10px"
+              >
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+
+  </div>
+</nav>
+<div class="offcanvas offcanvas-start offcanvas-light" tabindex="-1" id="offcanvasExample"
+  aria-labelledby="offcanvasExampleLabel">
+  <div class="offcanvas-header bg-navbar">
+    <h5 class="offcanvas-title text-white" id="offcanvasExampleLabel">Filters</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body" style="background-color: #d9e2f3">
+    <form class="" id="filter_form">
+      <div class="row" id="singleIndex">
+        <div class="col-12 d-flex justify-content-between">
+          <input style="display:none" name="plt_label" value="{{ plot_label }}" />
+          <label class="col-form-label-sm fw-bold me-2 col-3">Index label : </label>
+          <select id="idx_label" name="idx_label" onchange="labelChange()">
+            {% for entry_0 in index_labels %}
+            {% if entry_0 == idx_label_selected %}
+            <option value="{{ entry_0 }}" selected>{{ entry_0 }} </option>
+            {% else %}
+            <option value="{{ entry_0 }}">{{ entry_0 }} </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row d-none" id="dataIndexA">
+        <div class="col-12 d-flex justify-content-between">
+          <label class="col-form-label-sm fw-bold">Pipeline Data A : </label>
+          <select id="idx_label" name="idx_label_A">
+            {% for entry_0 in index_labels_A %}
+            {% if entry_0 == idx_label_selected_A %}
+            <option value="{{ entry_0 }}" selected>{{ entry_0 }} </option>
+            {% else %}
+            <option value="{{ entry_0 }}">{{ entry_0 }} </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr />
+      <div class="row d-none" id="dataIndexB">
+        <div class="col-12 d-flex justify-content-between">
+          <label class="col-form-label-sm fw-bold">Pipeline Data B : </label>
+          <select name="idx_label_B">
+            {% for entry_1 in index_labels_B %}
+            {% if entry_1 == idx_label_selected_B %}
+            <option value="{{ entry_1 }}" selected>{{ entry_1 }} </option>
+            {% else %}
+            <option value="{{ entry_1 }}">{{ entry_1 }} </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr id="breakline" />
+      <!-- <div class="row">
+        <div class="col-12 d-flex justify-content-between">
+          <span class="col-form-label-sm fw-bold">Select Vertical:</span>
+          {% for entry_2 in bu_labels %}
+          {% if entry_2 == opt_bu_checked %}
+          <span class="form check">
+            <input type="radio" class="form-check-input" name="opt_bu" value="{{ entry_2 }}" checked>
+            <label style="font-size: 0.8rem;" class="form-check-label"> {{ entry_2 }} </label>
+          </span>
+          {% else %}
+          <span class="form check">
+            <input type="radio" class="form-check-input" name="opt_bu" value="{{ entry_2 }}">
+            <label style="font-size: 0.8rem;" class="form-check-label"> {{ entry_2 }} </label>
+          </span>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <hr /> -->
+      <div class="row">
+        <div class="col-12 d-flex flex-row">
+          <span class="col-form-label-sm fw-bold me-2"> Select Vertical:</span>
+          <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAll" value="selectAll">
+          <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 d-flex flex-row">
+          <span class="d-flex flex-row flex-wrap align-items-center">
+            {% for vertical in vertical_unique %}      
+            {% if opt_opp_vertical_new|length == 0 %}    
+              <span>
+                <input class="form-check-input unq_vertical" type="checkbox"  name="vertical[]" value="{{vertical}}">
+                <label style="font-size: 0.8rem;" class="form-check-label">{{ vertical }}</label>
+              </span>
+            {% else %}
+            {% if vertical in opt_opp_vertical_new %}  
+              <span class="mx-1">
+                <input class="form-check-input unq_vertical" type="checkbox"  name="vertical[]" value="{{vertical}}" checked>
+                <label style="font-size: 0.8rem;" class="form-check-label">{{ vertical }}</label>
+              </span>
+            {% else %}
+            <span>
+              <input class="form-check-input unq_vertical" type="checkbox"  name="vertical[]" value="{{vertical}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ vertical }}</label>
+            </span>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </span>
+        </div>
+      </div>
+      <hr />
+      <div class="row">
+        <div class="col-12 d-flex flex-row">
+          <span class="col-form-label-sm fw-bold me-2"> Select MarketUnit:</span>
+          <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAll2" value="selectAll2">
+          <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 d-flex flex-row">
+          <span class="d-flex flex-row flex-wrap align-items-center unq_region">
+            
+            <!-- {% for region in region_unique %}      
+            {% if opt_opp_region_new|length == 0 %}    
+              <span>
+                <input class="form-check-input unq_region" type="checkbox" name="region[]" value="{{region}}">
+                <label style="font-size: 0.8rem;" class="form-check-label">{{ region }}</label>
+              </span>
+            {% else %}
+            {% if region in opt_opp_region_new %}  
+              <span class="mx-1">
+                <input class="form-check-input unq_region" type="checkbox" name="region[]" value="{{region}}" checked>
+                <label style="font-size: 0.8rem;" class="form-check-label">{{ region }}</label>
+              </span>
+            {% else %}
+            <span>
+              <input class="form-check-input unq_region" type="checkbox" name="region[]" value="{{region}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ region }}</label>
+            </span>
+            {% endif %}
+            {% endif %}
+            {% endfor %} -->
+          </span>
+        </div>
+      </div>
+      <hr />
+      <!-- <div class="row">
+        <div class="col-12 d-flex justify-content-between">
+          <span class="col-form-label-sm fw-bold">Select Region: </span>
+          {% for entry in region_labels %}
+          {% if entry == opt_region_checked %}
+          <span>
+            <input type="radio" class="form-check-input" name="opt_region" value="{{ entry }}" checked>
+            <label style="font-size: 0.8rem;" class="form-check-label">{{ entry }}</label>
+          </span>
+          {% else %}
+          <span>
+            <input type="radio" class="form-check-input" name="opt_region" value="{{ entry }}">
+            <label style="font-size: 0.8rem;" class="form-check-label ">{{ entry }}</label>
+          </span>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <hr /> -->
+      <!-- <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">SubRegion:</label>
+          <select id="unique_subregion" name="unique_subregion" class="form-select form-select-sm"
+            onchange="changeSubRegion()">
+            {% for subregion in unique_subregion %}
+            {% if subregion == opt_subregion_checked %}
+            <option value="{{ subregion }}" selected>{{ subregion }}</option>
+            {% else %}
+            <option value="{{ subregion }}">{{ subregion }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr /> -->
+      <div hidden class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">SubRegion:</label>
+          <select multiple id="unique_subregion" name="unique_subregion[]"
+            class="form-select form-select-sm unique_subregion  me-auto ms-auto">
+            {% for subregion in unique_subregion %}
+            {% if opt_subregion_checked|length == 0 %}
+            <option value="{{ subregion }}">{{ subregion }}</option>
+            {% else %}
+            {% if subregion in opt_subregion_checked %}
+            <option value="{{ subregion }}" selected>{{ subregion }}</option>
+            {% else %}
+            <option value="{{ subregion }}">{{ subregion }}</option>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+      <hr hidden />
+      <!-- <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">BU:</label>
+          <select id="unique_mcu" name="unique_mcu" class="form-select form-select-sm" onchange="changeMCU()">
+            {% for mcu in unique_mcu %}
+            {% if mcu == opt_mcu_checked %}
+            <option value="{{ mcu }}" selected>{{ mcu }}</option>
+            {% else %}
+            <option value="{{ mcu }}">{{ mcu }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr /> -->
+      <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">BU:</label>
+          <select multiple id="unique_mcu" name="unique_mcu[]"
+            class="form-select form-select-sm unique_mcu  me-auto ms-auto">
+            <!-- {% for mcu in unique_mcu %}
+            {% if opt_mcu_checked|length == 0 %}
+            <option value="{{ mcu }}">{{ mcu }}</option>
+            {% else %}
+            {% if mcu in opt_mcu_checked %}
+            <option value="{{ mcu }}" selected>{{ mcu }}</option>
+            {% else %}
+            <option value="{{ mcu }}">{{ mcu }}</option>
+            {% endif %}
+            {% endif %}
+            {% endfor %} -->
+          </select>
+          <!-- <span class="w-60">
+            <select multiple id="unique_bu_desc" style="display: none;" class="form-select form-select-sm" name="unique_bu_desc[]">
+            </select>
+          </span> -->
+        </div>
+
+      </div>
+      <hr />
+      <!-- <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">SBU:</label>
+          <select id="unique_sbu" name="unique_sbu" class="form-select form-select-sm" onchange="changeSBU()">
+            {% for sbu in unique_sbu %}
+            {% if sbu == opt_sbu_checked %}
+            <option value="{{ sbu }}" selected>{{ sbu }}</option>
+            {% else %}
+            <option value="{{ sbu }}">{{ sbu }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr /> -->
+      <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">SBU:</label>
+          <select multiple id="unique_sbu" name="unique_sbu[]"
+            class="form-select form-select-sm unique_sbu  me-auto ms-auto">
+            <!-- {% for sbu in unique_sbu %}
+            {% if opt_sbu_checked|length == 0 %}
+            <option value="{{ sbu }}">{{ sbu }}</option>
+            {% else %}
+            {% if sbu in opt_sbu_checked %}
+            <option value="{{ sbu }}" selected>{{ sbu }}</option>
+            {% else %}
+            <option value="{{ sbu }}">{{ sbu }}</option>
+            {% endif %}
+            {% endif %}
+            {% endfor %} -->
+          </select>
+        </div>
+
+      </div>
+      <hr />
+      <!-- <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold">Account Name:</label>
+          <select id="unique_account_name" name="unique_account_name" class="form-select form-select-sm"
+            onchange="changeAccountName()">
+            {% for account_name in unique_account_name %}
+            {% if account_name == opt_account_name_checked %}
+            <option value="{{ account_name }}" selected>{{ account_name }}</option>
+            {% else %}
+            <option value="{{ account_name }}">{{ account_name }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <hr /> -->
+      <div class="row">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">Account Name:</label>
+          <select multiple id="unique_account_name" name="unique_account_name[]"
+            class="form-select form-select-sm unique_account_name  me-auto ms-auto">
+            {% for account_name in unique_account_name %}
+            {% if opt_account_name_checked|length == 0 %}
+            <option value="{{ account_name }}">{{ account_name }}</option>
+            {% else %}
+            {% if account_name in opt_account_name_checked %}
+            <option value="{{ account_name }}" selected>{{ account_name }}</option>
+            {% else %}
+            <option value="{{ account_name }}">{{ account_name }}</option>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+      <hr />
+
+      <div hidden class="row">
+        <div class="col-12">
+          <div class="row">
+            <div class="col d-flex justify-content-between align-items-center">
+              <label class="col-form-label-sm fw-bold me-1">Horizontal:</label>
+              <!-- <span class="form-switch">
+                <input type="hidden" name="opt_multiselect" value="" />
+                <input class="form-check-input" type="checkbox" name="opt_multiselect" {% if opt_multiselect_checked %}checked{% endif %} id="multiselect">
+                <label class="fw-bold me-3" id="toggleLabel" style="font-size: 0.8rem;"
+                  for="flexSwitchCheckDefault">And</label>
+              </span> -->
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12 d-flex">
+              <select multiple id="unique_horizontal" style="display: none;" name="unique_horizontal[]"
+                class="form-select form-select-sm unique_horizontal me-auto ms-auto">
+                {% for horizontal in unique_horizontal %}
+                {% if opt_horizontal_checked|length == 0 %}
+                <option value="{{ horizontal }}">{{ horizontal }}</option>
+                {% else %}
+                {% if horizontal in opt_horizontal_checked %}
+                <option value="{{ horizontal }}" selected>{{ horizontal }}</option>
+                {% else %}
+                <option value="{{ horizontal }}">{{ horizontal }}</option>
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+      <hr hidden/>
+      <div class="col-12 d-flex flex-row">
+        <span class="col-form-label-sm fw-bold me-2"> Deal Type:</span>
+        <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAll6" value="selectAll6">
+        <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+      </div>
+      <div class="row">
+        <div class="col-12 d-flex flex-row">
+          <!-- <span class="col-form-label-sm fw-bold"> Opportunity Type :</span> -->
+          <span class="d-flex flex-row flex-wrap justify-content-start align-items-center">
+            {% for type in opp_type %}
+            {% if opt_opp_type|length == 0 %}
+            <span>
+              <input class="form-check-input uniqueOppType" type="checkbox" name="type[]" value="{{ type }}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ type }}</label>
+            </span>
+            {% else %}
+            {% if type in opt_opp_type %}
+            <span class="mx-1">
+              <input class="form-check-input uniqueOppType" type="checkbox" name="type[]" value="{{ type }}" checked>
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ type }}</label>
+            </span>
+            {% else %}
+            <span>
+              <input class="form-check-input uniqueOppType" type="checkbox" name="type[]" value="{{ type }}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ type }}</label>
+            </span>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </span>
+        </div>
+      </div>
+      <hr />
+      <div id="salesstage" class="col-12 d-flex flex-row">
+        <span class="col-form-label-sm fw-bold me-2"> Sales Stage:</span>
+        <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAll3" value="selectAll3">
+        <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+      </div>
+      <div class="row" id="salesstagevalues">
+        <div class="col-12 d-flex flex-row">
+          <!-- <span class="col-form-label-sm fw-bold me-2"> Sales Stage:</span> -->
+          <span class="d-flex flex-row flex-wrap align-items-center">
+            {% for stage in sales_stage %}
+            {% if stage != 'Duplicate' %}
+              {% if opt_sales_stage|length == 0 %}
+                <span class="me-1">
+                  <input class="form-check-input uniqueSales" type="checkbox" name="sales_stage[]" value="{{ stage }}">
+                  <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+                </span>
+              {% else %}
+                {% if stage in opt_sales_stage %}
+                  <span class="me-1">
+                    <input class="form-check-input uniqueSales" type="checkbox" name="sales_stage[]" value="{{ stage }}" checked>
+                    <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+                  </span>
+                {% else %}
+                  <span class="me-1">
+                    <input class="form-check-input uniqueSales" type="checkbox" name="sales_stage[]" value="{{ stage }}">
+                    <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+                  </span>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          </span>
+        </div>
+      </div>
+      <hr id="salesstageLine"/>
+      <div class="col-12 d-flex flex-row" id="salesstageNew">
+        <span class="col-form-label-sm fw-bold me-2"> Sales Stage:</span>
+        <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAllNew" value="selectAllNew">
+        <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+      </div>
+      <div class="row" id="salesstagevaluesNew">
+        <div class="col-12 d-flex flex-row">
+          <!-- <span class="col-form-label-sm fw-bold me-2"> Sales Stage:</span> -->
+          <span class="d-flex flex-row flex-wrap align-items-center">
+            {% for stage in sales_stageNew %}
+            {% if stage != 'Duplicate' %}
+            {% if opt_sales_stageNew|length == 0 %}
+            <span class="me-1">
+              <input class="form-check-input uniqueSalesNew" type="checkbox" name="sales_stageNew[]" value="{{stage}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+            </span>
+            {% else %}
+            {% if stage in opt_sales_stageNew %}
+            <span class="me-1">
+              <input class="form-check-input uniqueSalesNew" type="checkbox" name="sales_stageNew[]" value="{{stage}}" checked>
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+            </span>
+            {% else %}
+            <span class="me-1">
+              <input class="form-check-input uniqueSalesNew" type="checkbox" name="sales_stageNew[]" value="{{stage}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ stage }}</label>
+            </span>
+            {% endif %}
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </span>
+        </div>
+      </div>
+      <hr id="salesstageLineNew"/>
+      <div class="col-12 d-flex flex-row">
+        <span class="col-form-label-sm fw-bold me-2"> Deal Size:</span>
+        <input style="margin-left: 20;" type="checkbox" class="grid-checks" checked id="selectAll4" value="selectAll4">
+        <label class="white" style="font-size:14px;margin-top: 5px;margin-left: 2px;">Select All / Unselect All</label>
+      </div>
+      <div class="row">
+        <div class="col-12 d-flex">
+          <!-- <span class="col-form-label-sm fw-bold me-2"> Deal Size: </span> -->
+          <span class="d-flex flex-row flex-wrap align-items-center">
+            {% for size in deal_size %}
+            {% if opt_deal_size|length == 0 %}
+            <span class="me-1">
+              <input class="form-check-input uniquedeal" type="checkbox" name="deal_size[]" value="{{size}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ size }}</label>
+            </span>
+            {% else %}
+            {% if size in opt_deal_size %}
+            <span class="me-1">
+              <input class="form-check-input uniquedeal" type="checkbox" name="deal_size[]" value="{{size}}" checked>
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ size }}</label>
+            </span>
+            {% else %}
+            <span class="me-1">
+              <input class="form-check-input uniquedeal" type="checkbox" name="deal_size[]" value="{{size}}">
+              <label style="font-size: 0.8rem;" class="form-check-label">{{ size }}</label>
+            </span>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </span>
+        </div> 
+      </div>
+      <!-- opportunity SOurce-->
+      <div class="row" id="opportunitysourceid">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">Opportunity Source:</label>
+          <select multiple id="opp_Source" name="opp_source[]"
+            class="form-select form-select-sm unique_sbu  me-auto ms-auto">
+          </select>
+        </div>
+        <hr style="margin: 1rem 0 0 0;">
+      </div>
+      <!-- Account Type -->
+      <div class="row" id="Accounttypeid">
+        <div class="col-12 d-flex flex-column justify-content-start">
+          <label class="col-form-label-sm fw-bold me-2">Account Type:</label>
+          <select multiple id="Acc_Type" name="acc_type[]"
+            class="form-select form-select-sm unique_sbu  me-auto ms-auto">
+          </select>
+        </div>
+        <hr style="margin: 1rem 0 0 0;">
+      </div>
+      <!-------------------------->
+      <div class="row my-4 d-none" id="additional_details">
+        <div class="col-12 text-center">
+          <label style="font-size: 0.8rem;" class="form-check-label fw-bold">Show additional analysis :</label>
+          <input type="hidden" name="additional_mmetrics" value="" />
+          <input type="checkbox" class="form-check-input" name="additional_mmetrics" {% if opt_additional_checked %}checked{% endif %} />
+        </div>
+      </div>
+      <div class="row mt-4">
+        <div class="col-12 text-center">
+          <input type="submit" value="Refresh" name="submit" class="btn btn-primary fw-bold">
+          <button id="reset" name="reset" class="btn btn-primary fw-bold">Reset All</button>
+        </div>
+      </div>
+    </form>
+    <div hidden class="row my-4" id="checkbox_container">
+      <div class="col-12 text-center">
+        <label style="font-size: 0.8rem;" class="form-check-label fw-bold">Show Tables: </label>
+        <input type="checkbox" class="form-check-input" name="show_tables" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="winzoneModal" tabindex="-1" aria-labelledby="winzoneModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="winzoneModalLabel">Deal Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="winzone_table">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // --- 1. EXCEL EXPORT ---
+  function exportTableToExcel(tableId, filename = 'export.xlsx') {
+      const table = document.getElementById(tableId);
+      if (!table) { alert("Table data not available."); return; }
+      const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+      XLSX.writeFile(wb, filename);
+  }
+
+  // --- 2. TOGGLE VIEW: 7 ROWS FIXED vs COMPACT ---
+  window.toggleDetailsView = function() {
+      const container = document.getElementById('mainDetailsContainer');
+      const extraRows = document.getElementById('extraDetailsBody');
+      const btnText = document.getElementById('toggleText');
+      const btnIcon = document.getElementById('toggleIcon');
+
+      // Note: 250px is approximately 7 rows (35px per row)
+      if (extraRows.style.display === 'none') {
+          // STATE: EXPAND (Show items, but fix height to 7 rows and scroll)
+          extraRows.style.display = 'table-row-group'; 
+          container.style.height = '250px';            // FIXED HEIGHT (7 ROWS)
+          container.style.overflowY = 'auto';          // SCROLLABLE
+          
+          btnText.innerText = 'Compact View';
+          btnIcon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+      } else {
+          // STATE: COMPACT (Hide extra items, reset height)
+          extraRows.style.display = 'none';            
+          container.style.height = 'auto';             
+          container.style.overflowY = 'hidden';        
+          
+          btnText.innerText = 'Show More Details';
+          btnIcon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+          container.scrollTop = 0;
+      }
+  }
+
+  function labelChange() {
+    var selectedLabel = document.getElementById("idx_label").value;
+    var url = window.location.pathname + '?idx_label=' + encodeURIComponent(selectedLabel);
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('plt_label')) {
+      url += '&plt_label=' + encodeURIComponent(params.get('plt_label'));
+    }
+    window.location.href = url;
+  }
+
+  // --- 3. SHOW WINZONE ---
+  function show_winzone(passedId) {
+    let validPassedId = (passedId && (typeof passedId === 'string' || typeof passedId === 'number')) ? String(passedId) : null;
+    let searchedWinzoneId = validPassedId ? validPassedId : document.getElementById("winzone_id").value.trim();
+    
+    if (!searchedWinzoneId) { alert("Please enter a WinZone ID"); return; }
+
+    document.getElementById("winzone_id").value = searchedWinzoneId;
+    let idxLabel = document.getElementById("idx_label") ? document.getElementById("idx_label").value : '';
+
+    $('#winzoneModalLabel').text("Deal Details for : " + searchedWinzoneId);
+    $('#winzone_table').html('<div class="text-center" style="padding: 30px;"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 fw-bold">Fetching details...</p></div>');
+    
+    var myModal = new bootstrap.Modal(document.getElementById('winzoneModal'));
+    myModal.show();
+
+    fetch(`/GGMPipelineInsights/AjaxGetWinzoneDetails/?idx_label=${encodeURIComponent(idxLabel)}&winzone_id=${encodeURIComponent(searchedWinzoneId)}`)
+      .then(response => response.json())
+      .then(result => {
+        if (result.success && result.data) {
+          
+          const data = result.data;
+          let oppName = data['Opportunity Name'] || "Unknown";
+          // Change: "Deal details: ID - Name"
+          $('#winzoneModalLabel').text(`Deal details: ${searchedWinzoneId} - ${oppName}`);
+          const demandMatrix = result.demand_matrix || [];
+          const gradeMatrix = result.grade_matrix || [];
+          const allTowers = result.all_towers || [];
+          const allGrades = result.all_grades || [];
+          
+          // --- BUILD MAIN TABLE ---
+          const priorityMap = new Map([
+              ["Opportunity Name", "Opportunity Name"],
+              ["WinZone ID", "WinZone Opportunity ID"],
+              ["Account Name", "Account Name"],
+              ["Vertical", "Vertical"],
+              ["Sales Stage", "Sales Stage"],
+              ["Net TCV ($)", "Net TCV"], 
+              ["Close Date", "CloseDate"]
+          ]);
+
+          let priorityRowsHtml = '';
+          let otherRowsHtml = '';
+          let processedKeys = new Set();
+
+          const formatVal = (key, val) => {
+             if (val === undefined || val === null || val === "") return "-";
+             if ((String(key).includes('TCV') || String(key).includes('$')) && !isNaN(val) && val !== "-") {
+                   return parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+             }
+             return val;
+          };
+
+          priorityMap.forEach((dbKey, displayLabel) => {
+              let rawVal = data[dbKey];
+              let finalVal = formatVal(dbKey, rawVal);
+              priorityRowsHtml += `<tr><td>${displayLabel}</td><td>${finalVal}</td></tr>`;
+              processedKeys.add(dbKey);
+          });
+
+          for (const [key, val] of Object.entries(data)) {
+              if (!processedKeys.has(key)) {
+                  let finalVal = formatVal(key, val);
+                  otherRowsHtml += `<tr><td>${key}</td><td>${finalVal}</td></tr>`;
+              }
+          }
+
+          let mainTableHtml = `
+            <div class="section-header-row" style="margin-top:0;">
+                <h6 class="section-title">Deal Summary</h6>
+                <button class="btn-custom-export" 
+                {% comment %} onclick="exportTableToExcel('mainDetailsTable', 'Deal_${searchedWinzoneId}_Details.xlsx')" {% endcomment %}
+                >
+                   EXPORT TO EXCEL
+                </button>
+            </div>
+            
+            <div id="mainDetailsContainer" class="detail-table-container">
+                <table id="mainDetailsTable" class="winzoneTable">
+                    <tbody>
+                        ${priorityRowsHtml}
+                    </tbody>
+                    <tbody id="extraDetailsBody" style="display:none;">
+                        ${otherRowsHtml}
+                    </tbody>
+                </table>
+                <div class="collapse-btn-row" onclick="toggleDetailsView()">
+                     <span id="toggleText">Show More Details</span> <i id="toggleIcon" class="bi bi-chevron-down"></i>
+                </div>
+            </div>
+          `;
+
+          // --- BUILD MATRICES ---
+// --- UPDATED buildMatrix Function ---
+         // --- UPDATED buildMatrix Function ---
+          // --- UPDATED buildMatrix Function (v4) ---
+         // --- UPDATED buildMatrix Function (v3) ---
+          const buildMatrix = (dataSet, colKey, title, masterCols, tableId) => {
+              
+              // 1. Config based on Table Type
+              let colWidthClass = 'col-width-grade'; 
+              let headerHeightClass = 'header-height-grade'; // Default short header
+
+              if (tableId === 'dateMatrixTable') {
+                  colWidthClass = 'col-width-date';
+                  headerHeightClass = 'header-height-date'; // Taller header for Dates
+              }
+
+              // 2. Prepare Columns
+              let uniqueCols = [];
+              if (masterCols && masterCols.length > 0) {
+                  uniqueCols = masterCols; 
+              } else if (dataSet.length > 0) {
+                  uniqueCols = [...new Set(dataSet.map(item => item[colKey]))].sort((a, b) => {
+                       let dateA = new Date(a);
+                       let dateB = new Date(b);
+                       if(!isNaN(dateA) && !isNaN(dateB)) return dateA - dateB;
+                       return a.localeCompare(b);
+                  });
+              } else {
+                  return `<div class="mt-4"><h6 class="section-title">${title}</h6><div class="alert alert-light border mt-2">No data available.</div></div>`;
+              }
+
+              // 3. Prepare Rows
+              let uniqueTowers = allTowers.length > 0 ? allTowers : [...new Set(dataSet.map(item => item.Tower))].sort();
+              if(uniqueTowers.length === 0) return `<div class="mt-4"><h6 class="section-title">${title}</h6><div class="alert alert-light border mt-2">No Service Line data available.</div></div>`;
+
+              // 4. Map Data
+              let pivotData = {};
+              dataSet.forEach(item => {
+                  if (!pivotData[item.Tower]) pivotData[item.Tower] = {};
+                  pivotData[item.Tower][item[colKey]] = item.Count;
+              });
+
+              // 5. Calculate Totals
+              let towerTotalsMap = {};
+              uniqueTowers.forEach(tower => {
+                  let total = 0;
+                  for (let key in pivotData[tower]) { total += pivotData[tower][key]; }
+                  towerTotalsMap[tower] = total;
+              });
+              uniqueTowers.sort((a, b) => towerTotalsMap[b] - towerTotalsMap[a]);
+
+              // 6. Determine table width strategy dynamically
+              // Calculate if all columns fit within the modal (~760px body width)
+              let minColWidth = (tableId === 'dateMatrixTable') ? 35 : 50;
+              let fixedColsWidth = 180 + 60; // Service Line (180px) + Total (60px)
+              let totalMinWidth = fixedColsWidth + (uniqueCols.length * minColWidth);
+              let tableWidthStyle;
+              if (totalMinWidth < 740) {
+                  // Columns fit → expand them to fill full width
+                  tableWidthStyle = 'width:100% !important; table-layout:fixed !important;';
+              } else {
+                  // Too many columns → allow horizontal scroll
+                  tableWidthStyle = 'width:max-content !important;';
+              }
+
+              // 7. Build HTML
+              let html = `
+              <div class="section-header-row">
+                  <h6 class="section-title">${title}</h6>
+                  <button class="btn-custom-export" 
+                  {% comment %} onclick="exportTableToExcel('${tableId}', '${title.replace(/\s/g, '_')}.xlsx')" {% endcomment %}
+                  >
+                     EXPORT TO EXCEL
+                  </button>
+              </div>
+              
+              <div class="matrix-responsive"> 
+              <table id="${tableId}" class="matrix-table" style="${tableWidthStyle}">
+                <thead>
+                    <tr>
+                        <th class="matrix-first-col matrix-corner-tl col-service-line ${headerHeightClass}">Service Line</th>`;
+              
+              // Data Headers (Vertical + Specific Height Class)
+              uniqueCols.forEach(col => { 
+                  html += `<th class="matrix-header vertical-header-th ${colWidthClass} ${headerHeightClass}">
+                              <span class="vertical-header-wrapper">${col}</span>
+                           </th>`; 
+              });
+              
+              // Total Header (Sticky Right)
+              html += `<th class="matrix-header matrix-total-header ${headerHeightClass}">Total</th></tr></thead><tbody>`;
+
+              let colTotals = new Array(uniqueCols.length).fill(0);
+              let grandTotal = 0;
+
+              uniqueTowers.forEach(tower => {
+                  let rowTotal = 0;
+                  // Body Row - Service Line (Sticky Left)
+                  html += `<tr><td class="matrix-first-col col-service-line">${tower}</td>`;
+                  
+                  uniqueCols.forEach((col, idx) => {
+                      let val = 0;
+                      if(pivotData[tower] && pivotData[tower][col]) { val = pivotData[tower][col]; }
+                      rowTotal += val;
+                      colTotals[idx] += val;
+                      let displayVal = val > 0 ? val : "-"; 
+                      
+                      html += `<td class="matrix-cell ${colWidthClass}">${displayVal}</td>`;
+                  });
+                  grandTotal += rowTotal;
+                  // Row Total (Sticky Right)
+                  html += `<td class="matrix-row-total">${rowTotal}</td></tr>`;
+              });
+
+              // Footer Row
+              html += `<tr class="matrix-footer-row">
+                        <td class="matrix-footer-label col-service-line" style="z-index: 35 !important;">Total</td>`;
+              
+              colTotals.forEach(tot => { 
+                  html += `<td class="${colWidthClass}">${tot}</td>`; 
+              });
+              
+              // Grand Total (Sticky Bottom Right)
+              html += `<td class="matrix-grand-total text-center">${grandTotal}</td></tr></tbody></table></div>`;
+              return html;
+          };
+
+          let dateMatrixHtml = buildMatrix(demandMatrix, "StartDate", "Demand Breakdown by Requirement Start Date", null, 'dateMatrixTable');
+          let gradeMatrixHtml = buildMatrix(gradeMatrix, "Grade", "Demand Breakdown by SO Grade", allGrades, 'gradeMatrixTable');
+
+          $('#winzone_table').html(mainTableHtml + dateMatrixHtml + gradeMatrixHtml);
+
+        } else {
+          $('#winzone_table').html(`<div class="alert alert-danger m-3">Could not find details for WinZone ID: ${searchedWinzoneId}</div>`);
+        }
+      })
+      .catch(error => {
+        console.error("Fetch error:", error);
+        $('#winzone_table').html(`<div class="alert alert-danger m-3">Error fetching data.</div>`);
+      });
+  }
+</script>
+<script type="text/javascript" src={% static 'js/select2.min.js' %}></script>
+<script type="text/javascript" src={% static 'js/bootstrap.bundle.min.js' %}></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script> -->
+
+<script>
+  // Helper functions to Toggle Sales Stage Filter
+  function showSalesStageFilter() {
+    $('#salesstage').removeClass("d-none");
+    $('#salesstagevalues').show();
+    $('#salesstageLine').show();
+  }
+
+  function hideSalesStageFilter() {
+    $('#salesstage').addClass("d-none");
+    $('#salesstagevalues').hide();
+    $('#salesstageLine').hide();
+  }
+
+  // --- NEW FUNCTION: Force UI Defaults for Sales Stage ---
+  function enforceSalesStageDefaults() {
+    let params = new URLSearchParams(window.location.search);
+    
+    // Only apply default logic if the user hasn't actively filtered (no sales_stage[] in URL)
+    if (!params.has('sales_stage[]')) {
+        const defaultActiveStages = [
+            "1. Engagement", 
+            "2. Shaping", 
+            "3. Solutioning", 
+            "4. End-Game", 
+            "5. Negotiation"
+        ];
+
+        // Loop through all sales stage checkboxes
+        $('.uniqueSales').each(function() {
+            let val = $(this).val();
+            if (defaultActiveStages.includes(val)) {
+                $(this).prop('checked', true); // Check the active 5
+            } else {
+                $(this).prop('checked', false); // Uncheck others (Won/Lost/etc)
+            }
+        });
+    }
+  }
+
+  // ... (Keep your existing selectAll click handlers here) ...
+  $('#selectAll').click(function() {
+    if (this.checked) { $('.unq_vertical').each(function() { this.checked = true; }); }
+    else{ $('.unq_vertical').each(function() { this.checked = false; }); }
+  })
+  $('#selectAll2').click(function() {
+    if (this.checked) { $('.market_unit_option').each(function() { this.checked = true; }); }
+    else{ $('.market_unit_option').each(function() { this.checked = false; }); }
+  })
+  $('#selectAll3').click(function() {
+    if (this.checked) { $('.uniqueSales').each(function() { this.checked = true; }); }
+    else{ $('.uniqueSales').each(function() { this.checked = false; }); }
+  })
+  $('#selectAllNew').click(function() {
+    if (this.checked) { $('.uniqueSalesNew').each(function() { this.checked = true; }); }
+    else{ $('.uniqueSalesNew').each(function() { this.checked = false; }); }
+  })
+  $('#selectAll4').click(function() {
+    if (this.checked) { $('.uniqueDeal').each(function() { this.checked = true; }); }
+    else{ $('.uniqueDeal').each(function() { this.checked = false; }); }
+  })
+  $('#selectAll5').click(function() {
+    if (this.checked) { $('.uniqueTier').each(function() { this.checked = true; }); }
+    else{ $('.uniqueTier').each(function() { this.checked = false; }); }
+  })
+  $('#selectAll6').click(function() {
+    if (this.checked) { $('.uniqueOppType').each(function() { this.checked = true; }); }
+    else{ $('.uniqueOppType').each(function() { this.checked = false; }); }
+  })
+
+  function removeQueryParam(paramString){
+    var paramsArray = paramString.split('&')
+    paramsArray = paramsArray.filter(element => !element.startsWith('plt_label') && !element.startsWith('submit'))
+    let additionalParams = paramsArray.join('&')
+    return additionalParams;
+  }
+  
+  function goTo(listElement) {
+    event.preventDefault();
+    let params = new URLSearchParams(window.location.search).toString();
+    let additionalParams = removeQueryParam(params)
+    let index_label = "{{ idx_label_selected }}"
+    if (!index_label) {
+      index_label = "{{ idx_label_selected_B }}"
+    }
+    // use trimmed text content (ignores whitespace text nodes)
+    let pageName = listElement.textContent.trim();
+    if (window.location.pathname.includes("GGMPipelineInsights")) {
+      let initialPath = `${window.location.origin}/GGMPipelineInsights/show_plot/?`
+      window.location.href = `${initialPath}&plt_label=${encodeURIComponent(pageName)}${additionalParams ? `&${additionalParams}` : ''}`
+    }
+  }
+
+  function handleViewChange(e) {
+      let pageName = e.textContent.trim();
+      let params = new URLSearchParams(window.location.search).toString();
+      let additionalParams = removeQueryParam(params)
+      window.location.href = `${window.location.origin}${$(e).attr('goto')}?${additionalParams ? `${additionalParams}` : ''}`;
+  }
+
+  $(document).ready(function () {
+    let urlString = window.location.href
+    let _index = urlString.indexOf('_')
+    let plot_label = "{{ plot_label }}"
+    console.log(plot_label)
+
+    // 1. Show filter by default
+    showSalesStageFilter();
+    
+    // 2. Enforce the 5-stage default logic if no filter is applied
+    enforceSalesStageDefaults();
+
+    if (plot_label == 'Dashboard') {
+        $('#breakline').addClass("d-none")
+        $('#dashboard').addClass("active")
+        $('#dropdownMenu2').html("Dashboard")
+        $('#opportunitysourceid').hide()
+        $('#Accounttypeid').hide()
+        $('#salesstageNew').addClass("d-none")
+        $('#salesstagevaluesNew').hide()
+        $('#salesstageLineNew').hide()
+    }
+    else if(plot_label == 'Pipeline Table View'){
+        $('#breakline').addClass("d-none")
+        $('#pipeline_table_view').addClass("active")
+        $('#dropdownMenu2').html("Pipeline Table View")
+        $('#opportunitysourceid').hide()
+        $('#Accounttypeid').hide()
+        $('#salesstageNew').addClass("d-none")
+        $('#salesstagevaluesNew').hide()
+        $('#salesstageLineNew').hide()
+    }
+    else if(plot_label =='Movement'){
+        $('#breakline').addClass("d-block")
+        $('#movement').addClass("active")
+        $('#dropdownMenu2').html("Movement")
+        $('#singleIndex').hide()
+        $('#dataIndexA').removeClass("d-none")
+        $('#dataIndexB').removeClass("d-none")
+        $('#additional_details').removeClass("d-none")
+        $('#checkbox_container').addClass("d-none")
+        $('#opportunitysourceid').hide()
+        $('#Accounttypeid').hide()
+        $('#salesstageNew').addClass("d-none")
+        $('#salesstagevaluesNew').hide()
+        $('#salesstageLineNew').hide()
+    }
+    else {
+      $('#breakline').addClass("d-none")
+      
+      switch (plot_label) {
+        case "Summary":
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#summary').addClass("active")
+          $('#dropdownMenu2').html("Summary")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        case "Win Report":
+          $('#winzone_id').hide()
+          $('#button-addon2').hide()
+          $('#WinRatio').addClass("active")
+          $('#dropdownMenu2').html("Win Report")
+          hideSalesStageFilter();
+          break;
+        case "Details":
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#details').addClass("active")
+          $('#dropdownMenu2').html("Details")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        case "Won Lost":
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#won_lost').addClass("active")
+          $('#dropdownMenu2').html("Won Lost")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        case "SBU":
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#sbu').addClass("active")
+          $('#dropdownMenu2').html("SBU")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        case "Demand Upload":
+          // When the demand upload wizard is shown, highlight menu and title
+          $('#dropdownMenu2').html("Demand Upload");
+          $('#opportunitysourceid').hide();
+          $('#Accounttypeid').hide();
+          $('#demand_upload_nav').addClass("active");
+          $('#salesstageNew').addClass("d-none");
+          $('#salesstagevaluesNew').hide();
+          $('#salesstageLineNew').hide();
+          break;
+        case "UploadData":
+          $('#dropdownMenu2').html("UploadData")
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#uploadView').addClass("active")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        case "Pipeline Summary":
+          $('#dropdownMenu2').html("Pipeline Summary")
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#pipeline_summary_nav').addClass("active")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          
+          // STRICTLY HIDE Sales Stage filter for Pipeline Summary
+          hideSalesStageFilter();
+          break;
+        case "Pipeline vs Demand":
+          $('#breakline').addClass("d-none")
+          $('#dropdownMenu2').html("Pipeline vs Demand")
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#pipeline_vs_demand_nav').addClass("active")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+        default:
+          $('#opportunitysourceid').hide()
+          $('#Accounttypeid').hide()
+          $('#accounts').addClass("active")
+          $('#dropdownMenu2').html("Accounts")
+          $('#salesstageNew').addClass("d-none")
+          $('#salesstagevaluesNew').hide()
+          $('#salesstageLineNew').hide()
+          break;
+      }
+    }
+    
+    function getUserName(){
+      let name = ''
+      let c = document.cookie
+      let d = c.split(';')
+      for(let i of d){
+        if(i.startsWith('') && i.includes('name')){
+          let temp = i.slice(6).replaceAll('"','')
+          name  = _.unescape(temp.substring(0, temp.length)).replace('\\054', ' ')
+        }
+      }
+      return name;
+    }
+
+    $('#userInfo').text(getUserName())
+  })
+</script>
+{% block content %}
+
+{% endblock %}
+</body>

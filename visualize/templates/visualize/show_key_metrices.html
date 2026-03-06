@@ -1,0 +1,915 @@
+{% extends 'visualize/common.html' %}
+{% block content %}
+<style>
+  .table {
+    /* background-color: rgb(151, 151, 150) !important; */
+    text-emphasis-color: black;
+    color: black;
+    font-weight: 645;
+    font-size: 0.8rem;
+    --bs-table-hover-bg: #eee;
+    --bs-table-hover-color: black;
+  }
+
+  .table>tbody>tr>td {
+    background-color: rgb(217, 226, 243);
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+  }
+
+  .table>tbody>tr>th {
+    background-color: rgb(217, 226, 243);
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    font-weight: 649;
+  }
+
+  .table > thead > tr > th{
+    text-align: center;
+    /* padding: 2px; */
+    color: #FFFF;
+    background-color: #4472c4;
+    vertical-align: middle;
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    margin: 0;
+  }
+
+  table.table1 {
+    background-color: black;
+    font-size: 5pt;
+  }
+
+  th {
+    text-align: center;
+  }
+
+  .dfstyle {
+    font-size: 11pt;
+    font-family: Arial;
+    border-collapse: collapse;
+    border: 1px solid silver;
+    background-color: lightgray;
+
+  }
+
+  .dfstyle td,
+  th {
+    padding: 5px;
+  }
+
+  .dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+  }
+
+  .dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+  }
+
+  .container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 100px;
+    margin-left: 100px;
+    text-align: center;
+  }
+
+  .fontStyle {
+    color: whitesmoke;
+    /* font-weight: bold; */
+    font-size: medium;
+  }
+
+  .select2-container--below,
+  .select2-container--open,
+  .select2-container .select2-selection--multiple>.select2-selection__choice>.dropdown-wrapper {
+    text-align: start !important;
+
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    height: 30px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple>.select2-selection__rendered {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    border-radius: 2px !important;
+    min-height: 25px !important;
+    min-width: 100px !important;
+    /* max-width: 200px !important; */
+  }
+
+  .select2-selection__choice__display {
+    font-size: 13px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple {
+    min-height: 25px !important;
+    text-align: start;
+  }
+</style>
+
+<body style="background-color: #070404 !important;">
+  <div class="container-fluid">
+    <div class="row my-3">
+      <div class="col-12">
+        {% if df_count >= 0 %}
+        <label style="color:whitesmoke; font-size: 0.9rem;" class="fw-bold mx-2">Opportunity Count (#) : {{df_count}}
+        </label>
+        {% endif %}
+        {% if tcv_total >= 0 %}
+        <label style="color:whitesmoke; font-size: 0.9rem;" class="fw-bold mx-2">Total TCV(in $m) : $ {{tcv_total}}
+        </label>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+ 
+  
+  <div class="container-fluid">
+    <div class="row mt-3">
+      <div class="col d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">By ServiceLine</p>
+          {% autoescape off %}
+          {{ plot_div_1 }}
+          {% endautoescape %}
+      </div>
+    </div>
+    <div class="row mt-3">
+      <div class="col d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">By Competition</p>
+          {% autoescape off %}
+          {{ plot_div_2 }}
+          {% endautoescape %}
+      </div>
+    </div>
+    <div class="row mt-3">
+      <div class="col d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">Average Deal Size</p>
+          {% autoescape off %}
+          {{ plot_div_3 }}
+          {% endautoescape %}
+      </div>
+    </div>
+    <div class="row mt-3">
+      <div class="col d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">Average Cycle Time</p>
+          {% autoescape off %}
+          {{ plot_div_4 }}
+          {% endautoescape %}
+      </div>
+    </div>
+  </div>
+  <br>
+  <div class="container-fluid" id="tables_container" style="display:none">
+    <div class="row">
+      <div class="col-12 d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">By ServiceLine</p>
+        <div class="col-12 tables">
+          {{ html_code_service_line |safe|escape }}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 d-flex flex-column align-items-start">
+        <p class="fontStyle align-self-center">By Competition</p>
+        <div class="col-12 tables">
+          {{ html_code_competition |safe|escape }}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 d-flex flex-column justify-content-around">
+        <p class="fontStyle align-self-center">Average Deal Size</p>
+        <div class="col-12 tables">
+          {{ html_code_avg_deal_size |safe|escape }}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 d-flex flex-column justify-content-around">
+        <p class="fontStyle align-self-center">Average Cycle Time</p>
+        <div class="col-12 tables">
+          {{ html_code_avg_cycle |safe|escape }}
+        </div>
+      </div>
+    </div>
+  </div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+  /* Back-to-top floating button */
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+</style>
+<!-- Back to top button -->
+<button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+  <i class="fas fa-chevron-up"></i>
+</button>
+</body>
+<script>
+  $('#unique_horizonal').show();
+  $('#unique_horizontal').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_horizontal').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_horizontal').val().includes("All")) {
+      $('#unique_horizontal').val(null).trigger('change');
+      $('#unique_horizontal').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_horizontal').val(null).trigger('change');
+      $('#unique_horizontal').val("All").trigger('change');
+    }
+  });
+  
+  $('#unique_mcu').show();
+  $('#unique_mcu').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_mcu').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_mcu').val().includes("All")) {
+      $('#unique_mcu').val(null).trigger('change');
+      $('#unique_mcu').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_mcu').val(null).trigger('change');
+      $('#unique_mcu').val("All").trigger('change');
+    }
+  });
+  $('#unique_sbu').show();
+  $('#unique_sbu').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_sbu').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_sbu').val().includes("All")) {
+      $('#unique_sbu').val(null).trigger('change');
+      $('#unique_sbu').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_sbu').val(null).trigger('change');
+      $('#unique_sbu').val("All").trigger('change');
+    }
+  });
+  $('#unique_account_name').show();
+  $('#unique_account_name').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_account_name').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_account_name').val().includes("All")) {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val("All").trigger('change');
+    }
+  });
+  
+
+  // $('#multiselect').change(function (e) {
+  //   // console.log("checked clicked")
+  //   if (!e.currentTarget.checked) {
+  //     $('#toggleLabel').html("Or")
+  //   }
+  //   else {
+  //     $('#toggleLabel').html("And")
+  //   }
+  // })
+
+  /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+  $('#reset').click(async function (e) {
+    e.preventDefault()
+    window.location.href = `${window.location.origin}${window.location.pathname}`
+
+  })
+</script>
+<!-- <script>
+  console.log(`{{ html_code_avg_cycle |safe|escape }}`)
+  function labelChange() {
+    var selectedindex = document.getElementById("idx_label").value;
+    var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+    var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+
+    $.ajax({
+      url: 'fetch_subregion_mcu_sbu_account_horizontal',
+      data: {
+        'bu': selectedBU,
+        'idx_label': selectedindex,
+        'region': selectedRegion
+      },
+      success: function (data) {
+        console.log(data)
+        var sbus = data['sbu']
+        var account_names = data['account_name']
+        var subregions = data['subregion']
+        var mcus = data['mcu']
+        var horizontals = data['horizontal']
+        $('#unique_sbu').empty();
+        $('#unique_mcu').empty();
+        $('#unique_subregion').empty();
+        $('#unique_account_name').empty();
+        $('#unique_horizontal').empty();
+        for (const i in sbus) {
+          var sbu = sbus[i]
+          if (sbu === "All") {
+            $('#unique_sbu').append('<option value="' + sbu + '" selected >' + sbu + '</option>');
+          } else {
+            $('#unique_sbu').append('<option value="' + sbu + '">' + sbu + '</option>');
+          }
+        }
+        for (const i in mcus) {
+          var mcu = mcus[i]
+          if (mcu === "All") {
+            $('#unique_mcu').append('<option value="' + mcu + '" selected >' + mcu + '</option>');
+          } else {
+            $('#unique_mcu').append('<option value="' + mcu + '">' + mcu + '</option>');
+          }
+        }
+        for (const i in subregions) {
+          var subregion = subregions[i]
+          if (subregion === "All") {
+            $('#unique_subregion').append('<option value="' + subregion + '" selected >' + subregion + '</option>');
+          } else {
+            $('#unique_subregion').append('<option value="' + subregion + '">' + subregion + '</option>');
+          }
+        }
+
+        for (const i in account_names) {
+          var account_name = account_names[i]
+          if (account_name === "All") {
+            $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+          } else {
+            $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+          }
+        }
+
+        for (const i in horizontals) {
+          var horizontal = horizontals[i]
+          if (horizontal === "All") {
+            $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+          } else {
+            $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+          }
+        }
+
+      }
+    });
+  }
+  function changeSubRegion() {
+    console.log("subregion changed")
+    var label = document.getElementById("idx_label").value;
+    var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+    var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+    var subregion = document.getElementById("unique_subregion").value;
+
+    $.ajax({
+      url: 'fetch_mcu_sbu_account_horizontal',
+      data: {
+        'region': selectedRegion,
+        'idx_label': label,
+        'bu': selectedBU,
+        'subregion': subregion
+      },
+      success: function (data) {
+        // console.log("subregion changed data", data)
+        var mcus = data['mcu']
+        var sbus = data['sbu']
+        var account_names = data['account_name']
+        var horizontals = data['horizontal']
+        $('#unique_horizontal').empty();
+        $('#unique_sbu').empty();
+        $('#unique_account_name').empty();
+        $('#unique_mcu').empty();
+
+        for (const i in mcus) {
+          var mcu = mcus[i]
+          if (mcu === "All") {
+            $('#unique_mcu').append('<option value="' + mcu + '" selected >' + mcu + '</option>');
+          } else {
+            $('#unique_mcu').append('<option value="' + mcu + '">' + mcu + '</option>');
+          }
+        }
+
+        for (const i in sbus) {
+          var sbu = sbus[i]
+          if (sbu === "All") {
+            $('#unique_sbu').append('<option value="' + sbu + '" selected >' + sbu + '</option>');
+          } else {
+            $('#unique_sbu').append('<option value="' + sbu + '">' + sbu + '</option>');
+          }
+        }
+
+        for (const i in account_names) {
+          var account_name = account_names[i]
+          if (account_name === "All") {
+            $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+          } else {
+            $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+          }
+        }
+
+        for (const i in horizontals) {
+          var horizontal = horizontals[i]
+          if (horizontal === "All") {
+            $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+          } else {
+            $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+          }
+        }
+
+      }
+    });
+  }
+  function changeMCU() {
+    var label = document.getElementById("idx_label").value;
+    var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+    var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+    var subregion = document.getElementById("unique_subregion").value;
+    var mcu = document.getElementById("unique_mcu").value;
+
+    $.ajax({
+      url: 'fetch_sbu_account_horizontal',
+      data: {
+        'region': selectedRegion,
+        'idx_label': label,
+        'bu': selectedBU,
+        'subregion': subregion,
+        'mcu': mcu
+      },
+      success: function (data) {
+        var sbus = data['sbu']
+        var account_names = data['account_name']
+        var horizontals = data['horizontal']
+        $('#unique_horizontal').empty();
+        $('#unique_sbu').empty();
+        $('#unique_account_name').empty();
+
+        for (const i in sbus) {
+          var sbu = sbus[i]
+          if (sbu === "All") {
+            $('#unique_sbu').append('<option value="' + sbu + '" selected >' + sbu + '</option>');
+          } else {
+            $('#unique_sbu').append('<option value="' + sbu + '">' + sbu + '</option>');
+          }
+        }
+
+        for (const i in account_names) {
+          var account_name = account_names[i]
+          if (account_name === "All") {
+            $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+          } else {
+            $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+          }
+        }
+
+        for (const i in horizontals) {
+          var horizontal = horizontals[i]
+          if (horizontal === "All") {
+            $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+          } else {
+            $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+          }
+        }
+      }
+
+    })
+  }
+
+  function changeSBU() {
+    var label = document.getElementById("idx_label").value;
+    var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+    var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+    var sbu = document.getElementById("unique_sbu").value;
+    var subregion = document.getElementById("unique_subregion").value;
+    var mcu = document.getElementById("unique_mcu").value;
+
+    $.ajax({
+      url: 'fetch_account_horizontal',
+      data: {
+        'region': selectedRegion,
+        'idx_label': label,
+        'bu': selectedBU,
+        'sbu': sbu,
+        'subregion': subregion,
+        'mcu': mcu
+      },
+      success: function (data) {
+        var account_names = data['account_name']
+        var horizontals = data['horizontal']
+        $('#unique_horizontal').empty();
+        $('#unique_account_name').empty();
+        for (const i in account_names) {
+          var account_name = account_names[i]
+          if (account_name === "All") {
+            $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+          } else {
+            $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+          }
+        }
+
+        for (const i in horizontals) {
+          var horizontal = horizontals[i]
+          if (horizontal === "All") {
+            $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+          } else {
+            $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+          }
+        }
+      }
+    });
+  }
+
+  function changeAccountName() {
+    var label = document.getElementById("idx_label").value;
+    var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+    var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+    var sbu = document.getElementById("unique_sbu").value;
+    var subregion = document.getElementById("unique_subregion").value;
+    var mcu = document.getElementById("unique_mcu").value;
+    var accountName = document.getElementById("unique_account_name").value;
+
+    $.ajax({
+      url: 'fetch_horizontal',
+      data: {
+        'region': selectedRegion,
+        'idx_label': label,
+        'bu': selectedBU,
+        'sbu': sbu,
+        'subregion': subregion,
+        'mcu': mcu,
+        'account_name': accountName
+      },
+      success: function (data) {
+        // console.log(data)
+        var horizontals = data['horizontal']
+        $('#unique_horizontal').empty();
+        for (const i in horizontals) {
+          var horizontal = horizontals[i]
+          if (horizontal === "All") {
+            $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+          } else {
+            $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+          }
+        }
+      }
+    });
+  }
+
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+
+  $(document).ready(function () {
+    let multiselect_name = "{{opt_multiselect_checked}}"
+    if (multiselect_name.length > 0) {
+      $('#toggleLabel').html("And")
+    }
+    else {
+      $('#toggleLabel').html("Or")
+    }
+    $('input[type=radio][name="opt_bu"]').change(function () {
+      var selectedRegion = $("input[type='radio'][name='opt_region']:checked").val();
+      var selectedindex = document.getElementById("idx_label").value;
+
+      $.ajax({
+        url: 'fetch_subregion_mcu_sbu_account_horizontal',
+        data: {
+          'region': selectedRegion,
+          'idx_label': selectedindex,
+          'bu': $(this).val()
+        },
+        success: function (data) {
+          console.log(data)
+          var sbus = data['sbu']
+          var account_names = data['account_name']
+          var subregions = data['subregion']
+          var mcus = data['mcu']
+          var horizontals = data['horizontal']
+          $('#unique_horizontal').empty();
+          $('#unique_sbu').empty();
+          $('#unique_account_name').empty();
+          $('#unique_subregion').empty();
+          $('#unique_mcu').empty()
+          for (const i in sbus) {
+            var sbu = sbus[i]
+            if (sbu === "All") {
+              $('#unique_sbu').append('<option value="' + sbu + '" selected >' + sbu + '</option>');
+            } else {
+              $('#unique_sbu').append('<option value="' + sbu + '">' + sbu + '</option>');
+            }
+          }
+
+          for (const i in subregions) {
+            var subregion = subregions[i]
+            if (subregion === "All") {
+              $('#unique_subregion').append('<option value="' + subregion + '" selected >' + subregion + '</option>');
+            } else {
+              $('#unique_subregion').append('<option value="' + subregion + '">' + subregion + '</option>');
+            }
+          }
+
+          for (const i in mcus) {
+            var mcu = mcus[i]
+            if (mcu === "All") {
+              $('#unique_mcu').append('<option value="' + mcu + '" selected >' + mcu + '</option>');
+            } else {
+              $('#unique_mcu').append('<option value="' + mcu + '">' + mcu + '</option>');
+            }
+          }
+
+          for (const i in account_names) {
+            var account_name = account_names[i]
+            if (account_name === "All") {
+              $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+            } else {
+              $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+            }
+          }
+
+          for (const i in horizontals) {
+            var horizontal = horizontals[i]
+            if (horizontal === "All") {
+              $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+            } else {
+              $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+            }
+          }
+        }
+      });
+    });
+    $('input[type=radio][name="opt_region"]').change(function () {
+      var selectedBU = $("input[type='radio'][name='opt_bu']:checked").val();
+      var selectedindex = document.getElementById("idx_label").value;
+
+      $.ajax({
+        url: 'fetch_subregion_mcu_sbu_account_horizontal',
+        data: {
+          'bu': selectedBU,
+          'idx_label': selectedindex,
+          'region': $(this).val()
+        },
+        success: function (data) {
+          console.log(data)
+          var sbus = data['sbu']
+          var account_names = data['account_name']
+          var subregions = data['subregion']
+          var mcus = data['mcu']
+          var horizontals = data['horizontal']
+          $('#unique_horizontal').empty();
+          $('#unique_sbu').empty();
+          $('#unique_account_name').empty();
+          $('#unique_subregion').empty();
+          $('#unique_mcu').empty();
+          for (const i in sbus) {
+            var sbu = sbus[i]
+            if (sbu === "All") {
+              $('#unique_sbu').append('<option value="' + sbu + '" selected >' + sbu + '</option>');
+            } else {
+              $('#unique_sbu').append('<option value="' + sbu + '">' + sbu + '</option>');
+            }
+          }
+
+          for (const i in subregions) {
+            var subregion = subregions[i]
+            if (subregion === "All") {
+              $('#unique_subregion').append('<option value="' + subregion + '" selected >' + subregion + '</option>');
+            } else {
+              $('#unique_subregion').append('<option value="' + subregion + '">' + subregion + '</option>');
+            }
+          }
+
+          for (const i in mcus) {
+            var mcu = mcus[i]
+            if (mcu === "All") {
+              $('#unique_mcu').append('<option value="' + mcu + '" selected >' + mcu + '</option>');
+            } else {
+              $('#unique_mcu').append('<option value="' + mcu + '">' + mcu + '</option>');
+            }
+          }
+
+          for (const i in account_names) {
+            var account_name = account_names[i]
+            if (account_name === "All") {
+              $('#unique_account_name').append('<option value="' + account_name + '" selected >' + account_name + '</option>');
+            } else {
+              $('#unique_account_name').append('<option value="' + account_name + '">' + account_name + '</option>');
+            }
+          }
+
+          for (const i in horizontals) {
+            var horizontal = horizontals[i]
+            if (horizontal === "All") {
+              $('#unique_horizontal').append('<option value="' + horizontal + '" selected >' + horizontal + '</option>');
+            } else {
+              $('#unique_horizontal').append('<option value="' + horizontal + '">' + horizontal + '</option>');
+            }
+          }
+
+        }
+      });
+
+    });
+
+    $('#unique_horizonal').show();
+    $('#unique_horizontal').select2({
+      placeholder: 'All'
+    });
+
+    $('#unique_horizontal').on('select2:select', function (e) {
+      var data = e.params.data;
+      if ($('#unique_horizontal').val().includes("All") && data.text != "All") {
+        $('#unique_horizontal').val(null).trigger('change');
+        $('#unique_horizontal').val(data.text).trigger('change');
+      }
+      if(data.text == "All"){
+        $('#unique_horizontal').val(null).trigger('change');
+        $('#unique_horizontal').val("All").trigger('change');
+      }
+    });
+    $('#unique_subregion').show();
+    $('#unique_subregion').select2({
+      placeholder: 'All'
+    });
+
+    $('#unique_subregion').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log("data", data)
+      if ($('#unique_subregion').val().includes("All")) {
+        $('#unique_subregion').val(null).trigger('change');
+        $('#unique_subregion').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_subregion').val(null).trigger('change');
+        $('#unique_subregion').val("All").trigger('change');
+      }
+    });
+    
+    $('#unique_mcu').show();
+    $('#unique_mcu').select2({
+      placeholder: 'All'
+    });
+
+    $('#unique_mcu').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log("data", data)
+      if ($('#unique_mcu').val().includes("All")) {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val("All").trigger('change');
+      }
+    });
+    $('#unique_sbu').show();
+    $('#unique_sbu').select2({
+      placeholder: 'All'
+    });
+
+    $('#unique_sbu').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log("data", data)
+      if ($('#unique_sbu').val().includes("All")) {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val("All").trigger('change');
+      }
+    });
+    $('#unique_account_name').show();
+    $('#unique_account_name').select2({
+      placeholder: 'All'
+    });
+
+    $('#unique_account_name').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log("data", data)
+      if ($('#unique_account_name').val().includes("All")) {
+        $('#unique_account_name').val(null).trigger('change');
+        $('#unique_account_name').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_account_name').val(null).trigger('change');
+        $('#unique_account_name').val("All").trigger('change');
+      }
+    });
+    
+    $('#multiselect').change(function (e) {
+      console.log("checked clicked")
+      if (!e.currentTarget.checked) {
+        $('#toggleLabel').html("Or")
+      }
+      else {
+        $('#toggleLabel').html("And")
+      }
+    })
+    //////////////// Showing the Show tables checkbox only if there are tables in the view //////////////
+
+    if ($('#tables_container').children().length > 1) {
+      $('input[type=checkbox][name="show_tables"]').prop('checked', false);
+      $('#tables_container').hide()
+    }
+    else {
+      $('#checkbox_container').hide()
+    }
+
+    ////////////////////////////////////////////// Show Tables /////////////////////////////
+    $('input[type=checkbox][name="show_tables"]').change(function (e) {
+      if (e.currentTarget.checked) {
+        console.log("yes show")
+        $('#tables_container').show()
+      }
+      else {
+        console.log("yes hide")
+        $('#tables_container').hide()
+      }
+    })
+
+    /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+    $('#reset').click(async function (e) {
+      e.preventDefault()
+      var selectedindex = document.getElementById("idx_label").value;
+      pageName = ''
+      plt_label_position = window.location.search.indexOf('plt_label')
+      urlString = window.location.search.slice(plt_label_position)
+      if (urlString.includes('&')) {
+        index = urlString.indexOf('&')
+        pageName = urlString.slice(10, index)
+      }
+      else {
+        pageName = urlString.slice(10)
+      }
+
+      window.location.href = `${window.location.origin}${window.location.pathname}?idx_label=${selectedindex}&plt_label=${pageName}`
+
+    })
+  })
+</script> -->
+{% endblock %}

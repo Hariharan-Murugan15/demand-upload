@@ -1,0 +1,1329 @@
+{% extends 'visualize/common.html' %}
+{% block content %}
+<style>
+  table {
+    background-color: rgb(151, 151, 150) !important;
+    text-emphasis-color: black !important;
+    color: black !important;
+    font-size: 10pt !important;
+  }
+  .table>tbody>tr>td {
+    background-color: rgb(217, 226, 243);
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+  }
+  .table > thead > tr > th{
+    text-align: center;
+    /* padding: 2px; */
+    color: #FFFF;
+    background-color: #4472c4;
+    vertical-align: middle;
+    border-right: 1px solid #8eb7e5;
+    border-bottom: 1px solid #8eb7e5;
+    margin: 0;
+  }
+
+  table.table1 {
+    background-color: black;
+    font-size: 10pt;
+  }
+
+  th {
+    text-align: center;
+  }
+
+  .dfstyle {
+    font-size: 11pt;
+    font-family: Arial;
+    border-collapse: collapse;
+    border: 1px solid silver;
+    background-color: lightgray;
+
+  }
+
+  .dfstyle td,
+  th {
+    padding: 5px;
+  }
+
+  .dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+  }
+
+  .dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+  }
+
+  .container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 100px;
+    margin-left: 100px;
+    text-align: center;
+  }
+
+  .nopadding {
+    padding-left: 0px !important;
+    margin-left: 0px !important;
+  }
+
+  .select2-container--below,
+  .select2-container--open,
+  .select2-container .select2-selection--multiple>.select2-selection__choice>.dropdown-wrapper {
+    text-align: start !important;
+
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    height: 30px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple>.select2-selection__rendered {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    border-radius: 2px !important;
+    min-height: 25px !important;
+    min-width: 100px !important;
+    /* max-width: 200px !important; */
+  }
+
+  .select2-selection__choice__display {
+    font-size: 13px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple {
+    min-height: 25px !important;
+    text-align: start;
+  }
+</style>
+<style>
+  .ag-header-cell, .ag-header-group-cell{
+    background-color: #4472c4 !important;
+    color:white;
+  }
+  .ag-paging-panel{
+    background-color: #4472c4 !important;
+  }
+  .ag-row{
+    background-color: #d9e2f3 !important;
+  }
+  .ag-cell{
+    padding: 0px !important;
+    margin: 2px !important;
+  }
+  .ag-icon-menu {
+    color:white !important;
+  }
+  .ag-header-cell-label {
+    overflow: visible !important;
+    white-space: normal !important;
+    padding-right: 0px !important;
+    text-overflow: initial !important;
+    text-align: center  !important;
+    justify-content: center !important;
+  }
+</style>
+<style>
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 18px;
+  }
+  
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 19px;
+    width: 20px;
+    /* left: 4px;
+    bottom: 4px; */
+    background-color: #2196F3;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  /* input:checked + .slider {
+    background-color: #2196F3;
+  } */
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(12px);
+    -ms-transform: translateX(12px);
+    transform: translateX(12px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 20px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+  </style>
+
+<body style="background-color:#070404 !important; overflow-x: hidden;">
+<div class="container-fluid">
+  <div class="row my-3">
+    <div class="col-6">
+      <label style="color:whitesmoke; font-size: 0.9rem;" id="count_id" class="fw-bold mx-2">Opportunity Count (#) : {{df_count}}
+      </label>
+      <label style="color:whitesmoke; font-size: 0.9rem;" class="fw-bold mx-2">Total TCV(in $m) : $ {{tcv_total}}
+      </label>
+      <!-- {% if df_count >= 0 %} -->
+      <!-- {% endif %}
+      {% if tcv_total >= 0 %} -->
+      <!-- {% endif %} -->
+    </div>
+    <div class="col-6">
+      <div style="display:flex;justify-content:flex-end">
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">ChartView</h1>
+        </div>
+        <div style="margin-top: 5;">
+          <label class="switch">
+            <input type="checkbox" id="togBtn" value="false" name="disableYXLogo">
+            <div class="slider round"></div>
+          </label>
+        </div>
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">TableView</h1>
+        </div>  
+      </div>
+    </div>
+  </div>
+  <div id="chartDiv">
+    <div class="row justify-content-center">
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div1"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div1_1"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+    </div>
+    <br />
+    <div class="row">
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div2"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div2_2"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+    </div>
+    <br />
+    <div class="row">
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div3"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div3_3"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+    </div>
+    <br />
+    <div class="row">
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div4"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+      <div class="col-6">
+        <b>
+          {% autoescape off %}
+          <div id="plot_div4_4"></div>
+          {% endautoescape %}
+        </b>
+      </div>
+    </div>
+  </div>
+  <div id="tableDiv">
+    <div style="display:flex;justify-content:space-between">
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Sales Stage by TCV</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnSalesTCVExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="bysalesTCVTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Sales Stage by #</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnSalesCountExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="bysalescountTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">DealSize by TCV</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnDealTCVExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="bydealtcvTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">DealSize by #</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnDealCountExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="bydealcountTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Opp. Type by TCV</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnOppTCVExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="byoppTCVTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Opp. Type by #</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnOppCountExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="byoppcountTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Close QTR by TCV</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnCloseTCVExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="byclosetcvTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+      <div style="width:25%;border-color:white;border-style:solid;">
+        <div style="display:flex;justify-content:center;">
+          <div style="margin:2px;width:305px;">
+            <div style="display: flex;justify-content: space-between">
+              <label style="font-size:20px;color:white;">Close QTR by #</label>
+              <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+              {% comment %} onclick="onBtnCloseCountExport()" {% endcomment %}
+              >EXPORT TO EXCEL</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin:2px;">
+          <div id="byclosecountTable" style="width:325px;height:300px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container-fluid">
+  <!-- <div class="row"  id="tables_container">
+    <div class="col">
+      {{ html_data |safe|escape }}
+    </div>
+  </div> -->
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+  /* Back-to-top floating button */
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+</style>
+<!-- Back to top button -->
+<button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+  <i class="fas fa-chevron-up"></i>
+</button>
+</body>
+<script>
+  $('#tableDiv').hide();
+  $("#togBtn").on('change', function() {
+      // initializeGrid();
+      if ($(this).is(':checked')) {
+        console.log("if")
+        $('#chartDiv').hide();
+        $('#tableDiv').show();
+      }
+      else {
+        console.log("else")
+        $('#chartDiv').show();
+        $('#tableDiv').hide();
+      }
+  });
+</script>
+<script>
+  var tooltipRenderer = function(params)
+  {
+      return '<span title="' + params.value + '">'+params.value+'</span>';
+  };
+  function onBtnSalesTCVExport() {
+    var params = {
+      fileName: 'Sales Stage by TCV.csv',
+    };
+    salestcvApi.exportDataAsCsv(params);
+  }
+  function onBtnSalesCountExport() {
+    var params = {
+      fileName: 'Sales Stage by #.csv',
+    };
+    salescountApi.exportDataAsCsv(params);
+  }
+  salesData = JSON.parse(`{{ salesData|escapejs }}`)
+  console.log(salesData)
+  columnDefs1 = [];
+  for(col of ['Sales Stage','TCV']){
+    columnDefs1.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS1 = {
+    rowData: salesData,
+    columnDefs:columnDefs1,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    salestcvApi = agGrid.createGrid(document.querySelector("#bysalesTCVTable"), optionsSS1);
+  })
+  columnDefs2 = [];
+  for(col of ['Sales Stage','WinZone Opportunity ID']){
+    columnDefs2.push({
+      headerName:col=='WinZone Opportunity ID'?'Deals':col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS2 = {
+    rowData: salesData,
+    columnDefs:columnDefs2,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    salescountApi = agGrid.createGrid(document.querySelector("#bysalescountTable"), optionsSS2);
+  })
+  dealData = JSON.parse(`{{ dealData|escapejs }}`)
+  console.log(dealData)
+  function onBtnDealTCVExport() {
+    var params = {
+      fileName: 'DealSize by TCV.csv',
+    };
+    dealtcvApi.exportDataAsCsv(params);
+  }
+  function onBtnDealCountExport() {
+    var params = {
+      fileName: 'DealSize by #.csv',
+    };
+    dealcountApi.exportDataAsCsv(params);
+  }
+  columnDefs3 = [];
+  for(col of ['DealSize','TCV']){
+    columnDefs3.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS3 = {
+    rowData: dealData,
+    columnDefs:columnDefs3,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    dealtcvApi = agGrid.createGrid(document.querySelector("#bydealTCVTable"), optionsSS3);
+  })
+  columnDefs4 = [];
+  for(col of ['DealSize','WinZone Opportunity ID']){
+    columnDefs4.push({
+      headerName:col=='WinZone Opportunity ID'?'Deals':col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS4 = {
+    rowData: dealData,
+    columnDefs:columnDefs4,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    dealcountApi = agGrid.createGrid(document.querySelector("#bydealcountTable"), optionsSS4);
+  })
+  typeJsonData = JSON.parse(`{{ typeJsonData|escapejs }}`)
+  function onBtnOppTCVExport() {
+    var params = {
+      fileName: 'Opp. Type by TCV.csv',
+    };
+    opptcvApi.exportDataAsCsv(params);
+  }
+  function onBtnOppCountExport() {
+    var params = {
+      fileName: 'Opp. Type by #.csv',
+    };
+    oppcountApi.exportDataAsCsv(params);
+  }
+  columnDefs5 = [];
+  for(col of ['R_Deal Type','TCV']){
+    columnDefs5.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS5 = {
+    rowData: typeJsonData,
+    columnDefs:columnDefs5,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    opptcvApi = agGrid.createGrid(document.querySelector("#byoppTCVTable"), optionsSS5);
+  })
+  columnDefs6 = [];
+  for(col of ['R_Deal Type','WinZone Opportunity ID']){
+    columnDefs6.push({
+      headerName:col=='WinZone Opportunity ID'?'Deals':col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS6 = {
+    rowData: typeJsonData,
+    columnDefs:columnDefs6,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    oppcountApi = agGrid.createGrid(document.querySelector("#byoppcountTable"), optionsSS6);
+  })
+
+  closeQtrJsonData = JSON.parse(`{{ closeQtrJsonData|escapejs }}`)
+  function onBtnCloseTCVExport() {
+    var params = {
+      fileName: 'Close Qtr by TCV.csv',
+    };
+    closetcvApi.exportDataAsCsv(params);
+  }
+  function onBtnCloseCountExport() {
+    var params = {
+      fileName: 'Close Qtr by #.csv',
+    };
+    closecountApi.exportDataAsCsv(params);
+  }
+  columnDefs7 = [];
+  for(col of ['CloseQtr','TCV']){
+    columnDefs7.push({
+      headerName:col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS7 = {
+    rowData: closeQtrJsonData,
+    columnDefs:columnDefs7,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    closetcvApi = agGrid.createGrid(document.querySelector("#bycloseTCVTable"), optionsSS7);
+  })
+  columnDefs8 = [];
+  for(col of ['CloseQtr','WinZone Opportunity ID']){
+    columnDefs8.push({
+      headerName:col=='WinZone Opportunity ID'?'Deals':col,
+      field: col,
+      width:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS8 = {
+    rowData: closeQtrJsonData,
+    columnDefs:columnDefs8,
+    domLayout:'autoHeight',
+    // onGridReady: function (params) {
+    //   params.api.sizeColumnsToFit();
+    // },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    closecountApi = agGrid.createGrid(document.querySelector("#byclosecountTable"), optionsSS8);
+  })
+</script>
+<script>
+  salesStageData = JSON.parse(`{{ salesStageData|escapejs }}`)
+  winzoneOpportunityID = JSON.parse(`{{ winzoneOpportunityID|escapejs }}`)
+  tcv = JSON.parse(`{{ tcv|escapejs }}`)
+  var data = [{
+    values: tcv,
+    labels: salesStageData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout = {
+    title: {
+      text:'Pipeline Distribution by Sales Stage (By TCV)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div1', data, layout);
+
+  var data2 = [{
+    values: winzoneOpportunityID,
+    labels: salesStageData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout2 = {
+    title: {
+      text:'Pipeline Distribution by Sales Stage (By #)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div1_1', data2, layout2);
+</script>
+<script>
+  dealSizeData = JSON.parse(`{{ dealSizeData|escapejs }}`)
+  dealSizetcv = JSON.parse(`{{ dealSizetcv|escapejs }}`)
+  dealSizewinzoneOpportunityID = JSON.parse(`{{ dealSizewinzoneOpportunityID|escapejs }}`)
+
+  var data = [{
+    values: tcv,
+    labels: dealSizeData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout = {
+    title: {
+      text:'Pipeline Distribution by Deal Size (By TCV)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div2', data, layout);
+
+  var data2 = [{
+    values: dealSizewinzoneOpportunityID,
+    labels: dealSizeData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout2 = {
+    title: {
+      text:'Pipeline Distribution by Deal Size (By #)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div2_2', data2, layout2);
+</script>
+<script>
+  typeData = JSON.parse(`{{ typeData|escapejs }}`)
+  typetcv = JSON.parse(`{{ typetcv|escapejs }}`)
+  typewinzoneOpportunityID = JSON.parse(`{{ typewinzoneOpportunityID|escapejs }}`)
+  var data = [{
+    values: typetcv,
+    labels: typeData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout = {
+    title: {
+      text:'Pipeline Distribution by Opp. Type (By TCV)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div3', data, layout);
+
+  var data2 = [{
+    values: typewinzoneOpportunityID,
+    labels: typeData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout2 = {
+    title: {
+      text:'Pipeline Distribution by Opp. Type (By #)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 400,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div3_3', data2, layout2);
+</script>
+<script>
+  closeQTRData = JSON.parse(`{{ closeQTRData|escapejs }}`)
+  closeQTRtcv = JSON.parse(`{{ closeQTRtcv|escapejs }}`)
+  closeQTRwinzoneOpportunityID = JSON.parse(`{{ closeQTRwinzoneOpportunityID|escapejs }}`)
+  var data = [{
+    values: closeQTRtcv,
+    labels: closeQTRData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout = {
+    title: {
+      text:'Pipeline Distribution by Close Qtr (By TCV)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 500,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div4', data, layout);
+
+  var data2 = [{
+    values: closeQTRwinzoneOpportunityID,
+    labels: closeQTRData,
+    type: 'pie',
+    textinfo: "label+percent",
+    texttemplate:"%{label}<br>%{value} (%{percent})",
+    // textposition: "outside",
+    automargin: true,
+    insidetextorientation: "radial",
+    hole: .3,
+  }];
+
+  var layout2 = {
+    title: {
+      text:'Pipeline Distribution by Close Qtr (By #)',
+      font: {
+        color:'#fff',
+        size:20
+      },
+    },
+    height: 500,
+    width: 800,
+    showlegend: false,
+    paper_bgcolor:"black",
+    font: {
+      color: '#fff'
+    }
+  };
+
+  Plotly.newPlot('plot_div4_4', data2, layout2);
+</script>
+
+<script>
+  var market_units = [];
+  $(document).ready(function () {
+    for (let entry of listOfDrawerDropdownIds) {
+      $(entry).show()
+      if(entry != "#unq_region"){
+        $(entry).select2({
+        placeholder: "All"
+      })
+      }
+    
+    }
+  })
+  const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+  // console.log(rawDrawerDropdownData)
+  let opt_opp_region_new = JSON.parse(`{{ opt_opp_region_new_filter|escapejs }}`);
+  let result = opt_opp_region_new.join(',');
+  console.log(result)
+  // opt_opp_region_new = opt_opp_region_new.join(',')
+  const selectedDrawerValuesList = [
+    result,
+    `{{ selected_bu }}`,
+    `{{ selected_sbu }}`,
+  ];
+  const listOfDrawerDropdownIds = [
+    '#unq_region',
+    '#unique_mcu',
+    '#unique_sbu',
+  ];
+
+
+  const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) => $(id));
+
+  const equalsAll = (value) => value === 'All';
+
+  const compareStringsIgnoreCaseFn = (x, y) => {
+    x = x.toLowerCase();
+    y = y.toLowerCase();
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+  };
+
+  const marketUnitOrder = ['UK&I', 'Southern Europe & Middle East', 'Northern Europe', 'DACH', 'EMEA Others', 'CE Others'];
+  const compareMarketUnitsFn = (x, y) => {
+    const indexX = marketUnitOrder.indexOf(x);
+    const indexY = marketUnitOrder.indexOf(y);
+    if (indexX !== -1 && indexY !== -1) return indexX - indexY;
+    if (indexX !== -1) return -1;
+    if (indexY !== -1) return 1;
+    return compareStringsIgnoreCaseFn(x, y);
+  };
+
+  function buildDrawerDropdowns(selectedValuesList) {
+    // creating unique lists i.e. sets for options out of filtered dropdown data
+    const optionLists = new Array(listOfDrawerDropdownIds.length)
+      .fill(0)
+      .map((_) => new Set());
+
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      
+      rawDrawerDropdownData.forEach((row) => {
+        let result = true;
+        // looping from 1st dropdown to all the way to current dropdown's previous dropdown
+        for (let j = 0; j < i; j++) {
+         
+          result &&= selectedValuesList[j].includes("All")
+            ? true
+            : selectedValuesList[j].includes(row[j])
+        }
+
+        if (result) optionLists[i].add(row[i]);
+        
+      });
+    }
+    // sorting the filtered data, removing falsy values, adding All at the start of the lists
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      optionLists[i] = [...optionLists[i]]
+        .filter((v) => v)
+        .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn);
+      optionLists[i].unshift('All');
+    }
+    // inserting the generated dropdown data as options into the dom
+    listOfDrawerDropdownElements.forEach((element, index) => { 
+      element.empty();
+      optionLists[index].forEach((optionText, id) => {
+        if(selectedValuesList[index].includes(optionText)){
+          element.append(
+              new Option(
+                optionText,
+                optionText,
+                false,
+                true
+              )
+          )
+        }
+        else{
+          element.append(
+            new Option(
+              optionText,
+              optionText,
+              false,
+              false
+            )
+          )
+        }
+      }
+      );
+    });
+    market_units = optionLists[0]
+  }
+
+  function prepare_market_units(){
+    let template = ""
+    let selected_market = result
+    for(let i in market_units){
+        if(i>0){
+          if(!selected_market.includes(',') && selected_market == "All"){
+            let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+          }
+          else{
+            let selected_market_array = selected_market.split(',')
+            if(selected_market_array.includes(market_units[i])){
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+              template = template + checkbox_label
+            }
+            else{
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+            }
+          }
+
+        }
+
+    }
+    $('.unq_region').html(template)
+  }
+
+  function change_market_unit(element){    
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{   
+      return $(`${id}`).val()
+    });
+    let checked_market_unit_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_market_unit_option_array
+    for (let i = 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  }
+
+  $('#unique_mcu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_mcu').val().includes("All")) {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_mcu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+  $('#unique_sbu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_sbu').val().includes("All")) {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_sbu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+
+  buildDrawerDropdowns(selectedDrawerValuesList);
+  prepare_market_units()
+
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+  // $('#unique_horizonal').show();
+  // $('#unique_horizontal').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_horizontal').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_horizontal').val().includes("All")) {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val("All").trigger('change');
+  //   }
+  // });
+  
+  // $('#unique_mcu').show();
+  // $('#unique_mcu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_mcu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_mcu').val().includes("All")) {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val("All").trigger('change');
+  //   }
+  // });
+  // $('#unique_sbu').show();
+  // $('#unique_sbu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_sbu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_sbu').val().includes("All")) {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val("All").trigger('change');
+  //   }
+  // });
+
+  $('#unique_account_name').show();
+  $('#unique_account_name').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_account_name').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_account_name').val().includes("All")) {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val("All").trigger('change');
+    }
+  });
+  
+
+  // $('#multiselect').change(function (e) {
+  //   // console.log("checked clicked")
+  //   if (!e.currentTarget.checked) {
+  //     $('#toggleLabel').html("Or")
+  //   }
+  //   else {
+  //     $('#toggleLabel').html("And")
+  //   }
+  // })
+
+  /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+  $('#reset').click(async function (e) {
+    e.preventDefault()
+    window.location.href = `${window.location.origin}${window.location.pathname}`
+
+  })
+</script>
+{% endblock %}

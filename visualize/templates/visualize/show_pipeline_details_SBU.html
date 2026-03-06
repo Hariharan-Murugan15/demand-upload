@@ -1,0 +1,1367 @@
+{% extends 'visualize/common.html' %}
+{% block content %}
+<style>
+  table {
+    background-color: rgb(151, 151, 150);
+    text-emphasis-color: black;
+    color: black;
+    font-size: 10pt;
+  }
+
+  table.table1 {
+    background-color: black;
+    font-size: 10pt;
+  }
+
+  th {
+    text-align: center;
+  }
+
+  .dfstyle {
+    font-size: 11pt;
+    font-family: Arial;
+    border-collapse: collapse;
+    border: 1px solid silver;
+    background-color: lightgray;
+
+  }
+
+  .dfstyle td,
+  th {
+    padding: 5px;
+  }
+
+  .dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+  }
+
+  .dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+  }
+
+  .container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 50px;
+    margin-left: 50px;
+    text-align: center;
+  }
+
+  .select2-container--below,
+  .select2-container--open,
+  .select2-container .select2-selection--multiple>.select2-selection__choice>.dropdown-wrapper {
+    text-align: start !important;
+
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    height: 30px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple>.select2-selection__rendered {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    border-radius: 2px !important;
+    min-height: 25px !important;
+    min-width: 100px !important;
+    /* max-width: 200px !important; */
+  }
+
+  .select2-selection__choice__display {
+    font-size: 13px;
+  }
+
+  .select2-selection,
+  .select2-selection--multiple {
+    min-height: 25px !important;
+    text-align: start;
+  }
+</style>
+<style>
+  .data-limit-circle {
+    margin: 0 5px;
+    padding: 10px;
+    /* border-radius: 50%; */
+    border: 2px solid #6E8192;
+    color: #6E8192;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    }
+
+    .data-limit-circle:hover {
+    border-color: #008ffb;
+    color: #008ffb;
+    }
+
+    .modebar-btn {
+      display: inline-block;
+      padding: 5px;
+      justify-content:flex-start;
+    }
+    .highlight {
+      color:#fff;
+      border-color: #fff;
+    }
+</style>
+<style>
+  .ag-header-cell, .ag-header-group-cell{
+    background-color: #4472c4 !important;
+    color:white;
+  }
+  .ag-paging-panel{
+    background-color: #4472c4 !important;
+  }
+  .ag-row{
+    background-color: #d9e2f3 !important;
+  }
+  .ag-cell{
+    padding: 0px !important;
+    margin: 2px !important;
+  }
+  .ag-icon-menu {
+    color:white !important;
+  }
+  .ag-header-cell-label {
+    overflow: visible !important;
+    white-space: normal !important;
+    padding-right: 0px !important;
+    text-overflow: initial !important;
+    text-align: center  !important;
+    justify-content: center !important;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 18px;
+  }
+  
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 19px;
+    width: 20px;
+    /* left: 4px;
+    bottom: 4px; */
+    background-color: #2196F3;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  /* input:checked + .slider {
+    background-color: #2196F3;
+  } */
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(12px);
+    -ms-transform: translateX(12px);
+    transform: translateX(12px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 20px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+</style>
+<body style="background-color:#070404 !important;">
+<div class="container-fluid">
+  <div class="row mt-1">
+    <div class="col-6">
+      <label style="color:whitesmoke; font-size: 0.9rem;" class="fw-bold mx-2">Opportunity Count (#) : {{df_count}}
+      </label>
+      <label style="color:whitesmoke; font-size: 0.9rem;" class="fw-bold mx-2">Total TCV(in $m) : $ {{tcv_total}}
+      </label>
+      <!-- {% if df_count >= 0 %}
+      {% endif %}
+      {% if tcv_total >= 0 %}
+      {% endif %} -->
+    </div>
+    <div class="col-6">
+      <div style="display:flex;justify-content:flex-end">
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">ChartView</h1>
+        </div>
+        <div style="margin-top: 5;">
+          <label class="switch">
+            <input type="checkbox" id="togBtn" value="false" name="disableYXLogo">
+            <div class="slider round"></div>
+          </label>
+        </div>
+        <div>
+          <h1 style="text-align: center;margin:5px;color: white;font-size: 18;margin: 5px;font-weight: bold;">TableView</h1>
+        </div>  
+      </div>
+    </div>
+  </div>
+  <div id="chartDiv">
+    <div class="row my-3">
+      <div class="col">
+        <table>
+          <th>
+            {% autoescape off %}
+            <div id="bysbuDealSize"></div>
+            <!-- {{ plot_div_1 }} -->
+            {% endautoescape %}
+          </th>
+          <th>
+            {% autoescape off %}
+            <div id="bysbuQtr"></div>
+            <!-- {{ plot_div_1_1 }} -->
+            {% endautoescape %}
+          </th>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="tableDiv">
+    <div style="margin-top:0px;border-color:white;border-style:solid;">
+      <div style="margin:5px;">
+        <div style="display: flex;justify-content: space-between;margin:3px;">
+          <label style="font-size:20px;color:white;">Deals in Pipeline</label>
+          <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+          {% comment %} onclick="onDealsTableExport()" {% endcomment %}
+          >EXPORT TO EXCEL</button>
+        </div>
+        <div id="byDealsTable" style="height:500px;" class="ag-theme-balham"></div>
+      </div>
+    </div>
+    <div style="margin-top:0px;border-color:white;border-style:solid;">
+      <div style="margin:5px;display: flex;justify-content: center;">
+        <div style="width:50%;">
+          <div style="display: flex;justify-content: space-between;margin:3px;">
+            <label style="font-size:20px;color:white;">Pipeline BU by Close Qtr</label>
+            <button style="margin-top:5px;font-size: 10px;height:20px;padding: 2px;background-color: red;color: whitesmoke;border: none;border-radius: 4px;" 
+            {% comment %} onclick="onCloseQtrTableExport()" {% endcomment %}
+            >EXPORT TO EXCEL</button>
+          </div>
+          <div id="byCloseQtrTable" style="width:100%;height:500px;" class="ag-theme-balham"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="tables_container"></div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+  /* Back-to-top floating button */
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+</style>
+<!-- Back to top button -->
+<button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+  <i class="fas fa-chevron-up"></i>
+</button>
+</body>
+<script>
+  $('#tableDiv').hide();
+  $("#togBtn").on('change', function() {
+      // initializeGrid();
+      if ($(this).is(':checked')) {
+        console.log("if")
+        $('#chartDiv').hide();
+        $('#tableDiv').show();
+      }
+      else {
+        console.log("else")
+        $('#chartDiv').show();
+        $('#tableDiv').hide();
+      }
+  });
+</script>
+<script>
+  var tooltipRenderer = function(params)
+  {
+      return '<span title="' + params.value + '">'+params.value+'</span>';
+  };
+  
+  function onDealsTableExport() {
+    var params = {
+      fileName: 'Deals in Pipeline.csv',
+    };
+    dealsApi.exportDataAsCsv(params);
+  }
+  function onCloseQtrTableExport() {
+    var params = {
+      fileName: 'Pipeline BU by Close Qtr.csv',
+    };
+    closeQtrApi.exportDataAsCsv(params);
+  }
+  tableData = JSON.parse(`{{ tableData|escapejs }}`);
+  columnDefs1 = [];
+  for(col of ['WinZone Opportunity ID','Account Name','Opportunity Name','Vertical','Sales Stage','DealSize','TCV','SBU1','BU']){
+    columnDefs1.push({
+      headerName:col=='TCV'?'TCV ($m)':col,
+      field: col,
+      width: col=='Account Name'||col=='Opportunity Name'?310:col=='WinZone Opportunity ID'?150:col=='TCV'||col=='Sales Stage'||col=='BU'?100:150,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS1 = {
+    rowData: tableData,
+    columnDefs:columnDefs1,
+    // domLayout:'autoHeight',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    dealsApi = agGrid.createGrid(document.querySelector("#byDealsTable"), optionsSS1);
+  })
+
+  tableData2 = JSON.parse(`{{ tableData2|escapejs }}`);
+  columnDefs2 = [];
+  for(col of ['Vertical','Region','CloseQtr','BU','WinZone Opportunity ID','TCV']){
+    columnDefs2.push({
+      headerName:col=='TCV'?'TCV ($m)':col=='WinZone Opportunity ID'?'Deals':col,
+      field: col,
+      width: col=='Vertical'?170:col=='Region'||col=='CloseQtr'?120:100,
+      headerTooltip:col,
+      cellRenderer: tooltipRenderer,
+    })
+  }
+  optionsSS2 = {
+    rowData: tableData2,
+    columnDefs:columnDefs2,
+    // domLayout:'autoHeight',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    defaultColDef: {
+      filter: true,
+      editable: true,
+    },
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    closeQtrApi = agGrid.createGrid(document.querySelector("#byCloseQtrTable"), optionsSS2);
+  })
+</script>
+<script>
+  tableData = JSON.parse(`{{ tableData|escapejs }}`);
+var xValues = tableData.map(item => item['BU']);
+var yValues = tableData.map(item => item['TCV']);
+var salesStages = tableData.map(item => item['DealSize']);
+
+// Calculating marker sizes based on TCV values
+var maxTCV = Math.max(...yValues);
+var minTCV = Math.min(...yValues);
+var markerSizes = yValues.map(tcv => 5 + 20 * ((tcv - minTCV) / (maxTCV - minTCV))); // Adjust the multiplier and offset as needed
+
+// Creating trace for each sales stage with custom marker size
+var tracesdealsInPipeline = [];
+var salesStageValues = [...new Set(salesStages)]; // Unique sales stage values
+salesStageValues = salesStageValues.sort();
+salesStageValues.forEach((stage, index) => {
+  var filteredData = tableData.filter(item => item['DealSize'] === stage);
+  tracesdealsInPipeline.push({
+    x: filteredData.map(item => item['BU']),
+    y: filteredData.map(item => item['TCV']),
+    mode: 'markers',
+    type: 'scatter',
+    name: stage,
+    marker: {
+      size: markerSizes.filter((_, i) => salesStages[i] === stage), // Set the marker size for this sales stage
+      line: { width: 0 }
+    },
+    hovertemplate: '<b>DealSize</b>: %{text[0]}<br>' +
+                   '<b>Sales Stage</b>: %{text[1]}<br>' +
+                   '<b>BU</b>: %{text[2]}<br>' +
+                   '<b>TCV</b>: %{text[3]}<br>' +
+                   '<b>Opportunity Name</b>: %{text[4]}<br>' +
+                   '<b>Account Name</b>: %{text[5]}<br>' +
+                   '<b>Winzone Opportunity ID</b>: %{text[6]}<br>' +
+                   '<b>Vertical</b>: %{text[7]}<br>',
+    text: filteredData.map(item => [
+      item['DealSize'],
+      item['Sales Stage'],
+      item['BU'],
+      item['TCV'].toLocaleString("en-US"),
+      item['Opportunity Name'],
+      item['Account Name'],
+      item['WinZone Opportunity ID'],
+      item['Vertical']
+    ])
+  });
+});
+
+// Define layout
+var layoutbysbuDealSize = {
+  title: 'Deals in Pipeline',
+  xaxis: {
+    title: 'BU'
+  },
+  yaxis: {
+    title: 'TCV'
+  },
+  legend: {
+    title: { text: 'Deal Size' }
+  },
+  plot_bgcolor: 'black',
+  paper_bgcolor: 'black',
+  font: {
+    color: '#fff'
+  },
+  width: 1125,
+  height: 700
+};
+
+// Plotting the chart
+Plotly.newPlot('bysbuDealSize', tracesdealsInPipeline, layoutbysbuDealSize).then(function (gd) {
+  var modebar = gd.querySelector('.modebar-container');
+  if (modebar) {
+    var buttonsHtml = `
+    <div style="display:flex;justify-content:flex-start;margin-left:20px">
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 'all')">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">All</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 10)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">10</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 25)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">25</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 50)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">50</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 100)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">100</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 200)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">200</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuDealSize('bysbuDealSize', 300)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">300</div></div>
+      </div>
+    </div>
+    `;
+    modebar.insertAdjacentHTML('beforeend', buttonsHtml);
+
+    setZoombysbuDealSize('bysbuDealSize', 'all');
+    highlightIconsbubySS('bysbuDealSize', 'all');
+  } else {
+    console.error('Modebar not found');
+  }
+});
+function setZoombysbuDealSize(chartId, limit) {
+  const gd = document.getElementById(chartId);
+
+  if (limit === 'all') {
+    Plotly.react(gd, tracesdealsInPipeline, layoutbysbuDealSize);
+  } else {
+    // Step 1: Aggregate total TCV by BU
+    const tcvByBU = {};
+    tableData.forEach(item => {
+      const bu = item['BU'];
+      if (!tcvByBU[bu]) tcvByBU[bu] = 0;
+      tcvByBU[bu] += item['TCV'];
+    });
+
+    // Step 2: Get top N BUs with highest total TCV
+    const topBUs = Object.entries(tcvByBU)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([bu]) => bu);
+    const topBUSet = new Set(topBUs);
+
+    // Step 3: Filter the traces using top BUs
+    const filteredTraces = salesStageValues.map(stage => {
+      const filteredStageData = tableData.filter(
+        item => item['DealSize'] === stage && topBUSet.has(item['BU'])
+      );
+
+      return {
+        x: filteredStageData.map(item => item['BU']),
+        y: filteredStageData.map(item => item['TCV']),
+        mode: 'markers',
+        type: 'scatter',
+        name: stage,
+        marker: {
+          size: filteredStageData.map(item => {
+            return 5 + 20 * ((item['TCV'] - minTCV) / (maxTCV - minTCV));
+          }),
+          line: { width: 0 }
+        },
+        hovertemplate: '<b>DealSize</b>: %{text[0]}<br>' +
+                       '<b>Sales Stage</b>: %{text[1]}<br>' +
+                       '<b>BU</b>: %{text[2]}<br>' +
+                       '<b>TCV</b>: %{text[3]}<br>' +
+                       '<b>Opportunity Name</b>: %{text[4]}<br>' +
+                       '<b>Account Name</b>: %{text[5]}<br>' +
+                       '<b>Winzone Opportunity ID</b>: %{text[6]}<br>' +
+                       '<b>Vertical</b>: %{text[7]}<br>',
+        text: filteredStageData.map(item => [
+          item['DealSize'],
+          item['Sales Stage'],
+          item['BU'],
+          item['TCV'].toLocaleString("en-US"),
+          item['Opportunity Name'],
+          item['Account Name'],
+          item['WinZone Opportunity ID'],
+          item['Vertical']
+        ])
+      };
+    });
+
+    Plotly.react(gd, filteredTraces, layoutbysbuDealSize);
+  }
+
+  highlightIconsbubySS(chartId, limit);
+}
+// function setZoombysbuDealSize(chartId, limit) {
+//   var gd = document.getElementById(chartId);
+
+//   if (limit === 'all') {
+//     Plotly.react(gd, tracesdealsInPipeline, layoutbysbuDealSize);
+//   } else {
+//     var sortedData = tableData.slice().sort((a, b) => b['TCV'] - a['TCV']).slice(0, limit);
+//     var filteredTraces = salesStageValues.map(stage => {
+//       var filteredStageData = sortedData.filter(item => item['DealSize'] === stage);
+//       return {
+//         x: filteredStageData.map(item => item['BU']),
+//         y: filteredStageData.map(item => item['TCV']),
+//         mode: 'markers',
+//         type: 'scatter',
+//         name: stage,
+//         marker: {
+//           size: filteredStageData.map(item => 5 + 20 * ((item['TCV'] - minTCV) / (maxTCV - minTCV))), // Adjust marker size
+//           line: { width: 0 }
+//         },
+//         hovertemplate: '<b>DealSize</b>: %{text[0]}<br>' +
+//                        '<b>Sales Stage</b>: %{text[1]}<br>' +
+//                        '<b>BU</b>: %{text[2]}<br>' +
+//                        '<b>TCV</b>: %{text[3]}<br>' +
+//                        '<b>Opportunity Name</b>: %{text[4]}<br>' +
+//                        '<b>Account Name</b>: %{text[5]}<br>' +
+//                        '<b>Winzone Opportunity ID</b>: %{text[6]}<br>' +
+//                        '<b>Vertical</b>: %{text[7]}<br>',
+//         text: filteredStageData.map(item => [
+//           item['DealSize'],
+//           item['Sales Stage'],
+//           item['BU'],
+//           item['TCV'],
+//           item['Opportunity Name'],
+//           item['Account Name'],
+//           item['WinZone Opportunity ID'],
+//           item['Vertical']
+//         ])
+//       };
+//     });
+
+//     Plotly.react(gd, filteredTraces, layoutbysbuDealSize);
+
+//   }
+//   highlightIconsbubySS(chartId, limit);
+// }
+
+function highlightIconsbubySS(chartID, id) {
+  var chart = document.getElementById(chartID);
+  chart.querySelectorAll('.data-limit-circle').forEach(btn => {
+    btn.classList.remove('highlight');
+  });
+
+  var targetButton;
+  if (id === 'all') {
+    targetButton = Array.from(chart.querySelectorAll('.data-limit-circle')).find(btn =>
+      btn.querySelector('div') && btn.querySelector('div').textContent.includes("All")
+    );
+  } else {
+    targetButton = Array.from(chart.querySelectorAll('.data-limit-circle')).find(btn =>
+      btn.querySelector('div') && btn.querySelector('div').textContent.includes(id)
+    );
+  }
+
+  if (targetButton) {
+    targetButton.classList.add('highlight');
+  }
+}
+//   tableData=JSON.parse(`{{ tableData|escapejs }}`)
+//   var xValues = tableData.map(item => item['BU']);
+//   var yValues = tableData.map(item => item['TCV']);
+//   var salesStages = tableData.map(item => item['DealSize']);
+
+//   // Calculating marker sizes based on TCV values
+//   var maxTCV = Math.max(...yValues);
+//   var minTCV = Math.min(...yValues);
+//   var markerSizes = yValues.map(tcv => 5 + 20 * ((tcv - minTCV) / (maxTCV - minTCV))); // Adjust the multiplier and offset as needed
+
+//   // Creating trace for each sales stage with custom marker size
+//   var tracesdealsInPipeline = [];
+//   var salesStageValues = [...new Set(salesStages)]; // Unique sales stage values
+//   salesStageValues.forEach((stage, index) => {
+//     var filteredData = tableData.filter(item => item['DealSize'] === stage);
+//     tracesdealsInPipeline.push({
+//       x: filteredData.map(item => item['BU']),
+//       y: filteredData.map(item => item['TCV']),
+//       mode: 'markers',
+//       type: 'scatter',
+//       name: stage,
+//       marker: {
+//         size: markerSizes.filter((_, i) => salesStages[i] === stage), // Set the marker size for this sales stage
+//         line:{width:0}
+//       },
+//       hovertemplate:'<b>DealSize</b>: %{text[0]}<br>'+
+//                     '<b>Sales Stage</b>: %{text[1]}<br>'+
+//                     '<b>BU</b>: %{text[2]}<br>'+
+//                     '<b>TCV</b>: %{text[3]}<br>'+
+//                     '<b>Opportunity Name</b>: %{text[4]}<br>'+
+//                     '<b>Account Name</b>: %{text[5]}<br>'+
+//                     '<b>Winzone Opportunity ID</b>: %{text[6]}<br>'+
+//                     '<b>Vertical</b>: %{text[7]}<br>',
+//       text: filteredData.map(item=>[
+//         item['DealSize'],
+//         item['Sales Stage'],
+//         item['BU'],
+//         item['TCV'],
+//         item['Opportunity Name'],
+//         item['Account Name'],
+//         item['WinZone Opportunity ID'],
+//         item['Vertical']
+//       ])
+//     });
+//   });
+
+//   // Define layout
+//   var layoutbysbuDealSize = {
+//     title: 'Deals in Pipeline',
+//     xaxis: {
+//       title: 'BU'
+//     },
+//     yaxis: {
+//       title: 'TCV'
+//     },
+//     legend: {
+//       title: {text:'Deal Size'}
+//     },
+//     plot_bgcolor:'black',
+//     paper_bgcolor:'black',
+//     font: {
+//       color: '#fff'
+//     },
+//     width:1125,height:700
+//   };
+//   // Plotting the chart
+// Plotly.newPlot('bysbuDealSize', tracesdealsInPipeline, layout);
+</script>
+<script>
+  // Parse the data
+tableData2 = JSON.parse(`{{ tableData2|escapejs }}`);
+var stages = [...new Set(tableData2.map(entry => entry['BU']))];
+stages = stages.sort()
+var dataByStage = [];
+var sortedCloseQtr = [];
+
+// Process data by stage
+stages.forEach((stage) => {
+  var filteredData = tableData2.filter(item => item['BU'] === stage);
+  filteredData.sort((a, b) => {
+    let [aYear, aQtr] = a['CloseQtr'].split('_Q');
+    let [bYear, bQtr] = b['CloseQtr'].split('_Q');
+    aYear = parseInt(aYear);
+    bYear = parseInt(bYear);
+    aQtr = parseInt(aQtr);
+    bQtr = parseInt(bQtr);
+    return aYear === bYear ? aQtr - bQtr : aYear - bYear;
+  });
+  
+  dataByStage.push({
+    x: filteredData.map(entry => entry['CloseQtr']),
+    y: filteredData.map(entry => entry['TCV']),
+    name: stage,
+    type: 'bar',
+    hovertemplate: '<b>BU:</b> %{customdata[0]}<br>' +
+                   '<b>CloseQtr:</b> %{customdata[1]}<br>' +
+                   '<b>TCV:</b> %{customdata[2]}<br>' +
+                   '<b>Deals:</b> %{customdata[3]}<br>' +
+                   '<b>Vertical:</b> %{customdata[4]}',
+    customdata: filteredData.map(entry => [
+      entry['BU'],
+      entry['CloseQtr'],
+      entry['TCV'].toLocaleString("en-US"),
+      entry['WinZone Opportunity ID'],
+      entry['Vertical']
+    ]),
+  });
+
+  filteredData.forEach(entry => {
+    if (!sortedCloseQtr.includes(entry['CloseQtr'])) {
+      sortedCloseQtr.push(entry['CloseQtr']);
+    }
+  });
+});
+
+// Sort CloseQtr values
+sortedCloseQtr.sort((a, b) => {
+  let [aYear, aQtr] = a.split('_Q');
+  let [bYear, bQtr] = b.split('_Q');
+  aYear = parseInt(aYear);
+  bYear = parseInt(bYear);
+  aQtr = parseInt(aQtr);
+  bQtr = parseInt(bQtr);
+  return aYear === bYear ? aQtr - bQtr : aYear - bYear;
+});
+
+// Define layout
+var layoutbysbuQtr = {
+  barmode: 'group',
+  title: 'Pipeline BU by Close Qtr',
+  plot_bgcolor: 'black',
+  paper_bgcolor: 'black',
+  font: {
+    color: '#fff'
+  },
+  width: 1125,
+  height: 700,
+  legend: {
+    title: { text: 'BU' }
+  },
+  xaxis: {
+    title: 'CloseQtr',
+    categoryorder: 'array',
+    categoryarray: sortedCloseQtr,
+  },
+  yaxis: {
+    title: 'TCV'
+  },
+};
+
+// Plot the chart
+Plotly.newPlot('bysbuQtr', dataByStage, layoutbysbuQtr).then(function(gd) {
+  var modebar = gd.querySelector('.modebar-container');
+  if (modebar) {
+    var buttonsHtml = `
+    <div style="display:flex;justify-content:flex-start;margin-left:20px">
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 'all')">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">All</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 10)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">10</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 25)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">25</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 50)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">50</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 100)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">100</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 200)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">200</div></div>
+      </div>
+      <div class="modebar-btn" style="font-size:10px" onclick="setZoombysbuQtr('bysbuQtr', 300)">
+        <div class="data-limit-circle"><div style="margin:3px;font-size:10px">300</div></div>
+      </div>
+    </div>
+    `;
+    modebar.insertAdjacentHTML('beforeend', buttonsHtml);
+
+    // Set default zoom to 'all'
+    setZoombysbuQtr('bysbuQtr', 'all');
+    highlightIconsbysbuQtr('bysbuQtr', 'all');
+  } else {
+    console.error('Modebar not found');
+  }
+});
+
+function setZoombysbuQtr(chartId, limit) {
+  const gd = document.getElementById(chartId);
+
+  if (limit === 'all') {
+    Plotly.react(gd, dataByStage, layoutbysbuQtr);
+  } else {
+    // Step 1: Aggregate total TCV per CloseQtr
+    const tcvByQtr = {};
+    tableData2.forEach(item => {
+      const qtr = item['CloseQtr'];
+      if (!tcvByQtr[qtr]) tcvByQtr[qtr] = 0;
+      tcvByQtr[qtr] += item['TCV'];
+    });
+
+    // Step 2: Get top N quarters by TCV
+    const topQtrs = Object.entries(tcvByQtr)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([qtr]) => qtr);
+    const topQtrSet = new Set(topQtrs);
+
+    // Step 3: Filter data traces based on top quarters
+    const filteredTraces = dataByStage.map(trace => {
+      const filteredIndices = trace.x
+        .map((xValue, index) => topQtrSet.has(xValue) ? index : -1)
+        .filter(index => index !== -1);
+
+      return {
+        ...trace,
+        x: filteredIndices.map(i => trace.x[i]),
+        y: filteredIndices.map(i => trace.y[i]),
+        customdata: filteredIndices.map(i => trace.customdata[i])
+      };
+    });
+
+
+    Plotly.react(gd, filteredTraces, layoutbysbuQtr);
+  }
+
+  highlightIconsbysbuQtr(chartId, limit);
+}
+// function setZoombysbuQtr(chartId, limit) {
+//   var gd = document.getElementById(chartId);
+
+//   if (limit === 'all') {
+//     Plotly.react(gd, dataByStage, layoutbysbuQtr);
+//   } else {
+//     var sortedData = tableData2.slice().sort((a, b) => b['TCV'] - a['TCV']).slice(0, limit);
+    
+//     var filteredTraces = dataByStage.map(trace => {
+//       var filteredIndices = trace.x.map((xValue, index) => sortedData.some(item => item['CloseQtr'] === xValue) ? index : -1).filter(index => index !== -1);
+//       return {
+//         ...trace,
+//         x: filteredIndices.map(index => trace.x[index]),
+//         y: filteredIndices.map(index => trace.y[index]),
+//         customdata: filteredIndices.map(index => trace.customdata[index])
+//       };
+//     });
+
+//     Plotly.react(gd, filteredTraces, layoutbysbuQtr);
+//   }
+//   highlightIconsbysbuQtr(chartId, limit);
+// }
+
+function highlightIconsbysbuQtr(chartID, id) {
+
+  var chart = document.getElementById(chartID);
+  chart.querySelectorAll('.data-limit-circle').forEach(btn => {
+    btn.classList.remove('highlight');
+  });
+
+  var targetButton;
+  if (id === 'all') {
+    targetButton = Array.from(chart.querySelectorAll('.data-limit-circle')).find(btn =>
+      btn.querySelector('div') && btn.querySelector('div').textContent.includes("All")
+    );
+  } else {
+    targetButton = Array.from(chart.querySelectorAll('.data-limit-circle')).find(btn =>
+      btn.querySelector('div') && btn.querySelector('div').textContent.includes(id)
+    );
+  }
+
+  if (targetButton) {
+    targetButton.classList.add('highlight');
+  }
+}
+//   tableData2 = JSON.parse(`{{ tableData2|escapejs }}`);
+//   var stages = [...new Set(tableData2.map(entry => entry['BU']))];
+
+//   var dataByStage = [];
+//   var sortedCloseQtr =[];
+
+//   stages.forEach((stage) => {
+//       var filteredData = tableData2.filter(item => item['BU'] === stage);
+//       // Sort the filtered data by CloseQtr in ascending order
+//       filteredData.sort((a, b) => {
+//           let [aYear, aQtr] = a['CloseQtr'].split('_Q');
+//           let [bYear, bQtr] = b['CloseQtr'].split('_Q');
+//           aYear = parseInt(aYear);
+//           bYear = parseInt(bYear);
+//           aQtr = parseInt(aQtr);
+//           bQtr = parseInt(bQtr);
+//           return aYear === bYear? aQtr - bQtr:aYear - bYear;
+//       });
+      
+//       dataByStage.push({
+//           x: filteredData.map(entry => entry['CloseQtr']),
+//           y: filteredData.map(entry => entry['TCV']),
+//           name: stage,
+//           type: 'bar',
+//           hovertemplate: '<b>BU:</b> %{customdata[0]}<br>' +
+//                         '<b>CloseQtr:</b> %{customdata[1]}<br>' +
+//                         '<b>TCV:</b> %{customdata[2]}<br>' +
+//                         '<b>Deals:</b> %{customdata[3]}<br>' +
+//                         '<b>Vertical:</b> %{customdata[4]}',
+//           customdata: filteredData.map(entry => [
+//               entry['BU'],
+//               entry['CloseQtr'],
+//               entry['TCV'],
+//               entry['WinZone Opportunity ID'],
+//               entry['Vertical']
+//           ]),
+//       });
+//       filteredData.forEach(entry=>{
+//         if(!sortedCloseQtr.includes(entry['CloseQtr'])){
+//           sortedCloseQtr.push(entry['CloseQtr'])
+//         }
+//       })
+//   });
+
+//   sortedCloseQtr.sort((a, b) => {
+//       let [aYear, aQtr] = a.split('_Q');
+//       let [bYear, bQtr] = b.split('_Q');
+//       aYear = parseInt(aYear);
+//       bYear = parseInt(bYear);
+//       aQtr = parseInt(aQtr);
+//       bQtr = parseInt(bQtr);
+//       return aYear === bYear? aQtr - bQtr:aYear - bYear;
+//   });
+//   var layoutbysbuQtr = {
+//       barmode: 'group',
+//       title: 'Pipeline BU by Close Qtr',
+//       plot_bgcolor: 'black',
+//       paper_bgcolor: 'black',
+//       font: {
+//           color: '#fff'
+//       },
+//       width: 1125,
+//       height: 700,
+//       legend: {
+//           title: { text: 'BU' }
+//       },
+//       xaxis: {
+//           title: 'CloseQtr',
+//           categoryorder:'array',
+//           categoryarray:sortedCloseQtr,
+//       },
+//       yaxis: {
+//           title: 'TCV'
+//       },
+//   };
+// Plotly.newPlot('bysbuQtr', dataByStage, layout)
+//   tableData2=JSON.parse(`{{ tableData2|escapejs }}`)
+//   console.log(JSON.stringify(tableData2))
+//   var stages= [...new Set(tableData2.map(entry=>entry['BU']))];
+//   console.log(stages)
+//   var dataByStage = []
+//   stages.forEach((stage)=>{
+//     var filteredData = tableData2.filter(item => item['BU'] === stage);
+//     dataByStage.push({
+//       x:filteredData.map(entry=>entry['CloseQtr']),
+//       y:filteredData.map(entry=>entry['TCV']),
+//       name:stage,
+//       type:'bar',
+//       hovertemplate: '<b>BU:</b> %{customdata[0]}<br>'+
+//                     '<b>CloseQtr:</b> %{customdata[1]}<br>'+
+//                     '<b>TCV:</b> %{customdata[2]}<br>'+
+//                     '<b>Deals:</b> %{customdata[3]}<br>'+
+//                     '<b>Vertical:</b> %{customdata[4]}',
+//       customdata: filteredData.map(entry=> [entry['BU'],
+//                                           entry['CloseQtr'],
+//                                           entry['TCV'],
+//                                           entry['WinZone Opportunity ID'],
+//                                           entry['Vertical']]),
+//     })
+    
+//   })
+// console.log(dataByStage)
+//   var layout = {
+//     //barmode:'relative',
+//     barmode:'group',
+//     title:'Pipeline BU by Close Qtr',
+//     plot_bgcolor:'black',
+//     paper_bgcolor:'black',
+//     font: {
+//       color: '#fff'
+//     },
+//     // autosize:true,
+//     width: 1125,
+//     height: 700,
+//     legend: {
+//       title: {text:'BU'}
+//     },
+//     xaxis: {
+//       title: 'CloseQtr',
+//     },
+//     yaxis: {
+//       title: 'TCV'
+//     },
+//   }
+//   Plotly.newPlot('bysbuQtr',dataByStage,layout)
+  
+</script>
+
+<script>
+  var market_units = [];
+  $(document).ready(function () {
+    for (let entry of listOfDrawerDropdownIds) {
+      $(entry).show()
+      if(entry != "#unq_region"){
+        $(entry).select2({
+        placeholder: "All"
+      })
+      }
+    
+    }
+  })
+  const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+  // console.log(rawDrawerDropdownData)
+  let opt_opp_region_new = JSON.parse(`{{ opt_opp_region_new_filter|escapejs }}`);
+  let result = opt_opp_region_new.join(',');
+  console.log(result)
+  // opt_opp_region_new = opt_opp_region_new.join(',')
+  const selectedDrawerValuesList = [
+    result,
+    `{{ selected_bu }}`,
+    `{{ selected_sbu }}`,
+  ];
+  const listOfDrawerDropdownIds = [
+    '#unq_region',
+    '#unique_mcu',
+    '#unique_sbu',
+  ];
+
+
+  const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) => $(id));
+
+  const equalsAll = (value) => value === 'All';
+
+  const compareStringsIgnoreCaseFn = (x, y) => {
+    x = x.toLowerCase();
+    y = y.toLowerCase();
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+  };
+
+  const marketUnitOrder = ['UK&I', 'Southern Europe & Middle East', 'Northern Europe', 'DACH', 'EMEA Others', 'CE Others'];
+  const compareMarketUnitsFn = (x, y) => {
+    const indexX = marketUnitOrder.indexOf(x);
+    const indexY = marketUnitOrder.indexOf(y);
+    if (indexX !== -1 && indexY !== -1) return indexX - indexY;
+    if (indexX !== -1) return -1;
+    if (indexY !== -1) return 1;
+    return compareStringsIgnoreCaseFn(x, y);
+  };
+
+  function buildDrawerDropdowns(selectedValuesList) {
+    // creating unique lists i.e. sets for options out of filtered dropdown data
+    const optionLists = new Array(listOfDrawerDropdownIds.length)
+      .fill(0)
+      .map((_) => new Set());
+
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      
+      rawDrawerDropdownData.forEach((row) => {
+        let result = true;
+        // looping from 1st dropdown to all the way to current dropdown's previous dropdown
+        for (let j = 0; j < i; j++) {
+         
+          result &&= selectedValuesList[j].includes("All")
+            ? true
+            : selectedValuesList[j].includes(row[j])
+        }
+
+        if (result) optionLists[i].add(row[i]);
+        
+      });
+    }
+    // sorting the filtered data, removing falsy values, adding All at the start of the lists
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      optionLists[i] = [...optionLists[i]]
+        .filter((v) => v)
+        .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn);
+      optionLists[i].unshift('All');
+    }
+    // inserting the generated dropdown data as options into the dom
+    listOfDrawerDropdownElements.forEach((element, index) => { 
+      element.empty();
+      optionLists[index].forEach((optionText, id) => {
+        if(selectedValuesList[index].includes(optionText)){
+          element.append(
+              new Option(
+                optionText,
+                optionText,
+                false,
+                true
+              )
+          )
+        }
+        else{
+          element.append(
+            new Option(
+              optionText,
+              optionText,
+              false,
+              false
+            )
+          )
+        }
+      }
+      );
+    });
+    market_units = optionLists[0]
+  }
+
+  function prepare_market_units(){
+    let template = ""
+    let selected_market = result
+    for(let i in market_units){
+        if(i>0){
+          if(!selected_market.includes(',') && selected_market == "All"){
+            let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+          }
+          else{
+            let selected_market_array = selected_market.split(',')
+            if(selected_market_array.includes(market_units[i])){
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+              template = template + checkbox_label
+            }
+            else{
+              let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' onchange='change_market_unit(this)'>
+              <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`
+             template = template + checkbox_label
+            }
+          }
+
+        }
+
+    }
+    $('.unq_region').html(template)
+  }
+
+  function change_market_unit(element){    
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{   
+      return $(`${id}`).val()
+    });
+    let checked_market_unit_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_market_unit_option_array
+    for (let i = 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  }
+
+  $('#unique_mcu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_mcu').val().includes("All")) {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_mcu').val(null).trigger('change');
+        $('#unique_mcu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_mcu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+  $('#unique_sbu').on('select2:select', function (e) {
+      let data = e.params.data;
+      if ($('#unique_sbu').val().includes("All")) {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val(data.text).trigger('change');
+      }
+      if (data.text == "All") {
+        $('#unique_sbu').val(null).trigger('change');
+        $('#unique_sbu').val("All").trigger('change');
+      }
+      listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) =>{
+      return $(`${id}`).val()
+    }
+    );
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_sbu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+        return $(el).val();
+       }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  })
+
+
+  buildDrawerDropdowns(selectedDrawerValuesList);
+  prepare_market_units()
+
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+  // $('#unique_horizonal').show();
+  // $('#unique_horizontal').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_horizontal').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_horizontal').val().includes("All")) {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_horizontal').val(null).trigger('change');
+  //     $('#unique_horizontal').val("All").trigger('change');
+  //   }
+  // });
+  
+  // $('#unique_mcu').show();
+  // $('#unique_mcu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_mcu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_mcu').val().includes("All")) {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_mcu').val(null).trigger('change');
+  //     $('#unique_mcu').val("All").trigger('change');
+  //   }
+  // });
+  // $('#unique_sbu').show();
+  // $('#unique_sbu').select2({
+  //   placeholder: 'All'
+  // });
+
+  // $('#unique_sbu').on('select2:select', function (e) {
+  //   var data = e.params.data;
+  //   console.log("data", data)
+  //   if ($('#unique_sbu').val().includes("All")) {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val(data.text).trigger('change');
+  //   }
+  //   if (data.text == "All") {
+  //     $('#unique_sbu').val(null).trigger('change');
+  //     $('#unique_sbu').val("All").trigger('change');
+  //   }
+  // });
+
+  $('#unique_account_name').show();
+  $('#unique_account_name').select2({
+    placeholder: 'All'
+  });
+
+  $('#unique_account_name').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("data", data)
+    if ($('#unique_account_name').val().includes("All")) {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_account_name').val(null).trigger('change');
+      $('#unique_account_name').val("All").trigger('change');
+    }
+  });
+  
+
+  // $('#multiselect').change(function (e) {
+  //   // console.log("checked clicked")
+  //   if (!e.currentTarget.checked) {
+  //     $('#toggleLabel').html("Or")
+  //   }
+  //   else {
+  //     $('#toggleLabel').html("And")
+  //   }
+  // })
+
+  /////////////////////////////////   Reset Button  /////////////////////////////////////////////////
+  $('#reset').click(async function (e) {
+    e.preventDefault()
+    window.location.href = `${window.location.origin}${window.location.pathname}`
+
+  })
+</script>
+{% endblock %}

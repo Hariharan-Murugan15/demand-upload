@@ -1,0 +1,137 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<style>
+table {
+  background-color: rgb(151, 151, 150);
+  text-emphasis-color: black;
+  color:black;
+  font-size: 5pt;
+}
+
+th {
+  text-align: center;
+  padding: 2px;
+}
+.dfstyle {
+    font-size: 11pt; 
+    font-family: Arial;
+    border-collapse: collapse; 
+    border: 1px solid silver;
+    background-color:lightgray;
+
+}
+
+.dfstyle td, th {
+    padding: 5px;
+}
+
+.dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+}
+
+.dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+}
+.container_2 {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: 30px;
+  margin-left: 10px;
+  text-align:center;
+}
+</style>
+<div style="background-color:#070707">
+<div class ="container text-center" style="background-color:#070707">
+    <h1 style="color:whitesmoke;">Search by Winzone ID</h1>
+    <form action="{% url 'search_by_winzone' %}">
+        <br>
+        <br>
+        <label style="color:whitesmoke;">Pipeline Data label  :   </label>
+
+            <select name="idx_label"> 
+              {% for entry_0 in index_labels %}
+                {%  if entry_0 == idx_label_selected    %}
+                  <option value="{{ entry_0 }}" selected>{{ entry_0 }} </option>
+                {% else %}
+                  <option value="{{ entry_0 }}">{{ entry_0 }} </option>
+                {% endif %}
+              {% endfor %}
+          </select>
+          <br>
+          <br>
+        <font color="lightyellow">
+            <label for="fname">Winzone Opportunity ID:</label>
+            <input style="color:black;" type="text" id="winzone_id" name="winzone_id">
+      </font>
+        <br>
+        <br>
+        <input type="submit" value="Refresh Dashboard" class="btn btn-primary">
+        <a href="{% url 'home' %}" class="btn btn-warning"> Home</a>
+    </form>
+  <!-- </div> -->
+  
+    <!-- <table >
+    <th>
+    <body style="background-color:#070707" >
+        {% autoescape off %}
+        {{ plot_div }}
+        {% endautoescape %}
+      </body>
+    </th>
+    <th>
+      <body style="background-color:#070707" >
+        {% autoescape off %}
+        {{ plot_div_2 }}
+        {% endautoescape %}
+      </body>
+    </th>
+    <th>
+      <body style="background-color:#070707" >
+        {% autoescape off %}
+        {{ plot_div_3 }}
+        {% endautoescape %}
+      </body>
+    </th>
+    </table>
+    <table>
+      <th>
+    <body style="background-color:#070707" class ="container_2 text-center">
+        {% autoescape off %}
+        {{ plot_div_4 }}
+        {% endautoescape %}
+    </body>
+  </th>
+  <th>
+    <body style="background-color:#070707" class ="container_2 text-center">
+      {% autoescape off %}
+      {{ plot_div_5 }}
+      {% endautoescape %}
+  </body>
+</th>
+</table>
+<table>
+  <th>
+<body style="background-color:#070707" class ="container_2 text-center">
+  {% autoescape off %}
+  {{ plot_div_6 }}
+  {% endautoescape %}
+</body>
+<body style="background-color:#070707" class ="container_2 text-center">
+  {% autoescape off %}
+  {{ plot_div_7 }}
+  {% endautoescape %}
+</th>
+</body>
+</table> -->
+    <br>
+    <font color="lightyellow"></font>
+      <br>
+      {{ html_data_pivot |safe|escape }}
+      <br>
+    </font>
+    <br>
+     <br>
+    <br>
+    <br>
+  </div>
+</div>

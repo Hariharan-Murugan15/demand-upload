@@ -1,0 +1,316 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<style>
+.container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 30px;
+    margin-left: 50px;
+    text-align:center;
+  }
+  body {
+  font-family: Arial;
+}
+
+* {
+  box-sizing: border-box;
+}
+  div.example input[type=text] {
+  padding: 10px;
+  font-size: 17px;
+  height: 30px;
+  border: 1px solid grey;
+  float: left;
+  width: 80%;
+  background: #f1f1f1;
+}
+
+div.example button {
+  float: left;
+  width: 20%;
+  height: 30px;
+  padding: 6px;
+  background: #2196F3;
+  color: white;
+  font-size: 17px;
+  border: 1px solid grey;
+  border-left: none;
+  cursor: pointer;
+}
+
+div.example button:hover {
+  background: #0b7dda;
+}
+
+div.example::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+#winzone_table{
+  display: flex;
+  justify-content: center;
+}
+
+table {
+  /* background-color: rgb(151, 151, 150); */
+  text-emphasis-color: black;
+  color:black;
+  font-size: 8pt;
+  margin: 0 30%;
+  align-self: center;
+  /* border-collapse: separate; */
+  border-spacing: 10px 0;
+}
+
+.table > thead > tr > th{
+  text-align: center;
+    /* padding: 2px; */
+  position: sticky;
+  top: 1;
+  z-index: 100;
+  color: #FFFF;
+  background-color: #4472c4;
+  vertical-align: middle;
+  border-right: 1px solid #8eb7e5;
+  border-bottom: 1px solid #8eb7e5;
+  margin: 0;
+}
+.table>tbody>tr>td {
+  background-color: rgb(217, 226, 243);
+  border-right: 1px solid #8eb7e5;
+  border-bottom: 1px solid #8eb7e5;
+}
+.table>tbody>tr>th {
+  background-color: rgb(217, 226, 243);
+  border-right: 1px solid #8eb7e5;
+  border-bottom: 1px solid #8eb7e5;
+}
+  
+
+th {
+  text-align: left;
+  padding: 2px;
+}
+
+#autocomplete{
+  position: relative;
+}
+
+
+#autocomplete-list{
+ list-style: none;
+ padding: 0px;
+ width:240px;
+ position: initial;
+ margin: 0;
+}
+
+#autocomplete-list li{
+ background: lavender;
+ padding: 4px;
+ margin-bottom: 1px;
+}
+
+/* #autocomplete-list li:nth-child(even){
+ background: lightyellow;
+ color: black;
+} */
+
+#autocomplete-list li:hover{
+ cursor: pointer;
+}
+
+.highlight { background-color:#ff0; }
+
+</style>
+
+<div class ="container text-center">
+<body style="background-color:070707">
+<form id="insights_form" action="{% url 'show_plot' %}">
+    <th>
+    <br>
+    <font color="lightyellow">
+    <h1> CMT Pipeline Insights</h1>
+    <br>
+    <label>Pipeline Data label  :   </label>
+    </font>
+    <select name="idx_label"> 
+      {% for entry in index_labels %}
+            {%  if entry == idx_label_selected  %}
+                <option value="{{ entry }}" selected>{{ entry }} </option>
+              {% else %}
+                <option value="{{ entry }}">{{ entry }} </option>
+              {% endif %}
+        {% endfor %}
+    </select> 
+    <br>
+    <br>
+    <!-- <font color="lightyellow">
+    <label>Insight Type  :   </label>
+    </font> -->
+    <!-- <select name="plt_label"> 
+        {% for entry2 in plot_labels %}
+            <option value="{{ entry2 }}">{{ entry2 }}</option>
+        {% endfor %}
+    </select> -->
+    <!-- <br> -->
+    <!-- <br>
+    <input type="hidden" name="plt_label" value="Won_Lost_Details" /> 
+    <input type="submit" name="plt_label" value="Won_Lost_Details" class="btn btn-primary">
+    <br> -->
+    <font color="lightyellow">
+        <label>Show Pipeline Insights By  :   </label>
+        <br>
+    </font>
+    <!-- <br> -->
+    <!-- <input type="hidden" name="plt_label" value="Pipeline_Summary" /> -->
+    <input type="submit" name="plt_label" value="Summary" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Details" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Won Lost" class="btn btn-primary">
+    <br>
+    <br>
+    <!-- <input type="hidden" name="plt_label" value="Pipeline_Details" /> -->
+    
+    <input type="submit" name="plt_label" value="SBU" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Accounts" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Key Metrices" class="btn btn-primary">
+    <!-- <input type="submit" name="plt_label" value="Pipeline by ServiceLine" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Pipeline by Competition" class="btn btn-primary">
+    <br>
+    <br>
+    <input type="submit" name="plt_label" value="Average Deal Size" class="btn btn-primary">
+    <input type="submit" name="plt_label" value="Average Cycle Time" class="btn btn-primary"> -->
+    <br>
+</form>
+<br>
+<br>
+<font color="lightyellow">
+<label>More options  :   </label>
+<br>
+</font>
+<a href="{% url 'show_dashboard' %}" class="btn btn-warning"> Dashboard</a>
+<a href="{% url 'show_details_table' %}" class="btn btn-warning" > Pipeline Table View</a>
+<a href="{% url 'show_movement' %}" class="btn btn-warning"> Pipeline Movement</a>
+<!-- <a href="{% url 'search_by_winzone' %}" class="btn btn-warning" > Search by Winzone</a> -->
+<br>
+<br>
+<div class="example" style="margin:auto;max-width:300px" >
+  <div id="autocomplete">
+  {% if selected_winzone_id == None %}
+  <input autocomplete="off" type="text" placeholder="Search by Winzone ID" name="winzone_id">
+  {% else %}
+    <input autocomplete="off" type="text" placeholder="Search by Winzone ID" name="winzone_id" value="{{ selected_winzone_id }}">
+  {% endif %}
+  <button onclick="showWinzone()"><i style="color: white;" class="fa fa-search"></i></button>
+  <ul id="autocomplete-list"></ul>
+</div>
+
+  </div>
+  <br>
+
+  <div id="winzone_table">
+</div>
+  <br>
+</body>
+</div>
+
+<script>
+
+  function showWinzone(){
+    var selectedLabel = document.getElementsByName("idx_label")[0].value
+    var selectedWinzoneId = document.getElementsByName("winzone_id")[0].value
+    $('#autocomplete-list').empty()
+    $.ajax({
+      url:'fetch_winzone_table',
+      data:{
+        'idx_label' : selectedLabel,
+        'winzone_id' : selectedWinzoneId
+      },
+      success: function (data){
+        $('#winzone_table').empty()
+        $('#winzone_table').append(data)
+      }
+
+    })
+  }
+
+  $(document).ready(function(){
+      $("input[name='winzone_id']").keyup(debounce(function(){
+
+        $.ajax({
+          url:'show_winzone_id',
+          data:{
+            'idx_label' : $("select[name='idx_label']").val(),
+            'winzone_id' : $("input[name='winzone_id']").val()
+          },
+          success:function(res){
+            $('#autocomplete-list').empty()
+            for (let i = 0; i < res.data.length; i++) {
+              var id = i
+              var winz_id = res.data[i];
+              $('#autocomplete-list').append("<li value='"+id+"'>"+winz_id+"</li>")
+            }
+
+            $("#autocomplete-list li").bind("click",function(){
+              setWinzoneId(this);
+              });
+          }
+
+        })
+      },300))
+
+
+      function setWinzoneId(ele){
+        $('#autocomplete-list').empty()
+        $("input[name='winzone_id']").val($(ele).text())
+      }
+
+      function debounce(func, wait, immediate) {
+      var timeout;
+
+      return function executedFunction() {
+        var context = this;
+        var args = arguments;
+          
+        var later = function() {
+          timeout = null;
+          if (!immediate) {func.apply(context, args)};
+        };
+
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      
+        if (callNow) {func.apply(context, args)};
+      };
+    };
+
+    // var listItems = document.querySelectorAll("#autocomplete-list li")
+    // var currFocus = 0 
+
+    // typeof listItems[currFocus]!="undefined" &&listItems[currFocus].classList.add("highlight")
+
+    // console.log(typeof listItems[currFocus]!="undefined" &&listItems[0])
+    // $("input[name='winzone_id']").keydown(function(e){
+    //   // console.log(e.keyCode)
+    //   console.log(typeof listItems[currFocus]!="undefined" ?listItems[0] : null)
+    //   switch (e.keyCode) {
+    //     case 38:
+    //     typeof listItems[currFocus]!="undefined" &&listItems[currFocus].classList.remove("highlight")
+    //       currFocus = currFocus>0 ? --currFocus : 0
+    //       break;
+      
+    //     case 40:
+    //     typeof listItems[currFocus]!="undefined" &&listItems[currFocus].classList.add("highlight")
+    //       currFocus = currFocus < listItems.length-1 ? ++currFocus : listItems.length-1
+    //       break;
+    //   }
+    // })
+
+    })
+
+</script>

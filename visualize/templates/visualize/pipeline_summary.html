@@ -1,0 +1,3610 @@
+{% extends 'visualize/common.html' %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"
+/>
+<style>
+  /* ========================================
+     CSS VARIABLES
+     ======================================== */
+  :root {
+    /* Pipeline Colors */
+    --blue-header: #002060;
+    --blue-pipe-dark: #06379e;
+    --blue-pipe-light: #2b6eff;
+    --text-yellow: #ffc000;
+    --bg-gray: #f9fafb;
+    --border-gray: #e5e7eb;
+    
+    /* KPI Colors */
+    --kpi-total: #3b82f6;
+    --kpi-qual: #10b981;
+    --kpi-unqual: #ef4444;
+    
+    /* Table Colors */
+    --blue-900: #4472c4;
+    --blue-800: #4472c4;
+    --blue-100: #d9e2f3;
+    --blue-50:  #d9e2f3;
+    --blue-200: #d9e2f3;
+    --qual-accents: #ffffff;
+    --notq-accents: #ffffff;
+    
+    /* Text & Borders */
+    --text-strong: #0b1b2b;
+    --text-inverse: #ffffff;
+    --border-color: #d6dee8;
+    
+    /* Spacing & Radius */
+    --cell-pad-y: 0.625rem;
+    --cell-pad-x: 0.75rem;
+    --radius: 4px;
+  }
+
+  /* ========================================
+     BASE & GLOBAL STYLES
+     ======================================== */
+  body {
+    background-color: #070707 !important;
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+  }
+
+  /* ========================================
+     LAYOUT CONTAINERS
+     ======================================== */
+  .pipeline-container {
+    max-width: 1400px;
+    margin: 6px auto;
+    padding: 8px;
+    background: #070707;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .page-title {
+    text-align: center;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ========================================
+     CONTROLS & TOGGLES
+     ======================================== */
+  .controls-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-right: 10px;
+  }
+
+  .toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #002060;
+    text-transform: uppercase;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: var(--blue-header);
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+
+  /* ========================================
+     HEADER & CHEVRONS
+     ======================================== */
+  .header-row {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    padding-inline: 26px;
+    margin-bottom: 4px !important;
+  }
+
+  .chevron {
+    flex: 1;
+    background: #143f9a;
+    max-width: 140px;
+    color: white;
+    padding: 8px 18px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-right: 4px;
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 15px 50%);
+  }
+
+  .chevron:first-child {
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%);
+  }
+
+  .chevron:last-child {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 15px 50%);
+  }
+
+  /* ========================================
+     FUNNEL & PIPELINE VISUALIZATION
+     ======================================== */
+  .funnel-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 275px;
+    position: relative;
+    margin-bottom: 4px;
+  }
+
+  .pipe-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: -8px;
+    height: 100%;
+    position: relative;
+    max-width: 200px;
+  }
+
+  /* Z-Index Stacking for 3D Effect */
+  #pipe-wrap-1 { z-index: 10; }
+  #pipe-wrap-2 { z-index: 9; }
+  #pipe-wrap-3 { z-index: 8; }
+  #pipe-wrap-4 { z-index: 7; }
+  #pipe-wrap-5 { z-index: 6; }
+
+  .pipe {
+    width: 100%;
+    background: linear-gradient(to bottom, var(--blue-pipe-dark) 0%, var(--blue-pipe-light) 40%, var(--blue-pipe-light) 60%, var(--blue-pipe-dark) 100%);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    border-radius: 10px / 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+    box-shadow: 3px 0 12px rgba(0,0,0,0.3);
+    transition: height 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .pipe::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 18px;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #04256b, #1d52bf, #04256b);
+    opacity: 0.6;
+    border-right: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .p-total {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+
+  .p-grid {
+    display: flex;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .p-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .p-lbl {
+    color: var(--text-yellow);
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .p-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+  }
+
+  .p-count {
+    font-size: 13px;
+    color: #ffffff;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+
+  /* ========================================
+     KPI CARDS
+     ======================================== */
+  .kpi-section {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 4px;
+    padding: 5px;
+  }
+
+  .kpi-card {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    width: 260px;
+    height: 84px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+
+
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .kpi-total::after { background: var(--kpi-total); }
+  .kpi-qual::after { background: var(--kpi-qual); }
+  .kpi-unqual::after { background: var(--kpi-unqual); }
+
+  .kpi-head {
+    font-size: 11px;
+    font-weight: 700;
+    color: #a0a0a0;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.8px;
+    text-align: center;
+  }
+
+  .kpi-num {
+    font-size: 22px;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-pct {
+    font-size: 14px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: block;
+    margin-bottom: 22px;
+  }
+
+  .kpi-count {
+    font-size: 10px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .kpi-bottom {
+    position: absolute;
+    bottom: 8px;
+    font-size: 10px;
+    color: #ffffff;
+  }
+
+  .text-qual {
+    color: var(--kpi-qual);
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .text-unqual {
+    color: var(--kpi-unqual);
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  #tblPipelineByMarket .cell-pair.pair--bucket .cell-count,
+#tblPipelineByMarket .legend-count {
+  color: #0b63d6;
+  font-weight: 600;
+}
+ 
+#tblPipelineByMarket .cell-pair.pair--bucket .cell-amount,
+#tblPipelineByMarket .legend-amount {
+  color: #0a8a45;
+  font-weight: 600;
+}
+ 
+/* Region pair cells: inherit default color */
+#tblPipelineByMarket .cell-pair.pair--region .cell-count,
+#tblPipelineByMarket .cell-pair.pair--region .cell-amount {
+  color: inherit;
+  font-weight: 400;
+}
+ 
+#tblPipelineByMarket td:has(.cell-pair.pair--regionn .cell-count) {
+  color: #0b1b2b ! important;
+  font-weight: 400;
+  background-color: #c0d6fa !important;
+}
+ 
+#tblPipelineByMarket td:has(.cell-pair.pair--regionnn .cell-amount) {
+  color: #0b1b2b ! important;
+  font-weight: 400;
+  background-color: #b1cdff !important;
+}
+ 
+/* If you show symbols via ::before, also scope */
+#tblPipelineByMarket .cell-pair.pair--bucket .cell-count::before {
+  /* content: '#\00a0'; */
+  color: inherit;
+  font-weight: 700;
+}
+#tblPipelineByMarket .cell-pair.pair--bucket .cell-amount::before {
+  /* content: '$\00a0'; */
+  color: inherit;
+  font-weight: 700;
+}
+ 
+#global-legend-row {
+    background: #f8f9fa;          /* light white background */
+    font-size: 11px;
+    font-weight: 300;             /* low font weight */
+}
+ 
+/* Ensure all header cells have consistent background */
+#global-legend-row th {
+    background: #d9e2f3b1;
+    font-weight: 300;
+    padding: 4px 6px;
+    text-align: center;
+}
+ 
+/* Deal size name (first column) aligns left */
+#global-legend-row th:first-child {
+    text-align: left;
+}
+ 
+/* Flexbox to justify # and $ */
+.legend-pair {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-weight: 300;
+}
+ 
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #070707;
+    border: 0px solid var(#070707);
+    border-radius: var(--radius);
+    padding: 4px 32px;
+  }
+  #tblPipelineByMarket {
+    width: 95%;
+    margin: 0 auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--text-strong);
+    font-size: 12px;
+  }
+  #tblPipelineByMarket td,
+  #tblPipelineByMarket th {
+    text-align: center;
+    line-height: 1;
+    border-right: 1px solid #d0d7de;
+  }
+  #tblPipelineByMarket th:first-child,
+  #tblPipelineByMarket td:first-child {
+    border-left: 1px solid #d0d7de;
+  }
+ 
+  #tblPipelineByMarket th.th-market,
+  #tblPipelineByMarket tbody th {
+    text-align: left;
+  }
+  #tblPipelineByMarket thead th:nth-child(4) {
+    background-color: #103b84;
+  }
+  #tblPipelineByMarket thead th:nth-child(8) {
+    background-color: #103b84;
+  }
+  #tblPipelineByMarket thead th:nth-child(9) {
+    background-color: #07214fff;
+  }
+ 
+ 
+  #tblPipelineByMarket col.col-market { width: 18%; }
+  #tblPipelineByMarket col.col-stage-1 { width: 10.25%; }
+  #tblPipelineByMarket col.col-stage-2 { width: 10.25%; }
+  #tblPipelineByMarket col.col-notq { width: 10.25%;}
+  #tblPipelineByMarket col.col-stage-3 { width: 10.25%; }
+  #tblPipelineByMarket col.col-stage-4 { width: 9.25%; }
+  #tblPipelineByMarket col.col-stage-5 { width: 10.25%; }
+  #tblPipelineByMarket col.col-qual { width: 10.25%; }
+  #tblPipelineByMarket col.col-total { width:11.25%; }
+ 
+  #tblPipelineByMarket thead tr {
+    background-color: #4472c4;
+    color: var(--text-inverse);
+  }
+  #tblPipelineByMarket thead th {
+    padding: var(--cell-pad-y) var(--cell-pad-x);
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 1px solid var(--blue-800);
+    white-space: nowrap;
+  }
+  #tblPipelineByMarket thead tr th:first-child {
+    border-top-left-radius: var(--radius);
+  }
+  #tblPipelineByMarket thead tr th:last-child {
+    border-top-right-radius: var(--radius);
+  }
+  #tblPipelineByMarket thead th.th-notq {
+    color: #ffe7eb;
+  }
+  #tblPipelineByMarket thead th.th-qual {
+    color: #e2f6ea;
+  }
+  /* Table Body */
+  #tblPipelineByMarket tr.bucket-row td {
+    background: #fcfcfc;
+  }
+  #tblPipelineByMarket tbody tr {
+    background: var(--blue-100);
+    transition: background-color 0.15s ease-in-out;
+  }
+  #tblPipelineByMarket tbody tr:nth-child(even) {
+    background: var(--blue-50);
+  }
+  #tblPipelineByMarket tbody tr:hover {
+    background: var(--blue-200);
+  }
+  #tblPipelineByMarket tbody th,
+  #tblPipelineByMarket tbody td {
+    padding: var(--cell-pad-y) var(--cell-pad-x);
+    border-bottom: 1px solid var(--border-color);
+  }
+  #tblPipelineByMarket tbody td,
+  #tblPipelineByMarket tfoot th,
+  #tblPipelineByMarket tfoot td {
+    text-align: right;
+  }
+  #tblPipelineByMarket th.th-market,
+  #tblPipelineByMarket tbody th {
+    text-align: left;
+    font-weight: 600;
+  }
+  /* Table Footer */
+  #tblPipelineByMarket tfoot tr{
+    color: white;
+  }
+  #tblPipelineByMarket tfoot tr {
+    background-color: #4472c4;
+    color: var(--text-inverse);
+    font-weight: 600;
+  }
+  #tblPipelineByMarket tfoot th,
+  #tblPipelineByMarket tfoot td {
+    padding: var(--cell-pad-y) var(--cell-pad-x);
+    border-top: 1px solid var(--blue-800);
+  }
+  #tblPipelineByMarket tfoot tr th:first-child,
+  #tblPipelineByMarket tfoot tr td:first-child {
+    border-bottom-left-radius: var(--radius);
+  }
+  #tblPipelineByMarket tfoot tr th:last-child,
+  #tblPipelineByMarket tfoot tr td:last-child {
+    border-bottom-right-radius: var(--radius);
+  }
+  #tblPipelineByMarket tfoot .td-notq {
+    color: #ffd6dd;
+  }
+  #tblPipelineByMarket tfoot .td-qual {
+    color: #ccf2da;
+  }
+  #tblPipelineByMarket tfoot th:nth-child(4) {
+    background-color: #103b84;
+  }
+  #tblPipelineByMarket tfoot th:nth-child(8) {
+    background-color: #103b84;
+  }
+  #tblPipelineByMarket tfoot th:nth-child(9) {
+    background-color: #07214fff;
+  }
+#tblPipelineByMarket tr.region-main td:first-child {
+  cursor: pointer; /* Indicate click-ability */
+}
+#tblPipelineByMarket tr.region-main .toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#tblPipelineByMarket tr.region-main .chev {
+  display: inline-block;
+  transition: transform 0.15s ease-in-out;
+  font-size: 12px;
+  line-height: 1;
+}
+/* Collapsed state rotates caret */
+#tblPipelineByMarket tr.region-main.collapsed .chev {
+  transform: rotate(-90deg);
+}
+/* Hide child rows when collapsed */
+#tblPipelineByMarket tr.region-child.hidden {
+  display: none;
+}
+.legend-pair {
+  display: flex;
+  justify-content: space-between; /* pushes # left, $ right */
+  align-items: center;
+  width: 100%;
+  padding: 0 2px;  
+  padding-left: 10px;  
+  padding-right: 20px;              /* slight breathing room */
+  box-sizing: border-box;
+}
+.legend-count {
+  font-weight: 500;
+  color: #000000ff;
+}
+.legend-amount {
+  color: #000000ff;
+  white-space: nowrap;
+}
+ 
+.cell-pair {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.cell-paira {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.cell-count {
+  font-weight: 400; /* emphasize count */
+}
+.cell-counta {
+  font-weight: 600; /* emphasize count */
+}
+.cell-amount {
+  color: #181a1cff;
+  white-space: nowrap;
+}
+ 
+/* Visual distinction between count (#) and amount ($)
+   - Counts use a subtle blue accent
+   - Amounts use a subtle green accent
+*/
+.legend-count, .cell-count {
+  color: #0b1b2b; /* subtle medium-blue for counts (#) */
+  font-weight: 400;
+}
+ 
+.legend-amount, .cell-amount {
+  color: #0b1b2b; /* subtle medium-green for amounts ($) */
+  font-weight: 400;
+}
+ 
+.cell-count::before {
+  color: inherit;
+  font-weight: 700;
+}
+ 
+.cell-amount::before {
+  color: inherit;
+  font-weight: 700;
+}
+ 
+.cell-counta::before {
+  color: inherit;
+  font-weight: 700;
+}
+ 
+.cell-amounta::before {
+  color: inherit;
+  font-weight: 700;
+}
+  /* ========================================
+     DEAL TABLES (TOP DEALS, WON/LOST, ETC.)
+     ======================================== */
+  .top-deals-container {
+    margin: 30px auto 0;
+    background: #070707;
+    border-radius: 10px;
+    border: 2px solid #070707;
+    padding: 20px;
+    max-width: 95%;
+  }
+
+  .top-deals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: none;
+  }
+
+  .top-deals-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .top-deals-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .btn-download {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-download:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  .limit-select {
+    padding: 6px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background: white;
+    cursor: pointer;
+  }
+
+  .limit-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  /* ========================================
+     METRICS & SUMMARY SECTIONS
+     ======================================== */
+  .summary-metrics {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+
+  .metric-item {
+    text-align: center;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+  }
+
+  .metric-item.qualified {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-left-color: #10b981;
+  }
+
+  .metric-item.qualified .metric-value {
+    color: #059669;
+  }
+
+  .metric-item.unqualified {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-left-color: #f59e0b;
+  }
+
+  .metric-item.unqualified .metric-value {
+    color: #d97706;
+  }
+
+  .metric-percent {
+    font-size: 15px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* ========================================
+     AG-GRID CUSTOMIZATION
+     ======================================== */
+
+  /* Compact row/header height and font size for all four tables
+     Increased row height and horizontal padding so Opportunity IDs
+     have better vertical spacing (matches Pipeline vs Demand table). */
+  #top20DealsTable.ag-theme-alpine,
+  #wonLostDealsTable.ag-theme-alpine,
+  #topDealsTable.ag-theme-alpine,
+  #lastModifiedDealsTable.ag-theme-alpine {
+    --ag-row-height: 40px; /* increased from 28px */
+    --ag-header-height: 36px;
+    --ag-font-size: 11px;
+    --ag-cell-horizontal-padding: 8px;
+  }
+
+  /* Ensure cells in these specific tables have more vertical padding
+     and no cramped margins so each Opportunity ID appears with space. */
+  #top20DealsTable .ag-center-cols-container .ag-cell,
+  #wonLostDealsTable .ag-center-cols-container .ag-cell,
+  #topDealsTable .ag-center-cols-container .ag-cell,
+  #lastModifiedDealsTable .ag-center-cols-container .ag-cell {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    align-items: center !important;
+    display: flex !important;
+  }
+
+  /* Global AG-Grid cell styling: consistent font, center alignment, no row borders */
+  .ag-root .ag-cell,
+  .ag-root .ag-header-cell {
+    font-size: 11px !important;
+    line-height: normal !important;
+    display: flex !important;
+    text-align: center !important;
+    align-items: center !important;
+    padding: 0px !important;
+    margin: 2px !important;
+  }
+  
+#topDealsTable .ag-header-cell-label,
+#topDealsTable .ag-header-cell-text,
+#lastModifiedDealsTable .ag-header-cell-label,
+#lastModifiedDealsTable .ag-header-cell-text {
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+}
+  .ag-header-cell-label,
+  .ag-header-cell-text {
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    color: #263238 !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100%;
+  }
+  
+  /* Remove horizontal lines between rows */
+  .ag-row {
+    border-bottom: none !important;
+  }
+  
+  .ag-cell {
+    border-right: none !important;
+  }
+
+  /* Top 20 Deals Table Colors */
+  #top20DealsTable .ag-header,
+  #top20DealsTable .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #top20DealsTable .ag-header-cell {
+    background-color: #4472c4 !important;
+    /* the visible white separator is provided by the resize handle element */
+    border-right: none !important;
+    border-left: none !important;
+    padding-right: 14px !important;
+  }
+
+  #top20DealsTable .ag-header-cell-label,
+  #top20DealsTable .ag-header-cell-text {
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+  }
+
+  /* Filter menu icon – hidden by default, revealed on header cell hover */
+  #top20DealsTable .ag-header-cell-menu-button {
+    color: #ffffff !important;
+    opacity: 0 !important;
+    transition: opacity 0.15s ease;
+  }
+  #top20DealsTable .ag-header-cell:hover .ag-header-cell-menu-button { opacity: 0.9 !important; }
+  #top20DealsTable .ag-header-cell-menu-button:hover { opacity: 1 !important; }
+
+  /* Sort icons – white */
+  #top20DealsTable .ag-header-icon .ag-icon { color: #ffffff !important; }
+
+  /* Short centred separator line */
+  #top20DealsTable .ag-header-cell-resize {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 8px !important;
+    cursor: col-resize !important;
+    background: transparent !important;
+    z-index: 2 !important;
+  }
+  /* Remove AG-Grid's own default ::after line */
+  #top20DealsTable .ag-header-cell-resize::after { display: none !important; }
+  /* Single clean white separator */
+  #top20DealsTable .ag-header-cell-resize::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1.5px !important;
+    height: 40% !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-radius: 1px !important;
+  }
+  #top20DealsTable .ag-header-cell-resize:hover::before {
+    background: rgba(255,255,255,0.9) !important;
+  }
+
+  #top20DealsTable .ag-row {
+    background-color: #d9e2f3 !important;
+  }
+
+  #top20DealsTable .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #top20DealsTable .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+
+  /* Recent Won/Lost Deals Table Colors */
+  #wonLostDealsTable .ag-header,
+  #wonLostDealsTable .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #wonLostDealsTable .ag-header-cell {
+    background-color: #4472c4 !important;
+    /* the visible white separator is provided by the resize handle element */
+    border-right: none !important;
+    border-left: none !important;
+    padding-right: 14px !important;
+  }
+
+  #wonLostDealsTable .ag-header-cell-label,
+  #wonLostDealsTable .ag-header-cell-text {
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+  }
+
+  /* Filter menu icon – hidden by default, revealed on header cell hover */
+  #wonLostDealsTable .ag-header-cell-menu-button {
+    color: #ffffff !important;
+    opacity: 0 !important;
+    transition: opacity 0.15s ease;
+  }
+  #wonLostDealsTable .ag-header-cell:hover .ag-header-cell-menu-button { opacity: 0.9 !important; }
+  #wonLostDealsTable .ag-header-cell-menu-button:hover { opacity: 1 !important; }
+
+  /* Sort icons – white */
+  #wonLostDealsTable .ag-header-icon .ag-icon { color: #ffffff !important; }
+
+  /* Short centred separator line */
+  #wonLostDealsTable .ag-header-cell-resize {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 8px !important;
+    cursor: col-resize !important;
+    background: transparent !important;
+    z-index: 2 !important;
+  }
+  #wonLostDealsTable .ag-header-cell-resize::after { display: none !important; }
+  #wonLostDealsTable .ag-header-cell-resize::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1.5px !important;
+    height: 40% !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-radius: 1px !important;
+  }
+  #wonLostDealsTable .ag-header-cell-resize:hover::before {
+    background: rgba(255,255,255,0.9) !important;
+  }
+
+  #wonLostDealsTable .ag-row {
+    background-color: #d9e2f3 !important;
+  }
+
+  #wonLostDealsTable .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #wonLostDealsTable .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+
+  /* Recent Created Deals Table Colors */
+  #topDealsTable .ag-header,
+  #topDealsTable .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #topDealsTable .ag-header-cell {
+    background-color: #4472c4 !important;
+    border-right: none !important;
+    padding-right: 14px !important;
+  }
+
+  #topDealsTable .ag-header-cell-label,
+  #topDealsTable .ag-header-cell-text {
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+  }
+
+  /* Filter menu icon – hidden by default, revealed on header cell hover */
+  #topDealsTable .ag-header-cell-menu-button {
+    color: #ffffff !important;
+    opacity: 0 !important;
+    transition: opacity 0.15s ease;
+  }
+  #topDealsTable .ag-header-cell:hover .ag-header-cell-menu-button { opacity: 0.9 !important; }
+  #topDealsTable .ag-header-cell-menu-button:hover { opacity: 1 !important; }
+
+  /* Sort icons – white */
+  #topDealsTable .ag-header-icon .ag-icon { color: #ffffff !important; }
+
+  /* Short centred separator line */
+  #topDealsTable .ag-header-cell-resize {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 8px !important;
+    cursor: col-resize !important;
+    background: transparent !important;
+    z-index: 2 !important;
+  }
+  #topDealsTable .ag-header-cell-resize::after { display: none !important; }
+  #topDealsTable .ag-header-cell-resize::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1.5px !important;
+    height: 40% !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-radius: 1px !important;
+  }
+  #topDealsTable .ag-header-cell-resize:hover::before {
+    background: rgba(255,255,255,0.9) !important;
+  }
+
+  #topDealsTable .ag-row {
+    background-color: #d9e2f3 !important;
+    
+  }
+  #topDealsTable .ag-root .ag-cell, .ag-root .ag-header-cell{
+    font-size: 11px !important;
+   }
+
+   #lastModifiedDealsTable .ag-root .ag-cell, .ag-root .ag-header-cell{
+    font-size: 11px !important;
+   }
+
+  #topDealsTable .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #topDealsTable .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+
+  /* Recent Last Modified Deals Table Colors */
+  #lastModifiedDealsTable .ag-header,
+  #lastModifiedDealsTable .ag-header-row {
+    background-color: #4472c4 !important;
+  }
+
+  #lastModifiedDealsTable .ag-header-cell {
+    background-color: #4472c4 !important;
+    border-right: none !important;
+    padding-right: 14px !important;
+  }
+
+  #lastModifiedDealsTable .ag-header-cell-label,
+  #lastModifiedDealsTable .ag-header-cell-text {
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+  }
+
+  /* Filter menu icon – hidden by default, revealed on header cell hover */
+  #lastModifiedDealsTable .ag-header-cell-menu-button {
+    color: #ffffff !important;
+    opacity: 0 !important;
+    transition: opacity 0.15s ease;
+  }
+  #lastModifiedDealsTable .ag-header-cell:hover .ag-header-cell-menu-button { opacity: 0.9 !important; }
+  #lastModifiedDealsTable .ag-header-cell-menu-button:hover { opacity: 1 !important; }
+
+  /* Sort icons – white */
+  #lastModifiedDealsTable .ag-header-icon .ag-icon { color: #ffffff !important; }
+
+  /* Short centred separator line */
+  #lastModifiedDealsTable .ag-header-cell-resize {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 8px !important;
+    cursor: col-resize !important;
+    background: transparent !important;
+    z-index: 2 !important;
+  }
+  #lastModifiedDealsTable .ag-header-cell-resize::after { display: none !important; }
+  #lastModifiedDealsTable .ag-header-cell-resize::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 1.5px !important;
+    height: 40% !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-radius: 1px !important;
+  }
+  #lastModifiedDealsTable .ag-header-cell-resize:hover::before {
+    background: rgba(255,255,255,0.9) !important;
+  }
+
+  #lastModifiedDealsTable .ag-row {
+    background-color: #d9e2f3 !important;
+  }
+
+  #lastModifiedDealsTable .ag-row-even {
+    background-color: #d9e2f3 !important;
+  }
+
+  #lastModifiedDealsTable .ag-row-odd {
+    background-color: #d9e2f3 !important;
+  }
+  
+  /* Row hover highlight for Top 20 Deals and Recent Won/Lost Deals */
+  #top20DealsTable .ag-row:hover .ag-cell,
+  #wonLostDealsTable .ag-row:hover .ag-cell {
+    background-color: rgba(70, 148, 244, 0.12) !important;
+    color: #000000 !important;
+  }
+
+  /* Make pointer on hover to indicate interactivity */
+  #top20DealsTable .ag-row:hover,
+  #wonLostDealsTable .ag-row:hover {
+    cursor: pointer;
+  }
+
+  /* Subtle inset highlight for better contrast */
+  #top20DealsTable .ag-row:hover .ag-cell.ag-cell,
+  #wonLostDealsTable .ag-row:hover .ag-cell.ag-cell {
+    box-shadow: inset 0 0 0 9999px rgba(85, 156, 244, 0.06);
+  }
+</style>
+
+<div class="container-fluid" style="background-color: #070707;">
+  <div class="pipeline-container" style="background-color: #070707;">
+    
+
+    <div class="controls-row">
+      <div class="page-title-left" style="color: white; font-weight:700; font-size:18px; margin-right: auto;">Pipeline Summary</div>
+      <div class="toggle-wrapper">
+        <span style="color: white">Dynamic</span>
+        <label class="switch">
+          <input type="checkbox" id="scaleToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="header-row">
+      <div class="chevron">1. Engagement</div>
+      <div class="chevron">2. Shaping</div>
+      <div class="chevron">3. Solutioning</div>
+      <div class="chevron">4. End-Game</div>
+      <div class="chevron">5. Negotiation</div>
+    </div>
+
+    <div class="funnel-stage">
+      
+      <div class="pipe-container" id="pipe-wrap-1">
+        <div class="pipe" id="pipe1" style="height: 224px;" data-static-height="224">
+          <div class="p-total" id="st1-total">0 M</div>
+          <div class="p-grid">
+            <div class="p-col"><span class="p-lbl">New</span><span class="p-val" id="st1-new">0</span><span class="p-count" id="st1-new-count">(0)</span></div>
+            <div class="p-col"><span class="p-lbl">Ren</span><span class="p-val" id="st1-ren">0</span><span class="p-count" id="st1-ren-count">(0)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-container" id="pipe-wrap-2">
+        <div class="pipe" id="pipe2" style="height: 200px;" data-static-height="200">
+          <div class="p-total" id="st2-total">0 M</div>
+          <div class="p-grid">
+            <div class="p-col"><span class="p-lbl">New</span><span class="p-val" id="st2-new">0</span><span class="p-count" id="st2-new-count">(0)</span></div>
+            <div class="p-col"><span class="p-lbl">Ren</span><span class="p-val" id="st2-ren">0</span><span class="p-count" id="st2-ren-count">(0)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-container" id="pipe-wrap-3">
+        <div class="pipe" id="pipe3" style="height: 176px;" data-static-height="176">
+          <div class="p-total" id="st3-total">0 M</div>
+          <div class="p-grid">
+            <div class="p-col"><span class="p-lbl">New</span><span class="p-val" id="st3-new">0</span><span class="p-count" id="st3-new-count">(0)</span></div>
+            <div class="p-col"><span class="p-lbl">Ren</span><span class="p-val" id="st3-ren">0</span><span class="p-count" id="st3-ren-count">(0)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-container" id="pipe-wrap-4">
+        <div class="pipe" id="pipe4" style="height: 152px;" data-static-height="152">
+          <div class="p-total" id="st4-total">0 M</div>
+          <div class="p-grid">
+            <div class="p-col"><span class="p-lbl">New</span><span class="p-val" id="st4-new">0</span><span class="p-count" id="st4-new-count">(0)</span></div>
+            <div class="p-col"><span class="p-lbl">Ren</span><span class="p-val" id="st4-ren">0</span><span class="p-count" id="st4-ren-count">(0)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-container" id="pipe-wrap-5">
+        <div class="pipe" id="pipe5" style="height: 128px;" data-static-height="128">
+          <div class="p-total" id="st5-total">0 M</div>
+          <div class="p-grid">
+            <div class="p-col"><span class="p-lbl">New</span><span class="p-val" id="st5-new">0</span><span class="p-count" id="st5-new-count">(0)</span></div>
+            <div class="p-col"><span class="p-lbl">Ren</span><span class="p-val" id="st5-ren">0</span><span class="p-count" id="st5-ren-count">(0)</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="kpi-section">
+      <div class="kpi-card kpi-unqual">
+        <div class="kpi-head"><i class="fa-solid fa-times-circle"></i> Unqualified</div>
+        <div class="kpi-num" id="unqualifiedTcv">0 M</div>
+        <div class="kpi-bottom" id="unqualifiedCount">(0)</div>
+      </div>
+
+      <div class="kpi-card kpi-qual">
+        <div class="kpi-head"><i class="fa-solid fa-check-circle"></i> Qualified</div>
+        <div class="kpi-num" id="qualifiedTcv">0 M</div>
+        <div class="kpi-bottom" id="qualifiedCount">(0)</div>
+      </div>
+
+      <div class="kpi-card kpi-total">
+        <div class="kpi-head"><i class="fa-solid fa-globe"></i> Total TCV</div>
+        <div class="kpi-num" id="totalTcvDisplay">0 M</div>
+        <div class="kpi-bottom" id="totalCount">(0)</div>
+      </div>
+    </div>
+  </div>
+  </div>
+    <div class="table-wrap">
+<div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+<h4 style="color: white; margin: 0;"> </h4>
+<button
+          style="font-size: 12px; height: 32px; padding: 6px 16px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;"
+          {% comment %} onclick="exportTableToXLSX('tblPipelineByMarket', 'Pipeline_summary')" {% endcomment %}
+          >
+          EXPORT TO EXCEL
+</button>
+      </div>
+    </div>
+
+  
+    <table id="tblPipelineByMarket" >
+<colgroup>
+<col class="col-market" />
+<col class="col-stage-1" />
+<col class="col-stage-2" />
+<col class="col-notq" />  
+<col class="col-stage-3" />
+<col class="col-stage-4" />
+<col class="col-stage-5" />
+<col class="col-qual" />  
+<col class="col-total" />
+</colgroup>
+<thead>
+<tr>
+<th class="th-market">Market</th>
+<th>1. Engagement</th>
+<th>2. Shaping</th>
+<th>UnQualified</th>
+<th>3. Solutioning</th>
+<th>4. End-Game</th>
+<th>5. Negotiation</th>
+<th>Qualified</th>
+<th>Total</th>
+</tr>
+
+ 
+      </thead>
+<tbody style="text-align: center;">
+<tr id="global-legend-row" class="legend-row">
+<th></th>
+<th><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th style="background-color: #c0d6fa;"><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th style="background-color: #c0d6fa;"><div class="legend-pair"><span>#</span><span>$</span></div></th>
+<th style="background-color: #b1cdff;"><div class="legend-pair"><span>#</span><span>$</span>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<th style="text-align: left;">Total</th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+</tr>
+</tfoot>
+</table>
+  </div>
+    
+    <!-- Top 20 Deals in Pipeline Table -->
+    <div style="margin: 30px auto 0; padding: 20px; background-color: #070707; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); max-width: 95%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 id="topDealsTitle" style="color: white; margin: 0; font-size: 24px; font-weight: 700;">
+          Top 20 Deals in Pipeline
+        </h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="font-size: 13px; font-weight: 600; color: #ffffff;">Rows:</label>
+          <select id="topDealsRowLimit" style="font-size: 13px; height: 32px; padding: 4px 10px; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; cursor: pointer; font-weight: 500;" onchange="fetchTopDeals(this.value)">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="300">300</option>
+            <option value="all">All</option>
+          </select>
+          <button id="exportTop20Btn" style="font-size: 12px; height: 32px; padding: 6px 16px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" 
+          {% comment %} onclick="exportTop20ToExcel()" {% endcomment %}
+          >
+            EXPORT TO EXCEL
+          </button> 
+        </div>
+      </div>
+      <div id="top20DealsTable" class="ag-theme-balham" style="height: 500px; width: 100%;"></div>
+    </div>
+    
+    <!-- Date Range Filter Section -->
+    <div style="margin: 30px auto 0; display: flex; align-items: center; justify-content: center; gap: 15px; max-width: 95%;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label style="font-size: 13px; color: #ffffff; font-weight: 500;">Start Date:</label>
+        <input type="date" id="filterStartDate" style="font-size: 13px; height: 36px; padding: 4px 12px; border: 1px solid #444; border-radius: 6px; background-color: #2d2d2d; color: #ffffff; cursor: pointer;">
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label style="font-size: 13px; color: #ffffff; font-weight: 500;">End Date:</label>
+        <input type="date" id="filterEndDate" style="font-size: 13px; height: 36px; padding: 4px 12px; border: 1px solid #444; border-radius: 6px; background-color: #2d2d2d; color: #ffffff; cursor: pointer;">
+      </div>
+      <button id="applyDateFilterBtn" style="font-size: 13px; height: 36px; padding: 6px 20px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="applyDateFilter()">
+        <i class="fa-solid fa-filter" style="margin-right: 6px;"></i>Apply Filter
+      </button>
+    </div>
+
+    <!-- Recent Won/Lost Deals Table -->
+    <div style="margin: 30px auto 0; padding: 20px; background-color: #070707; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); max-width: 95%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">
+          Recent Won/Lost Deals
+        </h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="font-size: 13px; font-weight: 600; color: #ffffff;">Rows:</label>
+          <select id="wonLostRowLimit" style="font-size: 13px; height: 32px; padding: 4px 10px; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; cursor: pointer; font-weight: 500;" onchange="fetchWonLostDeals(this.value)">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="300">300</option>
+            <option value="all">All</option>
+          </select>
+          <button id="exportWonLostBtn" style="font-size: 12px; height: 32px; padding: 6px 16px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" 
+          {% comment %} onclick="exportWonLostToExcel()" {% endcomment %}
+          >
+            EXPORT TO EXCEL
+          </button>
+
+        </div>
+      </div>
+      <div id="wonLostDealsTable" class="ag-theme-balham" style="height: 500px; width: 100%;"></div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- Recent Created Deals (copied from GGMH project) -->
+  <!-- Top Deals Table -->
+    <div class="top-deals-container">
+      <div class="top-deals-header">
+        <h3 class="top-deals-title">Recent Created Deals</h3>
+        <div class="top-deals-controls">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <label
+              for="limit-select"
+              style="font-size: 13px; color: #ffffff; font-weight: 500"
+              >Rows:</label
+            >
+            <select
+              id="limit-select"
+              class="limit-select"
+              onchange="changeLimit()"
+            >
+              <option value="10" {% if limit == 10 or limit == "10" %}selected{% endif %}>
+                10
+              </option>
+              <option value="20" {% if limit == 20 or limit == "20" or not limit %}selected{% endif %}>
+                20
+              </option>
+              <option value="30" {% if limit == 30 or limit == "30" %}selected{% endif %}>
+                30
+              </option>
+              <option value="50" {% if limit == 50 or limit == "50" %}selected{% endif %}>
+                50
+              </option>
+              <option value="100" {% if limit == 100 or limit == "100" %}selected{% endif %}>
+                100
+              </option>
+              <option value="300" {% if limit == 300 or limit == "300" %}selected{% endif %}>
+                300
+              </option>
+              <option value="all" {% if limit == "all" %}selected{% endif %}>
+                All
+              </option>
+            </select>
+          </div>
+          <button id="exportTopDealsToExcel" style="font-size: 12px; height: 32px; padding: 6px 16px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" 
+          {% comment %} onclick="exportTopDealsToExcel()" {% endcomment %}
+          >
+            EXPORT TO EXCEL
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <div
+          id="topDealsTable"
+          class="ag-theme-alpine"
+          style="height: 502px; width: 100%"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Recent Last Modified Deals Table -->
+    <div class="top-deals-container">
+      <div class="top-deals-header">
+        <h3 class="top-deals-title">Recent Modified Deals</h3>
+        <div class="top-deals-controls">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <label
+              for="last-modified-limit-select"
+              style="font-size: 13px; color: #ffffff; font-weight: 500"
+              >Rows:</label
+            >
+            <select
+              id="last-modified-limit-select"
+              class="limit-select"
+              onchange="changeLastModifiedLimit(this.value)"
+            >
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="300">300</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+          <button id="exportLastModifiedDealsToExcel" style="font-size: 12px; height: 32px; padding: 6px 16px; background-color: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" 
+          {% comment %} onclick="exportLastModifiedDealsToExcel()" {% endcomment %}
+          >
+            EXPORT TO EXCEL
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <div
+          id="lastModifiedDealsTable"
+          class="ag-theme-alpine"
+          style="height: 502px; width: 100%"
+        ></div>
+      </div>
+    </div>
+
+<!-- Hidden data containers for JavaScript -->
+<div id="pipelineData" style="display: none;"
+     data-stage-data='{{ stage_data|safe }}'
+     data-qualified-tcv="{{ qualified_tcv|default:0 }}"
+     data-unqualified-tcv="{{ unqualified_tcv|default:0 }}"
+     data-total-tcv="{{ total_tcv|default:0 }}"
+     data-qualified-pct="{{ qualified_pct|default:0 }}"
+     data-unqualified-pct="{{ unqualified_pct|default:0 }}"
+     data-qualified-count="{{ qualified_count|default:0 }}"
+     data-unqualified-count="{{ unqualified_count|default:0 }}"
+     data-total-count="{{ total_count|default:0 }}">
+</div>
+
+<script>
+    // Date comparator for AG-Grid: parses MM/DD/YYYY strings into real dates for correct sorting
+    // Defined globally so all script blocks can access it
+    function dateComparator(date1, date2) {
+      function parseDate(dateStr) {
+        if (!dateStr) return null;
+        var parts = dateStr.split('/');
+        if (parts.length !== 3) return null;
+        // MM/DD/YYYY => new Date(YYYY, MM-1, DD)
+        return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+      }
+      var d1 = parseDate(date1);
+      var d2 = parseDate(date2);
+      if (d1 === null && d2 === null) return 0;
+      if (d1 === null) return -1;
+      if (d2 === null) return 1;
+      return d1.getTime() - d2.getTime();
+    }
+
+    function exportTableToXLSX(tableID, filename) {
+      const table = document.getElementById(tableID);
+      if (!table) {
+        console.error('[export] table not found:', tableID);
+        return;
+      }
+      function extractCountAmount(td) {
+        const triple = td.querySelector && td.querySelector('.cell-triple');
+        if (triple) {
+          const left  = triple.querySelector('.cell-count')?.textContent?.trim() ?? '';
+          const right = triple.querySelector('.cell-amount')?.textContent?.trim() ?? '';
+          return [left, right];
+        }
+        const pair = td.querySelector && td.querySelector('.cell-pair');
+        if (pair) {
+          const left  = pair.querySelector('.cell-count')?.textContent?.trim() ?? '';
+          const right = pair.querySelector('.cell-amount')?.textContent?.trim() ?? '';
+          return [left, right];
+        }
+        const pairFooter = td.querySelector && td.querySelector('.cell-paira');
+        if (pairFooter) {
+          const left  = pairFooter.querySelector('.cell-counta')?.textContent?.trim() ?? '';
+          const right = pairFooter.querySelector('.cell-amounta')?.textContent?.trim() ?? '';
+          return [left, right];
+        }
+        const raw = (td.textContent || '').trim();
+        if (raw.includes('|')) {
+          const [l, r] = raw.split('|');
+          return [ (l||'').trim(), (r||'').trim() ];
+        }
+        return ['', raw];
+      }
+      const theadRow = table.querySelector('thead tr');
+      const headCells = Array.from(theadRow?.children || []);
+      if (headCells.length === 0) {
+        console.error('[export] table has no thead/headers');
+        return;
+      }
+      const header = [];
+      header.push(headCells[0].textContent.trim()); 
+      for (let c = 1; c < headCells.length; c++) {
+        const h = headCells[c].textContent.trim();
+        header.push(`${h} #`, `${h} $`);
+      }
+       const aoa = [header];
+      const bodyRows = table.querySelectorAll('tbody tr');
+      bodyRows.forEach(tr => {
+        const tds = Array.from(tr.children);
+        if (!tds.length) return;
+        const row = [];
+        row.push((tds[0].textContent || '').trim()); 
+        for (let c = 1; c < tds.length; c++) {
+          const td = tds[c];
+          const isLegend = td.querySelector?.('.legend-pair') || td.textContent.trim() === '#  $';
+          if (isLegend) {
+            row.push('#', '$');
+            continue;
+          }
+          const [count, amount] = extractCountAmount(td);
+          row.push(count, amount);
+        }
+        aoa.push(row);
+      });
+      const tfootRow = table.querySelector('tfoot tr');
+      if (tfootRow) {
+        const fths = Array.from(tfootRow.children);
+        const footer = [];
+        footer.push((fths[0]?.textContent || 'Total').trim());
+        for (let c = 1; c < fths.length; c++) {
+          const [count, amount] = extractCountAmount(fths[c]);
+          footer.push(count, amount);
+ 
+        }
+        aoa.push(footer);
+      }
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const numUiCols = headCells.length;           
+      const numExcelCols = 1 + (numUiCols - 1) * 2; 
+      const cols = [];
+      for (let c = 0; c < numExcelCols; c++) {
+        if (c === 0) {
+          cols.push({ wch: 22 }); 
+        } else if (c % 2 === 1) {
+          cols.push({ wch: 10 }); 
+        } else {
+          cols.push({ wch: 14 }); 
+        }
+      }
+      ws['!cols'] = cols;
+      if (ws['!ref']) {
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const countColumns = [];
+        for (let c = 1; c < numExcelCols; c += 2) countColumns.push(c);
+        const footerRowIndex = aoa.length - 1;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = ws[addr];
+            if (!cell) continue;
+            cell.s = cell.s || {};
+            if (C === 0) {
+              cell.s.alignment = { horizontal: 'left', vertical: 'center' };
+            } else {
+              cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+            }
+            if (countColumns.includes(C)) {
+              cell.s.border = cell.s.border || {};
+              cell.s.border.right = { style: 'thin', color: { rgb: 'D0D7DE' } };
+            }
+            if (R === footerRowIndex) {
+              cell.s.font = Object.assign({}, cell.s.font, { bold: true });
+              cell.s.border = cell.s.border || {};
+              cell.s.border.top = { style: 'medium', color: { rgb: 'C7CCD1' } };
+            }
+          }
+        }
+      }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Pipeline');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+      //console.log('[export] two-cols-per-stage with footer ✓');
+    }
+  $(document).ready(function() { 
+ 
+    const stageDataByRegion = JSON.parse('{{ stage_data_by_region|escapejs }}');
+    //console.log(stageDataByRegion)
+    const dealSizeBuckets   = JSON.parse('{{ deal_size_buckets|escapejs }}');
+
+ 
+    function regionTotalTCV(rdata) {
+      const eng  = safeNumber(rdata?.['1. Engagement']?.total);
+      const shp  = safeNumber(rdata?.['2. Shaping']?.total);
+      const sol  = safeNumber(rdata?.['3. Solutioning']?.total);
+      const endg = safeNumber(rdata?.['4. End-Game']?.total);
+      const neg  = safeNumber(rdata?.['5. Negotiation']?.total);
+      return (eng + shp) + (sol + endg + neg);
+    }
+ 
+    const regionList = Object.keys(stageDataByRegion || {})
+      .sort((a, b) => {
+        const aTot = regionTotalTCV(stageDataByRegion[a] || {});
+        const bTot = regionTotalTCV(stageDataByRegion[b] || {});
+        if (bTot !== aTot) return bTot - aTot;
+        return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+      });
+ 
+    // ===== Helpers =====
+    const STAGES = [
+      '1. Engagement',
+      '2. Shaping',
+      '3. Solutioning',
+      '4. End-Game',
+      '5. Negotiation'
+    ];
+ 
+    function safeNumber(n) { return (typeof n === 'number' && isFinite(n)) ? n : 0; }
+ 
+    function fmtM(n) {
+      const val = Number(n) || 0;
+      return val.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' M';
+    }
+
+    function fmtBucketM(n) {
+      // const v = safeNumber(n);
+      // return v === 0 ? '0' : (Math.round(v).toLocaleString() + ' M');
+      return fmtM(n);
+    }
+ 
+    // ===== Build table rows =====
+    (function renderPipelineByMarket() {
+
+      function sanitizeKey(str) {
+
+          return String(str).trim().replace(/\s+/g, '_').replace(/[^\w-]/g, '');
+
+        }
+
+        function toggleRegion(key, forceExpand = undefined) {
+
+          const main = document.querySelector(`tr.region-main[data-region="${key}"]`);
+
+          const children = document.querySelectorAll(`tr.region-child[data-parent="${key}"]`);
+
+          if (!main || children.length === 0) return;
+
+          const anyHidden = Array.from(children).some(r => r.classList.contains('hidden'));
+
+          const shouldExpand = (forceExpand === undefined) ? anyHidden : !!forceExpand;
+
+          children.forEach(r => r.classList.toggle('hidden', !shouldExpand));
+
+          main.classList.toggle('collapsed', !shouldExpand);
+
+          const btn = main.querySelector('button.toggle');
+
+          if (btn) btn.setAttribute('aria-expanded', String(shouldExpand));
+
+        }
+
+        function expandAllRegions() {
+
+          document.querySelectorAll('tr.region-main').forEach(tr => toggleRegion(tr.dataset.region, true));
+
+        }
+
+        function collapseAllRegions() {
+
+          document.querySelectorAll('tr.region-main').forEach(tr => toggleRegion(tr.dataset.region, false));
+
+        }
+
+
+      const tbody = document.querySelector('#tblPipelineByMarket tbody');
+
+      const tfootCells = document.querySelectorAll('#tblPipelineByMarket tfoot th');
+
+      let totEng = 0, totShp = 0, totSol = 0, totEnd = 0, totNeg = 0;
+
+      let totEngC = 0, totShpC = 0, totSolC = 0, totEndC = 0, totNegC = 0;
+ 
+
+
+      if (!regionList.length) {
+
+        const tr = document.createElement('tr');
+
+        const td = document.createElement('td');
+
+        td.colSpan = 9;
+
+        td.style.textAlign = 'center';
+
+        td.textContent = 'No data available for the selected filters.';
+
+        tr.appendChild(td);
+
+        tbody.appendChild(tr);
+
+        // set footers to zero
+
+        [1,2,3,4,5,6,7,8].forEach(i => tfootCells[i].innerText = fmtM(0));
+
+        return;
+
+      }
+
+      function makePairCell(countValue, amountValue, isFirst = false, pairClass = '') {
+
+          const td = document.createElement('td');
+ 
+          td.style.textAlign = isFirst ? 'left' : 'center';
+
+          if (isFirst) td.style.paddingLeft = '24px';
+ 
+          const wrap = document.createElement('div');
+
+          wrap.className = `cell-pair ${pairClass}`.trim();
+ 
+          const left = document.createElement('span');
+
+          left.className = 'cell-count';
+
+          left.textContent = countValue ?? 0;
+ 
+          const right = document.createElement('span');
+
+          right.className = 'cell-amount';
+
+          right.textContent = fmtBucketM(amountValue ?? 0);
+ 
+          wrap.appendChild(left);
+
+          wrap.appendChild(right);
+
+          td.appendChild(wrap);
+ 
+          return td;
+
+      }
+
+      regionList.forEach(region => {
+
+        const rdata = stageDataByRegion[region] || {};
+
+        const regionKey = sanitizeKey(region);
+
+        const eng  = safeNumber(rdata?.['1. Engagement']?.total);
+
+        const shp  = safeNumber(rdata?.['2. Shaping']?.total);
+
+        const sol  = safeNumber(rdata?.['3. Solutioning']?.total);
+
+        const endg = safeNumber(rdata?.['4. End-Game']?.total);
+
+        const neg  = safeNumber(rdata?.['5. Negotiation']?.total);
+
+        const notQualifiedTCV = eng + shp;
+
+        const qualifiedTCV    = sol + endg + neg;
+
+        const totalTCV        = notQualifiedTCV + qualifiedTCV;
+
+        totEng += eng; totShp += shp; totSol += sol; totEnd += endg; totNeg += neg;
+
+        const engC  = safeNumber(rdata?.['1. Engagement']?.count);
+
+        const shpC  = safeNumber(rdata?.['2. Shaping']?.count);
+
+        const solC  = safeNumber(rdata?.['3. Solutioning']?.count);
+
+        const endC  = safeNumber(rdata?.['4. End-Game']?.count);
+
+        const negC  = safeNumber(rdata?.['5. Negotiation']?.count);
+ 
+        const notQualifiedC = engC + shpC;
+
+        const qualifiedC    = solC + endC + negC;
+
+        const totalC        = notQualifiedC + qualifiedC;
+ 
+        totEngC += engC; 
+
+        totShpC += shpC; 
+
+        totSolC += solC; 
+
+        totEndC += endC; 
+
+        totNegC += negC;
+ 
+        const trMain = document.createElement('tr');
+
+        trMain.classList.add('region-main', 'collapsed');
+
+        trMain.dataset.region = regionKey;
+
+
+        {
+
+          const td = document.createElement('td');
+
+          td.style.textAlign = 'left';
+ 
+          const btn = document.createElement('button');
+
+          btn.type = 'button';
+
+          btn.className = 'toggle';
+
+          btn.setAttribute('aria-controls', `region-${regionKey}`);
+
+          btn.setAttribute('aria-expanded', 'false');
+
+          btn.title = 'Expand / Collapse';
+ 
+          const icon = document.createElement('span');
+
+          icon.className = 'chev';
+
+          icon.textContent = '▼';
+ 
+          const label = document.createElement('span');
+
+          label.textContent = region;
+ 
+          btn.appendChild(icon);
+
+          btn.appendChild(label);
+
+          td.appendChild(btn);
+ 
+          const toggleHandler = (e) => {
+
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+
+            e.preventDefault();
+
+            toggleRegion(regionKey);
+
+          };
+
+          td.addEventListener('click', toggleHandler);
+
+          td.addEventListener('keydown', toggleHandler);
+
+          td.tabIndex = 0;
+ 
+          trMain.appendChild(td);
+
+        }
+ 
+        trMain.appendChild(makePairCell(engC,  eng,  false, 'pair--region'));
+
+        trMain.appendChild(makePairCell(shpC,  shp,  false, 'pair--region'));
+
+        trMain.appendChild(makePairCell(notQualifiedC, notQualifiedTCV,  false, 'pair--regionn'));
+
+        trMain.appendChild(makePairCell(solC,  sol,  false, 'pair--region'));
+
+        trMain.appendChild(makePairCell(endC,  endg,  false, 'pair--region'));
+
+        trMain.appendChild(makePairCell(negC,  neg,  false, 'pair--region'));
+
+        trMain.appendChild(makePairCell(qualifiedC, qualifiedTCV,  false, 'pair--regionn'));
+
+        trMain.appendChild(makePairCell(totalC,  totalTCV,  false, 'pair--regionnn'));
+ 
+        tbody.appendChild(trMain);
+ 
+ 
+        const getBucketCount  = (stageName, bucketLabel) => Number(rdata?.[stageName]?.buckets?.[bucketLabel] || 0);
+
+        const getBucketAmount = (stageName, bucketLabel) => safeNumber(rdata?.[stageName]?.bucket_tcv?.[bucketLabel] || 0);
+
+
+        const reversedBuckets = [...dealSizeBuckets].reverse();
+ 
+        reversedBuckets.forEach(bucket => {
+
+          const bEngC = getBucketCount('1. Engagement',  bucket);
+
+          const bShpC = getBucketCount('2. Shaping',     bucket);
+
+          const bSolC = getBucketCount('3. Solutioning', bucket);
+
+          const bEndC = getBucketCount('4. End-Game',    bucket);
+
+          const bNegC = getBucketCount('5. Negotiation', bucket);
+
+          const bEngA = getBucketAmount('1. Engagement',  bucket);
+
+          const bShpA = getBucketAmount('2. Shaping',     bucket);
+
+          const bSolA = getBucketAmount('3. Solutioning', bucket);
+
+          const bEndA = getBucketAmount('4. End-Game',    bucket);
+
+          const bNegA = getBucketAmount('5. Negotiation', bucket);
+
+          const bNotQC = bEngC + bShpC;
+
+          const bQualC = bSolC + bEndC + bNegC;
+
+          const bTotC  = bNotQC + bQualC;
+
+          const bNotQA = bEngA + bShpA;
+
+          const bQualA = bSolA + bEndA + bNegA;
+
+          const bTotA  = bNotQA + bQualA;
+
+          const trB = document.createElement('tr');
+
+          trB.classList.add('bucket-row', 'region-child', 'hidden');
+
+          trB.dataset.parent = regionKey;
+
+          const tdLabel = document.createElement('td');
+
+          tdLabel.textContent = bucket;
+
+          tdLabel.style.textAlign = 'left';
+
+          tdLabel.style.paddingLeft = '24px';
+
+          trB.appendChild(tdLabel);
+
+          trB.appendChild(makePairCell(bEngC, bEngA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bShpC, bShpA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bNotQC, bNotQA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bSolC, bSolA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bEndC, bEndA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bNegC, bNegA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bQualC, bQualA, false, 'pair--bucket'));
+
+          trB.appendChild(makePairCell(bTotC,  bTotA, false, 'pair--bucket'));
+
+          tbody.appendChild(trB);
+ 
+        });
+
+      });
+ 
+function renderFooterPairIntoCell(
+
+        td,
+
+        countValue,
+
+        amountValue,
+
+        isFirst = false,
+
+        pairClass = '',
+
+        amountFmtFn = fmtM
+
+      ) {
+
+        td.innerHTML = '';
+
+        td.style.textAlign = isFirst ? 'left' : 'center';
+
+        if (isFirst) td.style.paddingLeft = '24px';
+ 
+        const wrap = document.createElement('div');
+
+        wrap.className = `cell-paira ${pairClass}`.trim();
+ 
+        const left = document.createElement('span');
+
+        left.className = 'cell-counta';
+
+        left.textContent = (typeof countValue === 'number')
+
+          ? countValue.toLocaleString()
+
+          : String(countValue ?? 0);
+ 
+        const right = document.createElement('span');
+
+        right.className = 'cell-amounta';
+
+        right.textContent = amountFmtFn(amountValue ?? 0);
+ 
+        wrap.appendChild(left);
+
+        wrap.appendChild(right);
+
+        td.appendChild(wrap);
+
+      }
+ 
+      const totNotQualified = totEng + totShp;
+
+      const totQualified    = totSol + totEnd + totNeg;
+
+      const grandTotal      = totNotQualified + totQualified;
+
+      const totNotQualifiedC = totEngC + totShpC;
+
+      const totQualifiedC    = totSolC + totEndC + totNegC;
+
+      const grandTotalC      = totNotQualifiedC + totQualifiedC
+ 
+      renderFooterPairIntoCell(tfootCells[1], totEngC,          totEng,          false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[2], totShpC,          totShp,          false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[3], totNotQualifiedC, totNotQualified, false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[4], totSolC,          totSol,          false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[5], totEndC,          totEnd,          false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[6], totNegC,          totNeg,          false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[7], totQualifiedC,    totQualified,    false, 'pair--footer', fmtM);
+
+      renderFooterPairIntoCell(tfootCells[8], grandTotalC,      grandTotal,      false, 'pair--footer', fmtM);
+ 
+    })();
+ 
+ 
+ 
+    // Get data from hidden div data attributes
+    const dataContainer = document.getElementById('pipelineData');
+    const stageData = JSON.parse(dataContainer.getAttribute('data-stage-data'));
+    const qualifiedTcv = parseFloat(dataContainer.getAttribute('data-qualified-tcv')) || 0;
+    const unqualifiedTcv = parseFloat(dataContainer.getAttribute('data-unqualified-tcv')) || 0;
+    const totalTcv = parseFloat(dataContainer.getAttribute('data-total-tcv')) || 0;
+    const qualifiedPct = parseFloat(dataContainer.getAttribute('data-qualified-pct')) || 0;
+    const unqualifiedPct = parseFloat(dataContainer.getAttribute('data-unqualified-pct')) || 0;
+    const qualifiedCount = parseInt(dataContainer.getAttribute('data-qualified-count')) || 0;
+    const unqualifiedCount = parseInt(dataContainer.getAttribute('data-unqualified-count')) || 0;
+    const totalCount = parseInt(dataContainer.getAttribute('data-total-count')) || 0;
+
+    // Format number with commas and M suffix
+    function formatTcv(value) {
+      if (value === 0) return '0 M';
+      if (value < 1) return value.toFixed(2) + ' M';
+      return value.toLocaleString('en-US', {maximumFractionDigits: 0}) + ' M';
+    }
+
+    // Update total TCV
+    $('#totalTcvDisplay').text(formatTcv(totalTcv));
+    $('#totalCount').text('(' + totalCount.toLocaleString('en-US') + ')');
+
+    // Update Qualified/Unqualified metrics
+    $('#qualifiedTcv').text(formatTcv(qualifiedTcv));
+    $('#qualifiedCount').text('(' + qualifiedCount.toLocaleString('en-US') + ')');
+    $('#unqualifiedTcv').text(formatTcv(unqualifiedTcv));
+    $('#unqualifiedCount').text('(' + unqualifiedCount.toLocaleString('en-US') + ')');
+
+    // Update Cylinder Texts & Heights
+    const stageMap = {
+      '1. Engagement': 1,
+      '2. Shaping': 2,
+      '3. Solutioning': 3,
+      '4. End-Game': 4,
+      '5. Negotiation': 5
+    };
+    let maxVal = 0;
+
+    Object.keys(stageData).forEach(stageName => {
+      const idx = stageMap[stageName];
+      if(!idx) return;
+      const d = stageData[stageName];
+      if(d.total > maxVal) maxVal = d.total;
+
+      $(`#st${idx}-total`).text(formatTcv(d.total));
+      $(`#st${idx}-new`).text(formatTcv(d.new));
+      $(`#st${idx}-ren`).text(formatTcv(d.renewal));
+      $(`#st${idx}-new-count`).text('(' + (d.new_count || 0) + ')');
+      $(`#st${idx}-ren-count`).text('(' + (d.renewal_count || 0) + ')');
+      
+      // Store for dynamic scaling
+      $(`#pipe${idx}`).attr('data-dynamic-val', d.total);
+
+      // Also update table if exists
+      $(`#table-stage${idx}-tcv`).text(d.total);
+    });
+    $('#table-total-tcv').text(formatTcv(totalTcv));
+
+    // Toggle Logic for Dynamic Scaling
+    $('#scaleToggle').change(function() {
+      if(this.checked) {
+        const BASE_H = 35; 
+        const VAR_H = 174; 
+        
+        for(let i=1; i<=5; i++) {
+          let val = parseFloat($(`#pipe${i}`).attr('data-dynamic-val')) || 0;
+          let h = BASE_H; 
+          if(maxVal > 0) h = BASE_H + ((val / maxVal) * VAR_H);
+          $(`#pipe${i}`).css('height', h + 'px');
+        }
+      } else {
+        for(let i=1; i<=5; i++) {
+          let staticH = $(`#pipe${i}`).attr('data-static-height');
+          $(`#pipe${i}`).css('height', staticH + 'px');
+        }
+      }
+    });
+    
+    // Trigger dynamic scaling on page load (since checkbox is checked by default)
+    $('#scaleToggle').trigger('change');
+
+    
+    
+    // Top 20 Deals Table
+    // expose API and export function on window so the onclick attribute on the button works
+    window.top20Api = window.top20Api || null;
+    var tooltipRenderer = function(params) {
+      var display = (params.valueFormatted !== undefined && params.valueFormatted !== null) ? params.valueFormatted : params.value;
+      return '<span title="' + (display || '') + '">' + (display || '') + '</span>';
+    };
+
+    window.exportTop20ToExcel = function() {
+      if (window.top20Api) {
+        var rowData = [];
+        window.top20Api.forEachNodeAfterFilterAndSort(function(node) {
+          // Create ordered object matching website column order
+          rowData.push({
+            'Opportunity ID': node.data['WinZone Opportunity ID'],
+            'Opportunity Name': node.data['Opportunity Name'],
+            'Account Name': node.data['Account Name'],
+            'Vertical': node.data['Vertical'],
+            'Market Unit': node.data['Market Unit'],
+            'Sales Stage': node.data['Sales Stage'],
+            'Deal Type': node.data['R_Deal Type'],
+            'Close Date': node.data['Close Date'],
+            'Net TCV ($m)': formatNetTCV(node.data['Net TCV'])
+          });
+        });
+        var worksheet = XLSX.utils.json_to_sheet(rowData);
+        var workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Top 20 Deals');
+        XLSX.writeFile(workbook, 'Top_20_Deals_Pipeline.xlsx');
+      } else {
+        console.warn('Top20 grid API not ready yet');
+      }
+    };
+
+    var top20DealsData = JSON.parse(`{{ top20DealsData|escapejs }}`);
+    var textFilterParams = { filterOptions: ['contains','notContains','startsWith','endsWith'] };
+
+    var columnDefsTop20 = [
+      { headerName: 'Opportunity ID', field: 'WinZone Opportunity ID', width: 150, headerTooltip: 'WinZone Opportunity ID', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Opportunity Name', field: 'Opportunity Name', width: 300, headerTooltip: 'Opportunity Name', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Account Name', field: 'Account Name', width: 220, headerTooltip: 'Account Name', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Vertical', field: 'Vertical', width: 150, headerTooltip: 'Vertical', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Market Unit', field: 'Market Unit', width: 130, headerTooltip: 'Market Unit', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Sales Stage', field: 'Sales Stage', width: 150, headerTooltip: 'Sales Stage', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Deal Type', field: 'R_Deal Type', width: 140, headerTooltip: 'Deal Type', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Close Date', field: 'Close Date', width: 130, headerTooltip: 'Close Date', cellRenderer: tooltipRenderer, comparator: dateComparator, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Net TCV ($m)', field: 'Net TCV', width: 130, headerTooltip: 'Net TCV', sort: 'desc',
+        filter: true,
+        cellRenderer: function(params) {
+          var value = params.value !== undefined && params.value !== null ? parseFloat(params.value) : 0;
+          var exactValue = value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 6});
+          var display = value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' M';
+          return '<span title="' + exactValue + '">' + display + '</span>';
+        }
+      }
+    ];
+    
+    var optionsTop20 = {
+      rowData: top20DealsData,
+      columnDefs: columnDefsTop20,
+      domLayout: 'normal',
+      onGridReady: function (params) {
+        params.api.sizeColumnsToFit();
+      },
+      defaultColDef: {
+        filter: true,
+        editable: false,
+        resizable: true,
+        sortable: true,
+      },
+      rowHeight: 28,
+      headerHeight: 32,
+    };
+    
+    // store the created grid API on window so export function can access it
+    window.top20Api = agGrid.createGrid(document.querySelector("#top20DealsTable"), optionsTop20);
+    
+    // Recent Won/Lost Deals Table
+    window.wonLostApi = window.wonLostApi || null;
+    
+    window.exportWonLostToExcel = function() {
+      if (window.wonLostApi) {
+        var rowData = [];
+        window.wonLostApi.forEachNodeAfterFilterAndSort(function(node) {
+          // Create ordered object matching website column order
+          rowData.push({
+            'Opportunity ID': node.data['WinZone Opportunity ID'],
+            'Opportunity Name': node.data['Opportunity Name'],
+            'Account Name': node.data['Account Name'],
+            'Vertical': node.data['Vertical'],
+            'Market Unit': node.data['Market Unit'],
+            'Sales Stage': node.data['Sales Stage'],
+            'Won/Lost Date': node.data['Last Modified Date'],
+            'Close Date': node.data['Close Date'],
+            'Net TCV ($m)': formatNetTCV(node.data['Net TCV'])
+          });
+        });
+        var worksheet = XLSX.utils.json_to_sheet(rowData);
+        var workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Won Lost Deals');
+        XLSX.writeFile(workbook, 'Recent_Won_Lost_Deals.xlsx');
+      } else {
+        console.warn('WonLost grid API not ready yet');
+      }
+    };
+    
+    var wonLostDealsData = JSON.parse(`{{ wonLostDealsData|escapejs }}`);
+    var columnDefsWonLost = [
+      { headerName: 'Opportunity ID', field: 'WinZone Opportunity ID', width: 150, headerTooltip: 'WinZone Opportunity ID', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Opportunity Name', field: 'Opportunity Name', width: 280, headerTooltip: 'Opportunity Name', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Account Name', field: 'Account Name', width: 220, headerTooltip: 'Account Name', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Vertical', field: 'Vertical', width: 150, headerTooltip: 'Vertical', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Market Unit', field: 'Market Unit', width: 120, headerTooltip: 'Market Unit', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Sales Stage', field: 'Sales Stage', width: 120, headerTooltip: 'Sales Stage', cellRenderer: tooltipRenderer, filter: 'agTextColumnFilter', filterParams: textFilterParams,
+        cellStyle: function(params) {
+          // if (params.value === 'Won') {
+          //   return { color: '#059669', fontWeight: 'bold', backgroundColor: '#d1fae5' };
+          // } else if (params.value === 'Lost') {
+          //   return { color: '#dc2626', fontWeight: 'bold', backgroundColor: '#fee2e2' };
+          // }
+          // return {};
+        }
+      },
+      { headerName: 'Won/Lost Date', field: 'Last Modified Date', width: 150, headerTooltip: 'Won/Lost Date', cellRenderer: tooltipRenderer, comparator: dateComparator },
+      { headerName: 'Close Date', field: 'Close Date', width: 130, headerTooltip: 'Close Date', cellRenderer: tooltipRenderer, comparator: dateComparator, filter: 'agTextColumnFilter', filterParams: textFilterParams },
+      { headerName: 'Net TCV ($m)', field: 'Net TCV', width: 130, headerTooltip: 'Net TCV', sort: 'desc',
+        filter: true,
+        cellRenderer: function(params) {
+          var value = params.value !== undefined && params.value !== null ? parseFloat(params.value) : 0;
+          var exactValue = value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 6});
+          var display = value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' M';
+          return '<span title="' + exactValue + '">' + display + '</span>';
+        }
+      }
+    ];
+    
+    var optionsWonLost = {
+      rowData: wonLostDealsData,
+      columnDefs: columnDefsWonLost,
+      domLayout: 'normal',
+      onGridReady: function (params) {
+        params.api.sizeColumnsToFit();
+      },
+      // Allow AG-Grid to manage sorting state normally; do not force default sort here.
+      defaultColDef: {
+        filter: true,
+        editable: false,
+        resizable: true,
+        sortable: true,
+      },
+      rowHeight: 28,
+      headerHeight: 32,
+    };
+    
+    // store the created grid API on window so export function can access it
+    window.wonLostApi = agGrid.createGrid(document.querySelector("#wonLostDealsTable"), optionsWonLost);
+    
+    // Store filter params and column definitions for AJAX refresh
+    window.wonLostFilterParams = {
+      idx_label: '{{ idx_label_selected|escapejs }}',
+      vertical: '{{ filter_vertical|escapejs }}',
+      region: '{{ filter_region|escapejs }}',
+      dealsize: '{{ filter_dealsize|escapejs }}',
+      opptype: '{{ filter_opptype|escapejs }}',
+      account: '{{ filter_account|escapejs }}',
+      bu: '{{ filter_bu|escapejs }}',
+      sbu: '{{ filter_sbu|escapejs }}'
+    };
+    window.columnDefsWonLost = columnDefsWonLost;
+    
+    // Store filter params for Top Deals AJAX refresh
+    window.topDealsFilterParams = {
+      idx_label: '{{ idx_label_selected|escapejs }}',
+      vertical: '{{ filter_vertical|escapejs }}',
+      region: '{{ filter_region|escapejs }}',
+      dealsize: '{{ filter_dealsize|escapejs }}',
+      opptype: '{{ filter_opptype|escapejs }}',
+      salesstage: '{{ filter_salesstage|escapejs }}',
+      account: '{{ filter_account|escapejs }}',
+      bu: '{{ filter_bu|escapejs }}',
+      sbu: '{{ filter_sbu|escapejs }}'
+    };
+    
+    // Store filter params for Recent Created Deals AJAX refresh
+    window.recentCreatedDealsFilterParams = {
+      idx_label: '{{ idx_label_selected|escapejs }}',
+      vertical: '{{ filter_vertical|escapejs }}',
+      region: '{{ filter_region|escapejs }}',
+      dealsize: '{{ filter_dealsize|escapejs }}',
+      opptype: '{{ filter_opptype|escapejs }}',
+      account: '{{ filter_account|escapejs }}',
+      bu: '{{ filter_bu|escapejs }}',
+      sbu: '{{ filter_sbu|escapejs }}'
+    };
+  });
+  
+  // Function to fetch Top N deals with selected row limit
+  function fetchTopDeals(rowLimit) {
+    var params = window.topDealsFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForTopDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&salesstage=' + encodeURIComponent(params.salesstage) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu) +
+              '&sbu=' + encodeURIComponent(params.sbu);
+    
+    // Update title dynamically
+    document.getElementById('topDealsTitle').textContent = (rowLimit === 'all' ? 'All' : 'Top ' + rowLimit) + ' Deals in Pipeline';
+    
+    fetch(url)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(result) {
+        if (result.success && window.top20Api) {
+          window.top20Api.setGridOption('rowData', result.data);
+        } else {
+          console.error('Failed to fetch Top deals:', result.error);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching Top deals:', error);
+      });
+  }
+  
+  // Function to fetch Won/Lost deals with selected row limit
+  function fetchWonLostDeals(rowLimit) {
+    var params = window.wonLostFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForWonLostDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account);
+    
+    fetch(url)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(result) {
+        if (result.success && window.wonLostApi) {
+          window.wonLostApi.setGridOption('rowData', result.data);
+        } else {
+          console.error('Failed to fetch Won/Lost deals:', result.error);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching Won/Lost deals:', error);
+      });
+  }
+
+  // ==========================================
+  // DATE RANGE FILTER FUNCTIONALITY
+  // ==========================================
+  
+  // Global state for date filter
+  // enabled=false by default; only set to true when user explicitly clicks Apply Date Filter
+  window.dateFilterState = {
+    enabled: false,
+    startDate: '',
+    endDate: ''
+  };
+
+  // Initialize date filter on page load using the selected idx_label (uploaded on) date
+  (function initializeDateFilter() {
+    // Use the selected idx_label date as reference, NOT today's date
+    // idx_label_selected is in MM/DD/YYYY format from Django template
+    var idxLabelStr = '{{ idx_label_selected|escapejs }}';
+    var referenceDate;
+    if (idxLabelStr) {
+      // Parse MM/DD/YYYY format
+      var parts = idxLabelStr.split('/');
+      referenceDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+    } else {
+      // Fallback to today only if no idx_label is available
+      referenceDate = new Date();
+    }
+    
+    // Calculate start date (14 days before the reference/idx_label date)
+    var startDate = new Date(referenceDate);
+    startDate.setDate(startDate.getDate() - 14);
+    
+    // Format end date (reference date) as YYYY-MM-DD
+    var endDateStr = referenceDate.getFullYear() + '-' + 
+                     String(referenceDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(referenceDate.getDate()).padStart(2, '0');
+    
+    // Format start date as YYYY-MM-DD
+    var startDateStr = startDate.getFullYear() + '-' + 
+                       String(startDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(startDate.getDate()).padStart(2, '0');
+    
+    // Set the input fields
+    document.getElementById('filterStartDate').value = startDateStr;
+    document.getElementById('filterEndDate').value = endDateStr;
+    
+    // Pre-populate the filter state values but do NOT enable the filter.
+    // The date filter only activates when the user explicitly clicks "Apply".
+    // This ensures row-limit changes use the idx_label snapshot by default.
+    window.dateFilterState.startDate = formatDateForSQL(startDateStr);
+    window.dateFilterState.endDate = formatDateForSQL(endDateStr);
+    window.dateFilterState.enabled = false;
+    
+    
+  })();
+
+  // Apply date filter to all three tables
+  function applyDateFilter() {
+    var startDate = document.getElementById('filterStartDate').value;
+    var endDate = document.getElementById('filterEndDate').value;
+    
+    if (!startDate || !endDate) {
+      alert('Please select both Start Date and End Date.');
+      return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+      alert('Start Date cannot be after End Date.');
+      return;
+    }
+    
+    // Convert from YYYY-MM-DD to MM/DD/YYYY for SQL Server style 101
+    window.dateFilterState.startDate = formatDateForSQL(startDate);
+    window.dateFilterState.endDate = formatDateForSQL(endDate);
+    window.dateFilterState.enabled = true;
+    
+   
+    
+    // Refresh all three tables with the new date filter
+    refreshAllTablesWithDateFilter();
+  }
+
+  // Helper function to convert YYYY-MM-DD to MM/DD/YYYY
+  function formatDateForSQL(dateStr) {
+    if (!dateStr) return '';
+    var parts = dateStr.split('-');
+    return parts[1] + '/' + parts[2] + '/' + parts[0];
+  }
+
+  // Auto-calculate start date when end date changes (14 days before)
+  document.addEventListener('DOMContentLoaded', function() {
+    var endDateInput = document.getElementById('filterEndDate');
+    var startDateInput = document.getElementById('filterStartDate');
+    
+    if (endDateInput && startDateInput) {
+      endDateInput.addEventListener('change', function() {
+        var endDateValue = this.value;
+        if (endDateValue) {
+          var endDate = new Date(endDateValue);
+          var startDate = new Date(endDate);
+          startDate.setDate(startDate.getDate() - 14);
+          
+          var startDateStr = startDate.getFullYear() + '-' + 
+                            String(startDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(startDate.getDate()).padStart(2, '0');
+          
+          startDateInput.value = startDateStr;
+        }
+      });
+    }
+  });
+
+  // Refresh all three tables with current date filter state
+  function refreshAllTablesWithDateFilter() {
+    var wonLostLimit = document.getElementById('wonLostRowLimit') ? document.getElementById('wonLostRowLimit').value : 20;
+    var createdLimit = document.getElementById('limit-select') ? document.getElementById('limit-select').value : 20;
+    var lastModifiedLimit = document.getElementById('last-modified-limit-select') ? document.getElementById('last-modified-limit-select').value : 20;
+    
+    fetchWonLostDealsWithDateFilter(wonLostLimit);
+    fetchRecentCreatedDealsWithDateFilter(createdLimit);
+    fetchLastModifiedDealsWithDateFilter(lastModifiedLimit);
+  }
+
+  // Fetch Won/Lost deals with date filter support
+  function fetchWonLostDealsWithDateFilter(rowLimit) {
+    var params = window.wonLostFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForWonLostDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu) +
+              '&sbu=' + encodeURIComponent(params.sbu) +
+              '&use_date_filter=' + (window.dateFilterState.enabled && window.dateFilterState.startDate && window.dateFilterState.endDate ? 'true' : 'false') +
+              '&start_date=' + encodeURIComponent(window.dateFilterState.startDate) +
+              '&end_date=' + encodeURIComponent(window.dateFilterState.endDate);
+    
+    fetch(url)
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        if (result.success && window.wonLostApi) {
+          window.wonLostApi.setGridOption('rowData', result.data);
+        } else {
+          console.error('Failed to fetch Won/Lost deals:', result.error);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching Won/Lost deals:', error);
+      });
+  }
+
+  // Fetch Recent Created deals with date filter support
+  function fetchRecentCreatedDealsWithDateFilter(rowLimit) {
+    var params = window.recentCreatedDealsFilterParams || window.topDealsFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForRecentCreatedDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu || 'All') +
+              '&sbu=' + encodeURIComponent(params.sbu || 'All') +
+              '&use_date_filter=' + (window.dateFilterState.enabled && window.dateFilterState.startDate && window.dateFilterState.endDate ? 'true' : 'false') +
+              '&start_date=' + encodeURIComponent(window.dateFilterState.startDate) +
+              '&end_date=' + encodeURIComponent(window.dateFilterState.endDate);
+    
+    fetch(url)
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        if (result.success && window.topDealsApi) {
+          // Transform the response to match grid column field names
+          var gridData = result.data.map(function(deal) {
+            return {
+              'Opportunity ID': deal['WinZone Opportunity ID'] || '',
+              'Opportunity Name': deal['Opportunity Name'] || '',
+              'Account Name': deal['Account Name'] || '',
+              'Vertical': deal['Vertical'] || '',
+              'Market Unit': deal['Market Unit'] || '',
+              'Sales Stage': deal['Sales Stage'] || '',
+              'Qualified': deal['Qualified'] || '',
+              'Created Date': deal['Created Date'] || '',
+              'Close Date': deal['Close Date'] || '',
+              'Net TCV': deal['Net TCV'] !== undefined ? parseFloat(deal['Net TCV']) : 0
+            };
+          });
+          window.topDealsApi.setGridOption('rowData', gridData);
+        } else {
+          console.error('Failed to fetch Recent Created deals:', result.error);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching Recent Created deals:', error);
+      });
+  }
+
+  // Fetch Last Modified deals with date filter support
+  function fetchLastModifiedDealsWithDateFilter(rowLimit) {
+    var params = window.recentLastModifiedDealsFilterParams || window.topDealsFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForRecentLastModifiedDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu || 'All') +
+              '&sbu=' + encodeURIComponent(params.sbu || 'All') +
+              '&use_date_filter=' + (window.dateFilterState.enabled && window.dateFilterState.startDate && window.dateFilterState.endDate ? 'true' : 'false') +
+              '&start_date=' + encodeURIComponent(window.dateFilterState.startDate) +
+              '&end_date=' + encodeURIComponent(window.dateFilterState.endDate);
+    
+    fetch(url)
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        if (result.success && window.lastModifiedDealsApi) {
+          // Transform the response to match grid column field names
+          var gridData = result.data.map(function(deal) {
+            return {
+              'Opportunity ID': deal['WinZone Opportunity ID'] || '',
+              'Opportunity Name': deal['Opportunity Name'] || '',
+              'Account Name': deal['Account Name'] || '',
+              'Vertical': deal['Vertical'] || '',
+              'Market Unit': deal['Market Unit'] || '',
+              'Sales Stage': deal['Sales Stage'] || '',
+              'Qualified': deal['Qualified'] || '',
+              'Last Modified Date': deal['Last Modified Date'] || '',
+              'Close Date': deal['Close Date'] || '',
+              'Net TCV': deal['Net TCV'] !== undefined ? parseFloat(deal['Net TCV']) : 0
+            };
+          });
+          window.lastModifiedDealsApi.setGridOption('rowData', gridData);
+        } else {
+          console.error('Failed to fetch Last Modified deals:', result.error);
+        }
+      })
+      .catch(function(error) {
+        console.error('Error fetching Last Modified deals:', error);
+      });
+  }
+
+  // Override the original fetch functions to support date filter
+  var originalFetchWonLostDeals = fetchWonLostDeals;
+  fetchWonLostDeals = function(rowLimit) {
+    fetchWonLostDealsWithDateFilter(rowLimit);
+  };
+</script>
+
+<!-- Top Deals Table - AG Grid Implementation -->
+<script>
+  // @ts-nocheck
+  window.topDealsApi = window.topDealsApi || null;
+
+  var tooltipRenderer = function(params) {
+    return '<span title="' + params.value + '">' + params.value + '</span>';
+  };
+
+  // Format Net TCV to always show in millions with 2 decimal places
+  function formatNetTCV(value) {
+    if (value === undefined || value === null) return '0.00 M';
+    value = parseFloat(value);
+    return value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' M';
+  }
+
+  window.exportTopDealsToExcel = function() {
+    if (window.topDealsApi) {
+      var rowData = [];
+      window.topDealsApi.forEachNodeAfterFilterAndSort(function(node) {
+        // Create ordered object matching website column order
+        rowData.push({
+          'Opportunity ID': node.data['Opportunity ID'],
+          'Opportunity Name': node.data['Opportunity Name'],
+          'Account Name': node.data['Account Name'],
+          'Vertical': node.data['Vertical'],
+          'Market Unit': node.data['Market Unit'],
+          'Sales Stage': node.data['Sales Stage'],
+          'Created Date': node.data['Created Date'],
+          'Close Date': node.data['Close Date'],
+          'Net TCV ($m)': formatNetTCV(node.data['Net TCV'])
+        });
+      });
+      var worksheet = XLSX.utils.json_to_sheet(rowData);
+      var workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Recent Created Deals');
+      XLSX.writeFile(workbook, 'Recent_Created_Deals.xlsx');
+    } else {
+      console.warn('Top Deals grid API not ready yet');
+    }
+  };
+
+  // Prepare top deals data from Django context
+  var topDealsDataRaw = [];
+  // prettier-ignore
+  /* eslint-disable */
+  //console.log('Top deals count from backend:', {{ top_deals|length|default:0 }});
+  {% for deal in top_deals %}
+  topDealsDataRaw.push({
+    'Opportunity ID': '{{ deal.Opportunity_Id|escapejs }}',
+    'Opportunity Name': '{{ deal.Opportunity_Name|escapejs }}',
+    'Market Unit': '{{ deal.Market_Unit|escapejs }}',
+    'Sales Stage': '{{ deal.Sales_Stage|escapejs }}',
+    'Net TCV': {{ deal.Net_TCV }},
+    'Account Name': '{{ deal.Account_Name|escapejs }}',
+    'Vertical': '{{ deal.Vertical|escapejs }}',
+    'Close Date': '{{ deal.Close_Date|escapejs }}',
+    'Created Date': '{{ deal.Created_Date|escapejs }}'
+  });
+  {% endfor %}
+  /* eslint-enable */
+  //console.log('topDealsDataRaw loaded:', topDealsDataRaw.length, 'records');
+  //console.log('Sample data:', topDealsDataRaw[0]);
+
+  // Transform data to match AG-Grid format
+  // Normalize and ensure fields exist
+  var topDealsGridData = topDealsDataRaw.map(function(deal) {
+    return {
+      'Opportunity ID': deal['Opportunity ID'] || '',
+      'Opportunity Name': deal['Opportunity Name'] || '',
+      'Market Unit': deal['Market Unit'] || '',
+      'Vertical': deal['Vertical'] || '',
+      'Sales Stage': deal['Sales Stage'] || '',
+      'Net TCV': (deal['Net TCV'] !== undefined && deal['Net TCV'] !== null) ? parseFloat(deal['Net TCV']) : 0,
+      'Close Date': deal['Close Date'] || '',
+      'Account Name': deal['Account Name'] || '',
+      'Created Date': deal['Created Date'] || ''
+    };
+  });
+  //console.log('topDealsGridData transformed:', topDealsGridData.length, 'records');
+
+  var columnDefsTopDeals = [
+    {
+      headerName: 'Opportunity ID',
+      field: 'Opportunity ID',
+      width: 180,
+      headerTooltip: 'Opportunity ID',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Opportunity Name',
+      field: 'Opportunity Name',
+      width: 300,
+      headerTooltip: 'Opportunity Name',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Account Name',
+      field: 'Account Name',
+      width: 220,
+      headerTooltip: 'Account Name',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Vertical',
+      field: 'Vertical',
+      width: 150,
+      headerTooltip: 'Vertical',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Market Unit',
+      field: 'Market Unit',
+      width: 150,
+      headerTooltip: 'Market Unit',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Sales Stage',
+      field: 'Sales Stage',
+      width: 160,
+      headerTooltip: 'Sales Stage',
+      cellRenderer: tooltipRenderer
+    },
+    {
+      headerName: 'Created Date',
+      field: 'Created Date',
+      width: 140,
+      headerTooltip: 'Created Date',
+      cellRenderer: tooltipRenderer,
+      comparator: dateComparator
+    },
+    {
+      headerName: 'Close Date',
+      field: 'Close Date',
+      width: 130,
+      headerTooltip: 'Close Date',
+      cellRenderer: tooltipRenderer,
+      comparator: dateComparator
+    },
+    {
+      headerName: 'Net TCV ($m)',
+      field: 'Net TCV',
+      width: 130,
+      headerTooltip: 'Net TCV',
+      sort: 'desc',
+      filter: true,
+      cellRenderer: function(params) {
+        var value = params.value !== undefined && params.value !== null ? parseFloat(params.value) : 0;
+        var exactValue = value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 6});
+        var display = value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' M';
+        return '<span title="' + exactValue + '">' + display + '</span>';
+      }
+    }
+  ];
+
+  var optionsTopDeals = {
+    rowData: topDealsGridData,
+    columnDefs: columnDefsTopDeals,
+    domLayout: 'normal',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    // Do not override AG-Grid's sort lifecycle here; allow normal click-cycle behavior.
+    defaultColDef: {
+      filter: true,
+      editable: false,
+      resizable: true,
+      sortable: true,
+    },
+    rowHeight: 28,
+    headerHeight: 32,
+  };
+
+  // Initialize AG-Grid when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    //console.log('Initializing Top Deals AG-Grid...');
+    var gridDiv = document.querySelector('#topDealsTable');
+   // console.log('Grid div found:', gridDiv);
+    //console.log('Grid data rows:', topDealsGridData.length);
+    if (gridDiv) {
+      window.topDealsApi = agGrid.createGrid(gridDiv, optionsTopDeals);
+      //console.log('Top Deals grid initialized successfully');
+    } else {
+      console.error('Top Deals grid div not found!');
+    }
+  });
+
+  // Store filter params for Recent Created Deals AJAX refresh
+  window.recentCreatedDealsFilterParams = {
+    idx_label: '{{ idx_label_selected|escapejs }}',
+    vertical: '{{ filter_vertical|escapejs }}',
+    region: '{{ filter_region|escapejs }}',
+    dealsize: '{{ filter_dealsize|escapejs }}',
+    opptype: '{{ filter_opptype|escapejs }}',
+    account: '{{ filter_account|escapejs }}',
+    bu: '{{ filter_bu|escapejs }}',
+    sbu: '{{ filter_sbu|escapejs }}'
+  };
+
+  // Function to fetch Recent Created Deals with selected row limit
+  function changeLimit(rowLimit) {
+    if (!rowLimit) {
+      rowLimit = document.getElementById("limit-select").value;
+    }
+    
+    // Use date filter function if date filter is enabled
+    if (window.dateFilterState && window.dateFilterState.enabled && window.dateFilterState.startDate && window.dateFilterState.endDate) {
+      fetchRecentCreatedDealsWithDateFilter(rowLimit);
+      return;
+    }
+    
+    var params = window.recentCreatedDealsFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForRecentCreatedDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu) +
+              '&sbu=' + encodeURIComponent(params.sbu);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+         // console.log('AJAX response data:', result.data);
+          
+          // Transform backend data to match AG-Grid format
+          var transformedData = result.data.map(function(deal) {
+            return {
+              'Opportunity ID': (deal['WinZone Opportunity ID'] !== undefined && deal['WinZone Opportunity ID'] !== null) ? String(deal['WinZone Opportunity ID']) : '',
+              'Opportunity Name': deal['Opportunity Name'] || '',
+              'Account Name': deal['Account Name'] || '',
+              'Vertical': deal['Vertical'] || '',
+              'Market Unit': deal['Market Unit'] || '',
+              'Sales Stage': deal['Sales Stage'] || '',
+              'Created Date': deal['Created Date'] || '',
+              'Close Date': deal['Close Date'] || '',
+              'Net TCV': (deal['Net TCV'] !== undefined && deal['Net TCV'] !== null) ? parseFloat(deal['Net TCV']) : 0
+            };
+          });
+
+          //console.log('Transformed data:', transformedData);
+          
+          // Update grid with transformed data
+          if (window.topDealsApi && window.topDealsApi.setGridOption) {
+            window.topDealsApi.setGridOption('rowData', transformedData);
+            //console.log('Grid updated with', transformedData.length, 'records');
+          }
+        } else {
+          console.error('Error fetching recent created deals:', result.error);
+        }
+      })
+      .catch(error => {
+        console.error('Network error fetching recent created deals:', error);
+      });
+  }
+</script>
+
+<!-- Recent Last Modified Deals Table - AG Grid Implementation -->
+<script>
+  // @ts-nocheck
+  window.lastModifiedDealsApi = window.lastModifiedDealsApi || null;
+
+  window.exportLastModifiedDealsToExcel = function() {
+    if (window.lastModifiedDealsApi) {
+      var rowData = [];
+      window.lastModifiedDealsApi.forEachNodeAfterFilterAndSort(function(node) {
+        // Create ordered object matching website column order
+        rowData.push({
+          'Opportunity ID': node.data['Opportunity ID'],
+          'Opportunity Name': node.data['Opportunity Name'],
+          'Account Name': node.data['Account Name'],
+          'Vertical': node.data['Vertical'],
+          'Market Unit': node.data['Market Unit'],
+          'Sales Stage': node.data['Sales Stage'],
+          'Status Changed Date': node.data['Last Modified Date'],
+          'Close Date': node.data['Close Date'],
+          'Net TCV ($m)': formatNetTCV(node.data['Net TCV'])
+        });
+      });
+      var worksheet = XLSX.utils.json_to_sheet(rowData);
+      var workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Recent Modified Deals');
+      XLSX.writeFile(workbook, 'Recent_Modified_Deals.xlsx');
+    } else {
+      console.warn('Last Modified Deals grid API not ready yet');
+    }
+  };
+
+  // Prepare last modified deals data from Django context
+  var lastModifiedDealsDataRaw = [];
+  //console.log('Last modified deals count from backend:', {{ last_modified_deals|length|default:0 }});
+  {% for deal in last_modified_deals %}
+  lastModifiedDealsDataRaw.push({
+    'WinZone Opportunity ID': '{{ deal.WinZone_Opportunity_ID|escapejs }}',
+    'Opportunity Name': '{{ deal.Opportunity_Name|escapejs }}',
+    'Account Name': '{{ deal.Account_Name|escapejs }}',
+    'R_Market Unit': '{{ deal.R_Market_Unit|escapejs }}',
+    'Sales Stage': '{{ deal.Sales_Stage|escapejs }}',
+    'Vertical': '{{ deal.Vertical|escapejs }}',
+    'Close Date': '{{ deal.Close_Date|escapejs }}',
+    'Last Modified Date': '{{ deal.Last_Modified_Date|escapejs }}',
+    'Net TCV': {{ deal.Net_TCV|default:0 }}
+  });
+  {% endfor %}
+ // console.log('lastModifiedDealsDataRaw loaded:', lastModifiedDealsDataRaw.length, 'records');
+
+  // Transform data to match AG-Grid format
+  var lastModifiedDealsGridData = lastModifiedDealsDataRaw.map(function(deal) {
+    return {
+      'Opportunity ID': deal['WinZone Opportunity ID'] || '',
+      'Opportunity Name': deal['Opportunity Name'] || '',
+      'Account Name': deal['Account Name'] || '',
+      'Market Unit': deal['R_Market Unit'] || '',
+      'Vertical': deal['Vertical'] || '',
+      'Close Date': deal['Close Date'] || '',
+      'Sales Stage': deal['Sales Stage'] || '',
+      'Last Modified Date': deal['Last Modified Date'] || '',
+      'Net TCV': (deal['Net TCV'] !== undefined && deal['Net TCV'] !== null) ? parseFloat(deal['Net TCV']) : 0
+    };
+  });
+ // console.log('lastModifiedDealsGridData transformed:', lastModifiedDealsGridData.length, 'records');
+
+  var textFilterParams = { filterOptions: ['contains','notContains','startsWith','endsWith'] };
+
+  var columnDefsLastModified = [
+    {
+      headerName: 'Opportunity ID',
+      field: 'Opportunity ID',
+      width: 150,
+      headerTooltip: 'WinZone Opportunity ID',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Opportunity Name',
+      field: 'Opportunity Name',
+      width: 280,
+      headerTooltip: 'Opportunity Name',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Account Name',
+      field: 'Account Name',
+      width: 220,
+      headerTooltip: 'Account Name',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Vertical',
+      field: 'Vertical',
+      width: 150,
+      headerTooltip: 'Vertical',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Market Unit',
+      field: 'Market Unit',
+      width: 130,
+      headerTooltip: 'Market Unit',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Sales Stage',
+      field: 'Sales Stage',
+      width: 150,
+      headerTooltip: 'Sales Stage',
+      cellRenderer: tooltipRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Status Changed Date',
+      field: 'Last Modified Date',
+      width: 160,
+      headerTooltip: 'Status Changed Date',
+      cellRenderer: tooltipRenderer,
+      comparator: dateComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Close Date',
+      field: 'Close Date',
+      width: 130,
+      headerTooltip: 'Close Date',
+      cellRenderer: tooltipRenderer,
+      comparator: dateComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: textFilterParams
+    },
+    {
+      headerName: 'Net TCV ($m)',
+      field: 'Net TCV',
+      width: 130,
+      headerTooltip: 'Net TCV ($m)',
+      sort: 'desc',
+      filter: 'agNumberColumnFilter',
+      cellRenderer: function(params) {
+        if (params.value === null || params.value === undefined) return '';
+        var value = parseFloat(params.value);
+        var exactValue = value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 6});
+        var display = value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' M';
+        return '<span title="' + exactValue + '">' + display + '</span>';
+      },
+      cellStyle: function(params) {
+        return null;
+      }
+    }
+  ];
+
+  var optionsLastModified = {
+    rowData: lastModifiedDealsGridData,
+    columnDefs: columnDefsLastModified,
+    domLayout: 'normal',
+    onGridReady: function (params) {
+      params.api.sizeColumnsToFit();
+    },
+    // Leave sorting behavior to AG-Grid; do not override on sort change.
+    defaultColDef: {
+      resizable: true,
+      filter: true,
+      sortable: true,
+    },
+    rowHeight: 28,
+    headerHeight: 32,
+  };
+
+  // Initialize AG-Grid when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    //console.log('Initializing Last Modified Deals AG-Grid...');
+    var gridDiv = document.querySelector('#lastModifiedDealsTable');
+    //console.log('Grid div found:', gridDiv);
+    //console.log('Grid data rows:', lastModifiedDealsGridData.length);
+    if (gridDiv) {
+      window.lastModifiedDealsApi = agGrid.createGrid(gridDiv, optionsLastModified);
+      //console.log('Last Modified Deals grid initialized successfully');
+    } else {
+      console.error('Could not find #lastModifiedDealsTable div');
+    }
+  });
+
+  // Store filter params for Recent Last Modified Deals AJAX refresh
+  window.recentLastModifiedDealsFilterParams = {
+    idx_label: '{{ idx_label_selected|escapejs }}',
+    vertical: '{{ filter_vertical|escapejs }}',
+    region: '{{ filter_region|escapejs }}',
+    dealsize: '{{ filter_dealsize|escapejs }}',
+    opptype: '{{ filter_opptype|escapejs }}',
+    account: '{{ filter_account|escapejs }}',
+    bu: '{{ filter_bu|escapejs }}',
+    sbu: '{{ filter_sbu|escapejs }}'
+  };
+
+  // Function to fetch Recent Last Modified Deals with selected row limit
+  function changeLastModifiedLimit(rowLimit) {
+    if (!rowLimit) {
+      rowLimit = document.getElementById("last-modified-limit-select").value;
+    }
+    
+    // Use date filter function if date filter is enabled
+    if (window.dateFilterState && window.dateFilterState.enabled && window.dateFilterState.startDate && window.dateFilterState.endDate) {
+      fetchLastModifiedDealsWithDateFilter(rowLimit);
+      return;
+    }
+    
+    var params = window.recentLastModifiedDealsFilterParams;
+    var url = '/GGMPipelineInsights/pipeline_summary/AjaxCallForRecentLastModifiedDeals/?row_limit=' + rowLimit +
+              '&idx_label=' + encodeURIComponent(params.idx_label) +
+              '&vertical=' + encodeURIComponent(params.vertical) +
+              '&region=' + encodeURIComponent(params.region) +
+              '&dealsize=' + encodeURIComponent(params.dealsize) +
+              '&opptype=' + encodeURIComponent(params.opptype) +
+              '&account=' + encodeURIComponent(params.account) +
+              '&bu=' + encodeURIComponent(params.bu) +
+              '&sbu=' + encodeURIComponent(params.sbu);
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+         // console.log('AJAX response data for last modified deals:', result.data);
+          
+          // Transform backend data to match AG-Grid format
+          var transformedData = result.data.map(function(deal) {
+            return {
+              'Opportunity ID': (deal['WinZone Opportunity ID'] !== undefined && deal['WinZone Opportunity ID'] !== null) ? String(deal['WinZone Opportunity ID']) : '',
+              'Opportunity Name': deal['Opportunity Name'] || '',
+              'Account Name': deal['Account Name'] || '',
+              'Vertical': deal['Vertical'] || '',
+              'Market Unit': deal['Market Unit'] || '',
+              'Sales Stage': deal['Sales Stage'] || '',
+              'Last Modified Date': deal['Last Modified Date'] || '',
+              'Close Date': deal['Close Date'] || '',
+              'Net TCV': (deal['Net TCV'] !== undefined && deal['Net TCV'] !== null) ? parseFloat(deal['Net TCV']) : 0
+            };
+          });
+
+          //console.log('Transformed last modified data:', transformedData);
+          
+          // Update grid with transformed data
+          if (window.lastModifiedDealsApi && window.lastModifiedDealsApi.setGridOption) {
+            window.lastModifiedDealsApi.setGridOption('rowData', transformedData);
+           // console.log('Last Modified grid updated with', transformedData.length, 'records');
+          }
+        } else {
+          console.error('Error fetching recent last modified deals:', result.error);
+        }
+      })
+      .catch(error => {
+        console.error('Network error fetching recent last modified deals:', error);
+      });
+  }
+</script>
+
+<!-- Drawer Dropdown JavaScript for Filters -->
+<script>
+  const rawDrawerDropdownData = JSON.parse(`{{ resultDepData|escapejs }}`);
+  let opt_opp_region_new = JSON.parse(`{{ opt_opp_region_new|escapejs }}`);
+  
+  // Convert array to comma-separated string
+  if (Array.isArray(opt_opp_region_new)) {
+    opt_opp_region_new = opt_opp_region_new.join(',');
+  } else if (typeof opt_opp_region_new === 'string') {
+    // Already a string, use as is
+  } else {
+    opt_opp_region_new = 'All';
+  }
+  
+  //console.log('opt_opp_region_new:', opt_opp_region_new);
+  //console.log('rawDrawerDropdownData:', rawDrawerDropdownData);
+  
+  const selectedDrawerValuesList = [
+    opt_opp_region_new || 'All',
+    `{{ selected_bu|default:"All" }}`,
+    `{{ selected_sbu|default:"All" }}`,
+  ];
+  
+  const listOfDrawerDropdownIds = [
+    '#unq_region',
+    '#unique_mcu',
+    '#unique_sbu',
+  ];
+
+  const listOfDrawerDropdownElements = listOfDrawerDropdownIds.map((id) => $(id));
+  let market_units = [];
+
+  const compareStringsIgnoreCaseFn = (x, y) => {
+    x = x.toLowerCase();
+    y = y.toLowerCase();
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+  };
+
+  // Custom sort order for Market Units
+  const marketUnitOrder = ['UK&I', 'Southern Europe & Middle East', 'Northern Europe', 'DACH', 'EMEA Others', 'CE Others'];
+  
+  const compareMarketUnitsFn = (x, y) => {
+    const indexX = marketUnitOrder.indexOf(x);
+    const indexY = marketUnitOrder.indexOf(y);
+    
+    // If both are in the defined order, sort by their index
+    if (indexX !== -1 && indexY !== -1) {
+      return indexX - indexY;
+    }
+    // If only x is in the order, it comes first
+    if (indexX !== -1) return -1;
+    // If only y is in the order, it comes first
+    if (indexY !== -1) return 1;
+    // If neither is in the order, sort alphabetically
+    return compareStringsIgnoreCaseFn(x, y);
+  };
+
+  function buildDrawerDropdowns(selectedValuesList) {
+    const optionLists = new Array(listOfDrawerDropdownIds.length)
+      .fill(0)
+      .map((_) => new Set());
+
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      rawDrawerDropdownData.forEach((row) => {
+        let result = true;
+        for (let j = 0; j < i; j++) {
+          result &&= selectedValuesList[j].includes("All")
+            ? true
+            : selectedValuesList[j].includes(row[j])
+        }
+        if (result) optionLists[i].add(row[i]);
+      });
+    }
+    
+    for (let i = 0; i < listOfDrawerDropdownIds.length; i++) {
+      optionLists[i] = [...optionLists[i]]
+        .filter((v) => v)
+        .sort(i === 0 ? compareMarketUnitsFn : compareStringsIgnoreCaseFn); // Use custom sort for Market Unit (index 0)
+      optionLists[i].unshift('All');
+    }
+    
+    listOfDrawerDropdownElements.forEach((element, index) => { 
+      element.empty();
+      optionLists[index].forEach((optionText) => {
+        if(selectedValuesList[index].includes(optionText)){
+          element.append(new Option(optionText, optionText, false, true));
+        } else {
+          element.append(new Option(optionText, optionText, false, false));
+        }
+      });
+    });
+    market_units = optionLists[0];
+  }
+
+  function prepare_market_units(){
+    let template = "";
+    let selected_market = opt_opp_region_new || 'All';
+    
+    for(let i in market_units){
+      if(i > 0){
+        if(!selected_market.includes(',') && selected_market == "All"){
+          let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+            <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`;
+          template = template + checkbox_label;
+        } else {
+          let selected_market_array = selected_market.split(',');
+          if(selected_market_array.includes(market_units[i])){
+            let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' checked onchange='change_market_unit(this)'>
+            <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`;
+            template = template + checkbox_label;
+          } else {
+            let checkbox_label = `<span><input class="form-check-input market_unit_option" type="checkbox" name="unq_region[]" value='${market_units[i]}' onchange='change_market_unit(this)'>
+            <label style="font-size: 0.9rem;" class="form-check-label me-2">${market_units[i]}</label></span>`;
+            template = template + checkbox_label;
+          }
+        }
+      }
+    }
+    $('.unq_region').html(template);
+  }
+
+  function change_market_unit(element){    
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) => {   
+      return $(`${id}`).val()
+    });
+    let checked_market_unit_option_array = $(".market_unit_option:checked").map(function(_, el) {
+      return $(el).val();
+    }).get();
+    listOfCurrentlySelectedValues[0] = checked_market_unit_option_array;
+    for (let i = 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  }
+
+  $('#unique_mcu').on('select2:select', function (e) {
+    let data = e.params.data;
+    if ($('#unique_mcu').val().includes("All")) {
+      $('#unique_mcu').val(null).trigger('change');
+      $('#unique_mcu').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_mcu').val(null).trigger('change');
+      $('#unique_mcu').val("All").trigger('change');
+    }
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) => {
+      return $(`${id}`).val()
+    });
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_mcu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+      return $(el).val();
+    }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array;
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  });
+
+  $('#unique_sbu').on('select2:select', function (e) {
+    let data = e.params.data;
+    if ($('#unique_sbu').val().includes("All")) {
+      $('#unique_sbu').val(null).trigger('change');
+      $('#unique_sbu').val(data.text).trigger('change');
+    }
+    if (data.text == "All") {
+      $('#unique_sbu').val(null).trigger('change');
+      $('#unique_sbu').val("All").trigger('change');
+    }
+    listOfCurrentlySelectedValues = listOfDrawerDropdownIds.map((id) => {
+      return $(`${id}`).val()
+    });
+    let indexOfChangedDropdown = listOfDrawerDropdownIds.indexOf(`#unique_sbu`);
+    for (let i = indexOfChangedDropdown + 1; i < 3; i++) {
+      listOfCurrentlySelectedValues[i][0] = 'All';
+    }
+    let checked_option_array = $(".market_unit_option:checked").map(function(_, el) {
+      return $(el).val();
+    }).get();
+    listOfCurrentlySelectedValues[0] = checked_option_array;
+    buildDrawerDropdowns(listOfCurrentlySelectedValues);
+  });
+
+  $(document).ready(function() {
+    buildDrawerDropdowns(selectedDrawerValuesList);
+    prepare_market_units();
+    
+    // Initialize select2 for dropdowns after a short delay to ensure DOM is ready
+    setTimeout(function() {
+      if ($('#unique_mcu').length && !$('#unique_mcu').hasClass('select2-hidden-accessible')) {
+        $('#unique_mcu').select2({
+          placeholder: 'All',
+          width: '100%'
+        });
+      }
+      
+      // helper to enforce "All" exclusive behaviour (copied from other pages)
+      function enforceAllLogic($el, selectedText) {
+        let vals = $el.val() || [];
+        if (selectedText === "All") {
+          $el.val(["All"]).trigger("change");
+          return;
+        }
+        if (vals.includes("All")) {
+          vals = vals.filter((v) => v !== "All");
+          $el.val(vals).trigger("change");
+        }
+        if (($el.val() || []).length === 0) {
+          $el.val(["All"]).trigger("change");
+        }
+      }
+
+      if ($('#unique_sbu').length && !$('#unique_sbu').hasClass('select2-hidden-accessible')) {
+        $('#unique_sbu').select2({
+          placeholder: 'All',
+          width: '100%'
+        });
+      }
+      
+      if ($('#unique_account_name').length && !$('#unique_account_name').hasClass('select2-hidden-accessible')) {
+        $('#unique_account_name').select2({
+          placeholder: 'All',
+          width: '100%'
+        });
+        // default back to All when nothing selected (page load or reset)
+        if (!$('#unique_account_name').val() || $('#unique_account_name').val().length === 0) {
+          $('#unique_account_name').val(['All']).trigger('change');
+        }
+        // attach behavior for select/unselect
+        $('#unique_account_name')
+          .on('select2:select', function(e) {
+            enforceAllLogic($(this), e.params.data.text);
+          })
+          .on('select2:unselect', function() {
+            enforceAllLogic($(this), '');
+          });
+      }
+      
+      if ($('#unique_horizontal').length && !$('#unique_horizontal').hasClass('select2-hidden-accessible')) {
+        $('#unique_horizontal').select2({
+          placeholder: 'All',
+          width: '100%'
+        });
+      }
+    }, 100);
+  });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const tableIds = ['top20DealsTable','topDealsTable','lastModifiedDealsTable','wonLostDealsTable'];
+  function fallbackCopyText(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  tableIds.forEach(function(id){
+    const container = document.getElementById(id);
+    if(!container) return;
+    container.addEventListener('dblclick', function(ev){
+      const cell = ev.target.closest('.ag-cell, td, th') || ev.target;
+      let text = (cell && (cell.innerText || cell.textContent)) || '';
+      text = text.trim();
+      if(!text) return;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).catch(()=> { fallbackCopyText(text); });
+      } else {
+        fallbackCopyText(text);
+      }
+    });
+  });
+});
+</script>
+
+<style>
+/* Allow text selection inside AG-Grid cells and headers */
+.ag-root, .ag-root .ag-cell, .ag-root .ag-header-cell, .ag-theme-balham .ag-cell, .ag-theme-balham .ag-header-cell {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+</style>
+
+<style>
+  /* Back-to-top floating button */
+  .btn-apply {
+    font-size: 12px;
+    height: 32px;
+    padding: 6px 16px;
+    background-color: #0b3d91;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .btn-apply:hover { background-color: #083169; }
+  #btnBackToTop {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    padding: 0;
+  }
+  #btnBackToTop i { margin: 0; }
+</style>
+<!-- Back to top button -->
+<button id="btnBackToTop" class="btn-apply" title="Back to top" aria-label="Back to top" style="display:none;">
+  <i class="fas fa-chevron-up"></i>
+</button>
+<script>
+// Back-to-top button behaviour
+  (function() {
+    var btn = null;
+    function ensureBtn() {
+      if (!btn) btn = document.getElementById('btnBackToTop');
+      return btn;
+    }
+
+    function onScroll() {
+      var b = ensureBtn();
+      if (!b) return;
+      var sc = window.scrollY || document.documentElement.scrollTop;
+      if (sc > 400) b.style.display = 'flex'; else b.style.display = 'none';
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'btnBackToTop' || t.closest && t.closest('#btnBackToTop')) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  })();
+</script>
+
+{% endblock %}

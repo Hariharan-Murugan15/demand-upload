@@ -1,0 +1,44 @@
+{% extends 'visualize/common.html' %}
+{% load static %}
+{% block content %}
+
+<body style="background-color:#070707 !important;">
+    <!--UPload Data-->
+    <div class="modal fade" id="mymodaltemplate" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+    aria-hidden="true">
+        <div class="modal-dialog" style="max-width: 950px;">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">Add BurnReport Data</h4>
+            </div>
+            <form id="uploadTemplateForm" method="post" enctype="multipart/form-data"> 
+            {% csrf_token %}
+            <div class="modal-body">
+                <div><label><span style="color: red;">** </span>Files Should be in xlsx Document Format only</label></div>
+                <div>
+                <label for="file" style="font-weight: bold;font-size:18px">File:</label>
+                <input type="file" accept=".xlsx" name="file" id="fileInput">
+                </div>
+                <div hidden>
+                <label>Updatedby:</label>
+                <input type="text"  id="updatedBy_upload" name="updatedBy_upload"><br><br>    
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary ml-4">Add</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+            </form>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid mt-5" style="background-color:#070707 !important;">
+        <button id="uploadtemp" class="btn btn-primary mr2 ml-2" style="padding: 2px 4px;" onclick="opentemplateModel()">Upload Data</button>
+    </div>
+</body>
+<script>
+    function opentemplateModel(){
+        $("#mymodaltemplate").modal('show')
+    }
+  </script>
+{% endblock %}

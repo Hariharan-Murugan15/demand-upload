@@ -1,0 +1,114 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<style>
+
+table {
+  background-color: rgb(151, 151, 150);
+  text-emphasis-color: black;
+  color:black;
+  font-size: 10pt;
+}
+
+th {
+  text-align: center;
+}
+.dfstyle {
+    font-size: 11pt; 
+    font-family: Arial;
+    border-collapse: collapse; 
+    border: 1px solid silver;
+    background-color:lightgray;
+
+}
+
+.dfstyle td, th {
+    padding: 5px;
+}
+
+.dfstyle tr:nth-child(even) {
+    background: #E0E0E0;
+}
+
+.dfstyle tr:hover {
+    background: silver;
+    cursor: pointer;
+}
+.container_2 {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: 30px;
+  margin-left: 10px;
+  text-align:center;
+}
+.container_3 {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  
+}
+.form-control::file-selector-button {
+  padding: 0.375rem 0.75rem;
+  margin:auto;
+  -webkit-margin-end: 0.75rem;
+  margin-inline-end: 0.75rem;
+  color: #0964be;
+  background-color: #e9ecef;
+  pointer-events: none;
+  border-color: inherit;
+  border-style: solid;
+  border-width: 0;
+  border-inline-end-width: 1px;
+  border-radius: 0;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-control::-webkit-file-upload-button {
+  padding: 0.375rem 0.75rem;
+  margin: -0.375rem -0.75rem;
+  -webkit-margin-end: 0.75rem;
+  margin-inline-end: 0.75rem;
+  color: #0964be;
+  background-color: #e9ecef;
+  pointer-events: none;
+  border-color: inherit;
+  border-style: solid;
+  border-width: 0;
+  border-inline-end-width: 1px;
+  border-radius: 0;
+  -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+</style>
+<div class ="container text-center">
+  <body style="background-color:#070707" >
+    <h1 style="color:whitesmoke;">Load Pipeline Data</h1>
+    <form action="{% url 'show_movement' %}">
+        <font color="lightyellow">
+          <br>
+          <br>
+          
+          <label for="load_file" >Select the pipeline data file to load :</label>
+          <br>
+              <input type="file" id="load_file" name="load_file" class="container_3" >
+              
+          <br>
+          <br>
+              <label>Provide Index Label     : </label>
+              <font color="black">
+              <input type="text" id="index_label" name="index_label" >
+            </font>
+              <br>
+              <br>
+              <label>Pipeline snapshot date   : </label>
+          <font color="black">
+              <input type="date" id="load_date" name="load_date" >
+            </font>
+        </font>
+            
+        <br>
+        <br>
+        <br>
+        <input type="submit" value="Load Pipeline Data" class="btn btn-primary">
+        <a href="{% url 'home' %}" class="btn btn-warning"> Home</a>
+    </form>
+  </body>
+  </div>

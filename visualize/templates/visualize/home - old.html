@@ -1,0 +1,64 @@
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<style>
+.container_2 {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: 30px;
+    margin-left: 50px;
+    text-align:center;
+  }
+</style>
+<div class ="container text-center">
+<body style="background-color:#f1c9c9dc">
+<form id="insights_form" action="{% url 'show_plot' %}">
+    <th>
+    <br>
+    <h1> Pipeline Insights</h1>
+    <br>
+    <label>Pipeline Data label  :   </label>
+    <select name="idx_label"> 
+        {% for entry in index_labels %}
+            <option value="{{ entry.index }}">{{ entry.index }}</option>
+        {% endfor %}
+    </select> 
+    <br>
+    <br>
+    <label>Data Group  :   </label>
+    <select name="plt_label"> 
+        {% for entry2 in plot_labels %}
+            <option value="{{ entry2.label }}">{{ entry2.label }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <br>
+    <input type="submit" value="Show Insights" class="btn btn-primary">
+    <br>
+</form>
+<form id="movement_form" action="{% url 'show_movement' %}"></form>
+    <br>
+    <h1> Pipeline Movement ( A to B in point of time)</h1>
+    <br>
+    
+    <label>Pipeline Data A (earlier) :   </label>
+    <select name="idx_label_A"> 
+        {% for entry_3 in index_labels_2 %}
+            <h2 class="alert alert-success">{{ entry_3.index }} </h2>
+            <option value="{{ entry_3.index }}">{{ entry_3.index }}</option>
+        {% endfor %}
+    </select> 
+    <br>
+    <br>
+    <label>Pipeline Data B (later):  </label>
+    <select name="idx_label_B"> 
+        {% for entry_4 in index_labels_3 %}
+            <option value="{{ entry_4.index }}">{{ entry_4.index }}</option>
+        {% endfor %}
+    </select> 
+    <br>
+    <br>
+    <input type="submit" value="Pipeline Movement" class="btn btn-primary">
+    <br>
+</form>
+</body>
+</div>
