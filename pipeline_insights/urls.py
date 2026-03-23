@@ -24,7 +24,7 @@ url_prefix = "GGMPipelineInsights/"
 urlpatterns = [
     #  path('', views.home, name='home'),      
     # Default: when visiting /GGMPipelineInsights/ show the pipeline summary page
-    path(url_prefix, views.pipeline_summary, name="pipeline_summary"),
+    path(url_prefix, views.demand_upload_page, name='demand_upload_page'),
     # Explicit dashboard route so clicking 'Dashboard' navigates to the dashboard page
     path(url_prefix + 'dashboard/', views.show_dashboard, name="show_dashboard"),
      path(url_prefix+'AjaxCallForDashBoard/', views.AjaxCallForDashBoard, name="AjaxCallForDashBoard"),
