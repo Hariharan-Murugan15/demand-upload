@@ -5659,10 +5659,35 @@ def demand_upload_execute(request):
             uploaded_on_date = uploaded_on  # fallback to string
         print(f"[DEMAND UPLOAD] uploaded_on_date = {repr(uploaded_on_date)} (type={type(uploaded_on_date).__name__})")
 
-        history_all_cols = ", ".join(f"[{c}]" for c in DEMAND_COLUMNS)
+        # Query demand_history column sizes so we can LEFT()-truncate
+        # any varchar/nvarchar columns that are wider in demand than demand_history
+        history_meta = {}
+        with connection.cursor() as _mc:
+            _mc.execute("""
+                SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='demand_history'
+            """)
+            for _cn, _dt, _ml in _mc.fetchall():
+                history_meta[_cn] = {"data_type": _dt, "max_length": _ml}
+
+        # Build SELECT expressions: truncate strings if demand_history column is shorter
+        _insert_cols = []
+        _select_exprs = []
+        for c in DEMAND_COLUMNS:
+            _insert_cols.append(f"[{c}]")
+            h = history_meta.get(c)
+            if (h and h["data_type"] in ("varchar", "nvarchar", "char", "nchar")
+                    and h["max_length"] is not None and h["max_length"] > 0):
+                _select_exprs.append(f"LEFT([{c}], {h['max_length']})")
+            else:
+                _select_exprs.append(f"[{c}]")
+
+        history_insert_cols = ", ".join(_insert_cols)
+        history_select_exprs = ", ".join(_select_exprs)
         history_sql = (
-            f"INSERT INTO dbo.demand_history ([UploadedOn], {history_all_cols}) "
-            f"SELECT ? AS UploadedOn, {history_all_cols} FROM dbo.demand"
+            f"INSERT INTO dbo.demand_history ([UploadedOn], {history_insert_cols}) "
+            f"SELECT ? AS UploadedOn, {history_select_exprs} FROM dbo.demand"
         )
 
         # Execute inside a transaction
