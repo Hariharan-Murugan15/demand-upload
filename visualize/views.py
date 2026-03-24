@@ -5160,8 +5160,49 @@ def AjaxCallForSunburstData(request):
 from difflib import SequenceMatcher
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.http import StreamingHttpResponse
 import math
 import pyodbc
+
+
+def _progress_line(stage, pct, **extra):
+    """Return a single NDJSON progress line for streaming responses."""
+    payload = {"stage": stage, "pct": pct, **extra}
+    return json.dumps(payload) + "\n"
+
+
+import tempfile, os, uuid
+
+# Directory for cached preprocessed DataFrames (temp parquet files)
+_UPLOAD_CACHE_DIR = os.path.join(tempfile.gettempdir(), "demand_upload_cache")
+os.makedirs(_UPLOAD_CACHE_DIR, exist_ok=True)
+
+
+def _save_df_to_cache(df):
+    """Save a DataFrame to a temp pickle file on disk. Returns the cache key."""
+    key = uuid.uuid4().hex
+    path = os.path.join(_UPLOAD_CACHE_DIR, f"{key}.pkl")
+    df.to_pickle(path)
+    return key
+
+
+def _load_df_from_cache(key):
+    """Load a DataFrame from a temp pickle file on disk. Returns the DataFrame."""
+    path = os.path.join(_UPLOAD_CACHE_DIR, f"{key}.pkl")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Cached file not found for key {key}. Please re-upload.")
+    return pd.read_pickle(path)
+
+
+def _remove_cache(key):
+    """Remove a cached pickle file."""
+    if key:
+        path = os.path.join(_UPLOAD_CACHE_DIR, f"{key}.pkl")
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
 
 # ── Column list for dbo.demand (order must match the INSERT statement) ──
 DEMAND_COLUMNS = [
@@ -5234,7 +5275,7 @@ DEMAND_COLUMNS = [
 
 # ── helpers ──
 
-def _fuzzy_match(excel_header, db_columns, threshold=0.6):
+def _fuzzy_match(excel_header, db_columns, threshold=1):
     """Return the best fuzzy match (column, score) for an Excel header."""
     best, best_score = None, 0.0
     norm = excel_header.strip().lower()
@@ -5258,22 +5299,222 @@ def _get_demand_db_columns():
 
 
 def _get_demand_column_meta():
-    """Return dict of column_name -> {data_type, max_length, is_nullable}."""
+    """Return dict of column_name -> {data_type, max_length, is_nullable, precision, scale}."""
     with connection.cursor() as cur:
         cur.execute("""
             SELECT COLUMN_NAME, DATA_TYPE,
-                   CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+                   CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE,
+                   NUMERIC_PRECISION, NUMERIC_SCALE
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='demand'
         """)
         meta = {}
-        for name, dtype, maxlen, nullable in cur.fetchall():
+        for name, dtype, maxlen, nullable, precision, scale in cur.fetchall():
             meta[name] = {
                 "data_type": dtype,
                 "max_length": maxlen,
                 "is_nullable": nullable == "YES",
+                "precision": precision,
+                "scale": scale,
             }
         return meta
+
+
+# ── Preprocessing constants ──
+
+DATE_COLUMNS_TO_CONVERT = [
+    "Action date", "SO Submission Date", "Offer Created Date",
+    "Offer Extended Date", "Assignment Start Date", "Requirement Start Date",
+    "Requirement End Date", "Billability Start date",
+    "Fulfilment/Cancellation Month", "Probable Fullfilment Date",
+    "Expected Date Of Joining", "OE Approver Date", "TSC Approver Date",
+    "Estimated Deal close date", "Actual Expected Revenue Start date",
+    "Deflag MFR Date", "Original Requirement Start date",
+    "Assignment Staging Date",
+]
+
+NEARSHORE_COUNTRIES = {
+    "china", "hungary", "latvia", "lithuania", "philippines",
+    "poland", "portugal", "romania", "spain",
+}
+
+# Practice → Tower lookup (from ref.xlsx Sheet1 columns A→B)
+PRACTICE_TOWER_MAP = {
+    "adm application development": "ADM",
+    "adm": "ADM",
+    "avm": "ADM",
+    "adm central": "ADM",
+    "aia data": "AIA",
+    "aia": "AIA",
+    "aia intelligence": "AIA",
+    "aia top": "AIA",
+    "cis business experience svcs": "CIS",
+    "cis business foundation servcs": "CIS",
+    "cis central": "CIS",
+    "cis cloud services": "CIS",
+    "cis infra managed svcs": "CIS",
+    "corporate": "Corporate",
+    "deployable pool": "Others",
+    "cybersecurity": "Cybersecurity",
+    "de enterprise engineering": "Digital Engineering",
+    "de studio": "Digital Engineering",
+    "enablement business support": "Business Support",
+    "enterprise automation": "Business Support",
+    "eps central": "EPS",
+    "eps ipm": "EPS",
+    "eps oracle": "EPS",
+    "eps pega": "EPS",
+    "eps sap": "EPS",
+    "eps supply chain management": "EPS",
+    "eps workday": "EPS",
+    "global consulting bfs": "Consulting",
+    "global consulting cmt": "Consulting",
+    "global consulting ent proc": "Consulting",
+    "global consulting gov&ps": "Consulting",
+    "global consulting hc": "Consulting",
+    "global consulting ins": "Consulting",
+    "global consulting ls": "Consulting",
+    "global consulting mleu": "Consulting",
+    "global consulting rcgth": "Consulting",
+    "global consulting scm": "Consulting",
+    "global consulting tech": "Consulting",
+    "global consulting trans mgmt": "Consulting",
+    "ioa business operations": "IOA",
+    "ioa central": "IOA",
+    "ioa ipa group": "IOA",
+    "iot central": "IoT",
+    "iot commercial solutions": "IoT",
+    "iot industrial operations": "IoT",
+    "iot mobica": "IoT",
+    "iot product engineering": "IoT",
+    "isg bfs group": "Industry Solutions Group",
+    "isg cmt group": "Industry Solutions Group",
+    "isg insurance group": "Industry Solutions Group",
+    "isg ls commercial group": "Industry Solutions Group",
+    "isg ls lab group": "Industry Solutions Group",
+    "isg ls manufacturing group": "Industry Solutions Group",
+    "isg ls r&d group": "Industry Solutions Group",
+    "isg rcgth group": "Industry Solutions Group",
+    "mdu": "MDU",
+    "moment central": "Cognizant Moment",
+    "moment cx crm": "Cognizant Moment",
+    "moment digital experience": "Cognizant Moment",
+    "ppm coe": "Others",
+    "product engineering": "Others",
+    "pure vertical": "MDU",
+    "qea": "QEA",
+    "rdc": "Business Support",
+    "servicenow": "ServiceNow",
+    "servicenow business group": "ServiceNow",
+    "sp&e central": "Digital Engineering",
+    "sustainability": "IoT",
+    "iot sustainability": "IoT",
+}
+
+
+def _preprocess_demand_df(df, on_progress=None):
+    """
+    Apply mandatory preprocessing transformations on the uploaded DataFrame
+    before any column mapping, validation, or database operations.
+    Returns the modified DataFrame.
+    on_progress(stage, pct) — optional callback to report progress.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    emit = on_progress or (lambda stage, pct: None)
+
+    # ── Subtask 1.1: Convert date columns to datetime ──
+    emit("Converting date columns to Short Date format", 20)
+    col_lookup = {c.strip().lower(): c for c in df.columns}
+    for date_col_name in DATE_COLUMNS_TO_CONVERT:
+        actual_col = col_lookup.get(date_col_name.strip().lower())
+        if actual_col and actual_col in df.columns:
+            df[actual_col] = pd.to_datetime(df[actual_col], errors='coerce', format='mixed', dayfirst=False)
+            logger.info(f"[PREPROCESS] Converted '{actual_col}' to datetime")
+
+    # ── Subtask 1.2: Create Off/On/Nearshore column ──
+    emit("Creating Off/On/Nearshore column", 40)
+    off_on_col = col_lookup.get("off/ on")
+    country_col = col_lookup.get("country")
+    if off_on_col and off_on_col in df.columns:
+        # Start by copying Off/ On values
+        df["Off/On/Nearshore"] = df[off_on_col].copy()
+        if country_col and country_col in df.columns:
+            # Where country is in Nearshore list, override to "Nearshore"
+            country_norm = df[country_col].astype(str).str.strip().str.lower()
+            nearshore_mask = country_norm.isin(NEARSHORE_COUNTRIES)
+            df.loc[nearshore_mask, "Off/On/Nearshore"] = "Nearshore"
+        logger.info(f"[PREPROCESS] Created 'Off/On/Nearshore' column")
+    else:
+        logger.warning(f"[PREPROCESS] 'Off/ On' column not found, skipping Off/On/Nearshore creation")
+
+    # ── Subtask 1.3: Create Tower column ──
+    emit("Creating Tower column from Practice lookup", 55)
+    practice_col = col_lookup.get("practice")
+    if practice_col and practice_col in df.columns:
+        def _lookup_tower(val):
+            if pd.isna(val) or str(val).strip() == "":
+                return "Others"
+            key = str(val).strip().lower()
+            return PRACTICE_TOWER_MAP.get(key, "Others")
+        df["Tower"] = df[practice_col].apply(_lookup_tower)
+        logger.info(f"[PREPROCESS] Created 'Tower' column from '{practice_col}'")
+    else:
+        logger.warning(f"[PREPROCESS] 'Practice' column not found, skipping Tower creation")
+
+    # ── Subtask 1.4: Rename columns (careful sequencing) ──
+    emit("Renaming columns (ServiceLine, CCA mappings)", 70)
+    col_lookup = {c.strip().lower(): c for c in df.columns}  # refresh after new cols
+
+    has_serviceline = "serviceline" in col_lookup
+    has_cca_service_line = "cca service line" in col_lookup
+    has_cca_service_line_desc = "cca service line description" in col_lookup
+
+    rename_map = {}
+
+    # Step 1: If original "ServiceLine" exists, rename to temp to avoid collision
+    if has_serviceline and has_cca_service_line:
+        actual_sl = col_lookup["serviceline"]
+        rename_map[actual_sl] = "_temp_ServiceLine"
+        logger.info(f"[PREPROCESS] Renaming '{actual_sl}' → '_temp_ServiceLine' (temporary)")
+
+    # Apply temp rename first
+    if rename_map:
+        df = df.rename(columns=rename_map)
+        rename_map = {}
+
+    # Step 2: Rename "CCA Service Line" → "ServiceLine"
+    # Refresh lookup after temp rename
+    col_lookup = {c.strip().lower(): c for c in df.columns}
+    if has_cca_service_line:
+        actual_cca = col_lookup.get("cca service line")
+        if actual_cca:
+            rename_map[actual_cca] = "ServiceLine"
+            logger.info(f"[PREPROCESS] Renaming '{actual_cca}' → 'ServiceLine'")
+
+    # Step 3: Rename temp → "Service Line"
+    if "_temp_ServiceLine" in df.columns:
+        rename_map["_temp_ServiceLine"] = "Service Line"
+        logger.info(f"[PREPROCESS] Renaming '_temp_ServiceLine' → 'Service Line'")
+    elif has_serviceline and not has_cca_service_line:
+        # No collision: just rename ServiceLine → Service Line
+        actual_sl = col_lookup.get("serviceline")
+        if actual_sl:
+            rename_map[actual_sl] = "Service Line"
+            logger.info(f"[PREPROCESS] Renaming '{actual_sl}' → 'Service Line'")
+
+    # Step 4: Rename "CCA Service Line Description" → "Service Line Description"
+    if has_cca_service_line_desc:
+        actual_cca_desc = col_lookup.get("cca service line description")
+        if actual_cca_desc:
+            rename_map[actual_cca_desc] = "Service Line Description"
+            logger.info(f"[PREPROCESS] Renaming '{actual_cca_desc}' → 'Service Line Description'")
+
+    if rename_map:
+        df = df.rename(columns=rename_map)
+
+    logger.info(f"[PREPROCESS] Preprocessing complete. DataFrame shape: {df.shape}")
+    return df
 
 
 # ── Step 0: render the wizard page ──
@@ -5293,57 +5534,69 @@ def demand_upload_file(request):
     """
     Accepts the .xlsx file (+ optional UploadedOn date) in a multipart POST.
     Reads headers, auto-maps them to dbo.demand columns, returns JSON mapping.
-    The file bytes are stored in the session so later steps don't re-upload.
+    Streams NDJSON progress lines so the frontend can show real-time progress.
     """
-    try:
-        f = request.FILES.get("file")
-        if not f:
-            return JsonResponse({"success": False, "error": "No file uploaded."})
-        if not f.name.lower().endswith(".xlsx"):
-            return JsonResponse({"success": False, "error": "Only .xlsx files are accepted."})
-        if f.size > 100 * 1024 * 1024:  # 100 MB limit
-            return JsonResponse({"success": False, "error": "File exceeds 100 MB limit."})
+    # --- Validate inputs synchronously (before streaming) ---
+    f = request.FILES.get("file")
+    if not f:
+        return JsonResponse({"success": False, "error": "No file uploaded."})
+    if not f.name.lower().endswith(".xlsx"):
+        return JsonResponse({"success": False, "error": "Only .xlsx files are accepted."})
+    if f.size > 100 * 1024 * 1024:
+        return JsonResponse({"success": False, "error": "File exceeds 100 MB limit."})
 
-        uploaded_on = request.POST.get("uploaded_on", "")
+    uploaded_on = request.POST.get("uploaded_on", "")
+    raw = f.read()  # read file bytes before entering generator
 
-        # Read only first sheet header + small preview
+    def _stream():
         import io, base64
-        raw = f.read()
-        df_preview = pd.read_excel(io.BytesIO(raw), engine="openpyxl", nrows=5)
-        excel_headers = df_preview.columns.tolist()
+        try:
+            yield _progress_line("Uploading file to server", 5)
 
-        # Store raw bytes in session for later steps
-        request.session["_demand_file_b64"] = base64.b64encode(raw).decode("ascii")
-        request.session["_demand_uploaded_on"] = uploaded_on
+            yield _progress_line("Reading Excel file", 10)
+            df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+            total_rows = int(df_full.shape[0])
 
-        # DB columns
-        db_cols = _get_demand_db_columns()
-        db_set = {c.strip().lower(): c for c in db_cols}
+            # Preprocess with progress callback
+            progress_lines = []
+            def _on_preprocess(stage, pct):
+                progress_lines.append(_progress_line(stage, pct))
+            df_full = _preprocess_demand_df(df_full, on_progress=_on_preprocess)
+            for line in progress_lines:
+                yield line
 
-        mapping = []  # list of {excel, suggested_db, score, status}
-        for hdr in excel_headers:
-            norm = hdr.strip().lower()
-            if norm in db_set:
-                mapping.append({"excel": hdr, "suggested_db": db_set[norm], "score": 1.0, "status": "exact"})
-            else:
-                best, score = _fuzzy_match(hdr, db_cols, threshold=0.55)
-                if best:
-                    mapping.append({"excel": hdr, "suggested_db": best, "score": score, "status": "fuzzy"})
+            yield _progress_line("Caching preprocessed data to disk", 78)
+            cache_key = _save_df_to_cache(df_full)
+            request.session["_demand_cache_key"] = cache_key
+            request.session["_demand_uploaded_on"] = uploaded_on
+            request.session.save()
+
+            yield _progress_line("Matching columns to database schema", 88)
+            excel_headers = df_full.columns.tolist()
+            db_cols = _get_demand_db_columns()
+            db_set = {c.strip().lower(): c for c in db_cols}
+
+            mapping = []
+            for hdr in excel_headers:
+                norm = hdr.strip().lower()
+                if norm in db_set:
+                    mapping.append({"excel": hdr, "suggested_db": db_set[norm], "score": 1.0, "status": "exact"})
                 else:
                     mapping.append({"excel": hdr, "suggested_db": "", "score": 0, "status": "unmapped"})
 
-        return JsonResponse({
-            "success": True,
-            "excel_headers": excel_headers,
-            "db_columns": db_cols,
-            "mapping": mapping,
-            "row_count": len(pd.read_excel(io.BytesIO(raw), engine="openpyxl", nrows=0).columns),  # cheap
-            "total_rows": int(pd.read_excel(io.BytesIO(raw), engine="openpyxl").shape[0]),
-        })
+            yield _progress_line("done", 100, result={
+                "success": True,
+                "excel_headers": excel_headers,
+                "db_columns": db_cols,
+                "mapping": mapping,
+                "row_count": len(excel_headers),
+                "total_rows": total_rows,
+            })
+        except Exception as e:
+            traceback.print_exc()
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
 
-    except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({"success": False, "error": str(e)})
+    return StreamingHttpResponse(_stream(), content_type="text/plain")
 
 
 # ── Step 2 AJAX: preview + validate mapped data ──
@@ -5354,73 +5607,70 @@ def demand_upload_preview(request):
     """
     Accepts the confirmed mapping as JSON, applies it to the file stored in
     session, validates the first N rows, returns preview + errors.
+    Streams NDJSON progress lines for real-time frontend updates.
     """
-    try:
-        import io, base64
+    body = json.loads(request.body)
+    col_mapping = body.get("mapping", {})
+    preview_rows = int(body.get("preview_rows", 20))
 
-        body = json.loads(request.body)
-        col_mapping = body.get("mapping", {})  # {excel_header: db_column}
-        preview_rows = int(body.get("preview_rows", 20))
+    cache_key = request.session.get("_demand_cache_key")
+    if not cache_key:
+        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
 
-        b64 = request.session.get("_demand_file_b64")
-        if not b64:
-            return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+    def _stream():
+        try:
+            yield _progress_line("Loading cached data from disk", 10)
+            df = _load_df_from_cache(cache_key)
 
-        raw = base64.b64decode(b64)
-        df = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+            yield _progress_line("Applying column mapping", 30)
+            rename_map = {}
+            for excel_hdr, db_col in col_mapping.items():
+                if db_col and excel_hdr in df.columns:
+                    rename_map[excel_hdr] = db_col
+            df = df.rename(columns=rename_map)
+            db_cols = _get_demand_db_columns()
+            keep = [c for c in df.columns if c in db_cols]
+            df = df[keep]
 
-        # Apply mapping: rename Excel columns → DB columns, drop unmapped
-        rename_map = {}
-        for excel_hdr, db_col in col_mapping.items():
-            if db_col and excel_hdr in df.columns:
-                rename_map[excel_hdr] = db_col
-        df = df.rename(columns=rename_map)
-        # Keep only mapped columns that actually exist in db target
-        db_cols = _get_demand_db_columns()
-        keep = [c for c in df.columns if c in db_cols]
-        df = df[keep]
-
-        # Column metadata for validation
-        meta = _get_demand_column_meta()
-
-        errors = []
-        MAX_ERRORS = 30
-
-        for idx, row in df.head(preview_rows).iterrows():
-            for col in keep:
-                val = row[col]
-                m = meta.get(col, {})
-                # Required check
-                if not m.get("is_nullable", True) and (pd.isna(val) or str(val).strip() == ""):
-                    errors.append({"row": int(idx) + 2, "col": col, "msg": "Required field is empty"})
-                # Max length check
-                if m.get("max_length") and not pd.isna(val) and len(str(val)) > m["max_length"]:
-                    errors.append({"row": int(idx) + 2, "col": col,
-                                   "msg": f"Exceeds max length {m['max_length']} (got {len(str(val))})"})
+            yield _progress_line("Validating fields and data types", 55)
+            meta = _get_demand_column_meta()
+            errors = []
+            MAX_ERRORS = 30
+            for idx, row in df.head(preview_rows).iterrows():
+                for col in keep:
+                    val = row[col]
+                    m = meta.get(col, {})
+                    if not m.get("is_nullable", True) and (pd.isna(val) or str(val).strip() == ""):
+                        errors.append({"row": int(idx) + 2, "col": col, "msg": "Required field is empty"})
+                    if m.get("max_length") and not pd.isna(val) and len(str(val)) > m["max_length"]:
+                        errors.append({"row": int(idx) + 2, "col": col,
+                                       "msg": f"Exceeds max length {m['max_length']} (got {len(str(val))})"})
+                    if len(errors) >= MAX_ERRORS:
+                        break
                 if len(errors) >= MAX_ERRORS:
                     break
-            if len(errors) >= MAX_ERRORS:
-                break
 
-        # Build preview table (first preview_rows rows)
-        preview_df = df.head(preview_rows).copy()
-        preview_df = preview_df.where(pd.notnull(preview_df), None)
-        preview_data = []
-        for _, r in preview_df.iterrows():
-            preview_data.append({c: (str(r[c]) if r[c] is not None else "") for c in keep})
+            yield _progress_line("Building preview table", 80)
+            preview_df = df.head(preview_rows).copy()
+            preview_df = preview_df.where(pd.notnull(preview_df), None)
+            preview_data = []
+            for _, r in preview_df.iterrows():
+                preview_data.append({c: (str(r[c]) if r[c] is not None else "") for c in keep})
 
-        return JsonResponse({
-            "success": True,
-            "columns": keep,
-            "preview": preview_data,
-            "errors": errors[:MAX_ERRORS],
-            "total_rows": int(df.shape[0]),
-            "mapped_columns": len(keep),
-        })
+            yield _progress_line("done", 100, result={
+                "success": True,
+                "columns": keep,
+                "preview": preview_data,
+                "errors": errors[:MAX_ERRORS],
+                "total_rows": int(df.shape[0]),
+                "mapped_columns": len(keep),
+            })
 
-    except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({"success": False, "error": str(e)})
+        except Exception as e:
+            traceback.print_exc()
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
+
+    return StreamingHttpResponse(_stream(), content_type="text/plain")
 
 
 # ── Step 3 AJAX: confirm & execute (transactional) ──
@@ -5433,324 +5683,799 @@ def demand_upload_execute(request):
     single transaction:
       1. DELETE FROM dbo.demand
       2. Bulk-INSERT into dbo.demand
-      3. INSERT INTO dbo.demand_history SELECT … FROM dbo.demand
-      4. COMMIT (or ROLLBACK on error)
+      3. Remove CANCELLED rows
+      4. Remove non-EMEA rows
+      5. INSERT INTO dbo.demand_history SELECT … FROM dbo.demand
+      6. COMMIT (or ROLLBACK on error)
+    Streams NDJSON progress lines for real-time frontend updates.
     """
-    try:
-        import io, base64, time, sys
+    body = json.loads(request.body)
+    col_mapping = body.get("mapping", {})
+    uploaded_on = body.get("uploaded_on", "")
+
+    if not uploaded_on:
+        return JsonResponse({"success": False, "error": "UploadedOn date is required."})
+
+    cache_key = request.session.get("_demand_cache_key")
+    if not cache_key:
+        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+
+    def _stream():
+        import time, sys
         t0 = time.time()
+        try:
+            yield _progress_line("Loading cached data from disk", 5)
+            df = _load_df_from_cache(cache_key)
+            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Loaded from cache: {df.shape[0]} rows x {df.shape[1]} cols"); sys.stdout.flush()
 
-        body = json.loads(request.body)
-        col_mapping = body.get("mapping", {})
-        uploaded_on = body.get("uploaded_on", "")
+            yield _progress_line("Applying column mapping", 10)
+            rename_map = {}
+            for excel_hdr, db_col in col_mapping.items():
+                if db_col and excel_hdr in df.columns:
+                    rename_map[excel_hdr] = db_col
+            df = df.rename(columns=rename_map)
 
-        if not uploaded_on:
-            return JsonResponse({"success": False, "error": "UploadedOn date is required."})
+            db_cols = _get_demand_db_columns()
+            keep = [c for c in df.columns if c in db_cols]
+            df = df[keep]
 
-        b64 = request.session.get("_demand_file_b64")
-        if not b64:
-            return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+            # Get column type metadata to know which columns are DATE
+            meta = _get_demand_column_meta()
+            date_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("date", "datetime", "datetime2", "smalldatetime"))
+            float_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("float", "real", "decimal", "numeric", "money"))
+            int_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("int", "bigint", "smallint", "tinyint"))
 
-        raw = base64.b64decode(b64)
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Reading Excel file ({len(raw)/1024:.0f} KB)..."); sys.stdout.flush()
-        df = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Excel read complete: {df.shape[0]} rows x {df.shape[1]} cols"); sys.stdout.flush()
+            # ── Vectorized column-level conversion (much faster than per-cell) ──
+            yield _progress_line("Processing date columns", 15)
+            for col in date_cols:
+                if col in df.columns:
+                    df[col] = pd.to_datetime(df[col], errors='coerce', format='mixed', dayfirst=False)
 
-        # Apply mapping
-        rename_map = {}
-        for excel_hdr, db_col in col_mapping.items():
-            if db_col and excel_hdr in df.columns:
-                rename_map[excel_hdr] = db_col
-        df = df.rename(columns=rename_map)
+            yield _progress_line(f"Converting {df.shape[0]} rows to database types", 20)
 
-        db_cols = _get_demand_db_columns()
-        keep = [c for c in df.columns if c in db_cols]
-        df = df[keep]
+            # SQL Server integer type ranges
+            _INT_RANGES = {
+                "tinyint": (0, 255),
+                "smallint": (-32768, 32767),
+                "int": (-2147483648, 2147483647),
+                "bigint": (-9223372036854775808, 9223372036854775807),
+            }
 
-        # Get column type metadata to know which columns are DATE
-        meta = _get_demand_column_meta()
-        date_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("date", "datetime", "datetime2", "smalldatetime"))
-        float_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("float", "real", "decimal", "numeric", "money"))
-        int_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("int", "bigint", "smallint", "tinyint"))
-
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  date_cols = {date_cols}"); sys.stdout.flush()
-        print(f"[DEMAND UPLOAD] float_cols count = {len(float_cols)}, int_cols count = {len(int_cols)}")
-        print(f"[DEMAND UPLOAD] Total columns mapped: {len(keep)}, Total rows: {df.shape[0]}")
-
-        # ── Pre-process DATE columns in the DataFrame before conversion ──
-        # Convert date columns using pd.to_datetime first (handles Excel serial
-        # dates, timestamps, and many string formats), then to Python date objects.
-        for col in date_cols:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=False)
-
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Date pre-processing done"); sys.stdout.flush()
-
-        # Replace NaN / NaT with None
-        df = df.where(pd.notnull(df), None)
-
-        # ── Log sample of date values for debugging ──
-        for col in list(date_cols)[:3]:
-            if col in df.columns:
-                sample = df[col].head(5).tolist()
-                print(f"[DEMAND UPLOAD] Date col '{col}' sample after pd.to_datetime: {sample}")
-                print(f"[DEMAND UPLOAD] Date col '{col}' types: {[type(v).__name__ for v in sample]}")
-
-        # ── Cell converters ──
-        def _safe_date(val):
-            """Convert to Python datetime.date object, or None."""
-            if val is None or val is pd.NaT:
-                return None
-            if isinstance(val, pd.Timestamp):
-                return val.date() if not pd.isna(val) else None
-            if isinstance(val, datetime):
-                return val.date()
-            if hasattr(val, 'date') and callable(val.date):
-                return val.date()
-            # If it's still a string somehow, parse it
-            if isinstance(val, str):
-                s = val.strip()
-                if not s or s.lower() in ('nat', 'none', 'nan', '', '-'):
-                    return None
-                try:
-                    dt = pd.to_datetime(s, dayfirst=False, errors='coerce')
-                    if pd.notna(dt):
-                        return dt.date()
-                except Exception:
-                    pass
-                print(f"[DEMAND UPLOAD] WARNING: Could not parse date string: '{s}'")
-            # Numeric Excel serial date
-            if isinstance(val, (int, float)):
-                if math.isnan(val) or math.isinf(val):
-                    return None
-                try:
-                    dt = pd.to_datetime(val, unit='D', origin='1899-12-30', errors='coerce')
-                    if pd.notna(dt):
-                        return dt.date()
-                except Exception:
-                    pass
-            return None
-
-        def _safe_float(val):
-            if val is None or val is pd.NaT:
-                return None
-            if isinstance(val, (int, float)):
-                return None if (isinstance(val, float) and (math.isnan(val) or math.isinf(val))) else float(val)
-            if hasattr(val, 'item'):
-                v = val.item()
-                return None if (isinstance(v, float) and math.isnan(v)) else float(v)
-            s = str(val).strip()
-            if not s or s.lower() in ('nan', 'none', 'nat', '-', ''):
-                return None
-            try:
-                return float(s.replace(',', ''))
-            except (ValueError, TypeError):
-                return None
-
-        def _safe_int(val):
-            f = _safe_float(val)
-            return int(f) if f is not None else None
-
-        def _to_str(val):
-            """Coerce a non-date/float/int cell to plain str or None."""
-            if val is None or val is pd.NaT:
-                return None
-            if isinstance(val, float):
-                if math.isnan(val) or math.isinf(val):
-                    return None
-                # Drop .0 for whole-number floats (e.g. 4000716459.0 → "4000716459")
-                if val == int(val):
-                    return str(int(val))
-                return str(val)
-            if isinstance(val, pd.Timestamp):
-                return val.strftime('%Y-%m-%d') if not pd.isna(val) else None
-            if isinstance(val, datetime):
-                return val.strftime('%Y-%m-%d')
-            if hasattr(val, 'item'):
-                v = val.item()
-                if isinstance(v, float) and math.isnan(v):
-                    return None
-                if isinstance(v, float) and v == int(v):
-                    return str(int(v))
-                return str(v)
-            s = str(val).strip()
-            return s if s and s.lower() not in ('nan', 'none', 'nat') else None
-
-        def _convert_cell(col, val):
-            """Route to the right converter based on DB column type."""
-            if col in date_cols:
-                return _safe_date(val)
-            if col in float_cols:
-                return _safe_float(val)
-            if col in int_cols:
-                return _safe_int(val)
-            result = _to_str(val)
-            # Truncate strings that exceed the column's CHARACTER_MAXIMUM_LENGTH
-            if result is not None:
-                col_meta = meta.get(col, {})
-                max_len = col_meta.get("max_length")
-                # max_length is None for NVARCHAR(MAX), skip those
-                if max_len is not None and isinstance(max_len, int) and max_len > 0:
-                    if len(result) > max_len:
-                        result = result[:max_len]
-            return result
-
-        # Prepare rows – convert each cell based on its target DB column type
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Converting {df.shape[0]} rows..."); sys.stdout.flush()
-        truncated_values = []  # log values that were truncated
-        rows_data = []
-        bad_values = []  # log problematic conversions
-        for row_idx, row in enumerate(df.itertuples(index=False, name=None)):
-            converted = []
-            for col_idx, v in enumerate(row):
-                col = keep[col_idx]
-                raw_str = _to_str(v) if col not in date_cols and col not in float_cols and col not in int_cols else None
-                result = _convert_cell(col, v)
-                # Log if a string was truncated
-                if raw_str is not None and result is not None and len(raw_str) > len(result):
-                    if len(truncated_values) < 30:
-                        col_meta = meta.get(col, {})
-                        truncated_values.append(
-                            f"Row {row_idx+2}, col '{col}' (max_length={col_meta.get('max_length')}): "
-                            f"original len={len(raw_str)}, truncated to {len(result)}"
-                        )
-                # Log if a date column had a non-None raw value that became None
-                if col in date_cols and v is not None and result is None:
-                    raw_type = type(v).__name__
-                    if len(bad_values) < 20:
-                        bad_values.append(f"Row {row_idx+2}, col '{col}': raw={repr(v)} ({raw_type}) → None")
-                converted.append(result)
-            rows_data.append(tuple(converted))
-
-        if bad_values:
-            print(f"[DEMAND UPLOAD] WARNING: {len(bad_values)} date values could not be parsed:")
-            for msg in bad_values:
-                print(f"  {msg}")
-
-        if truncated_values:
-            print(f"[DEMAND UPLOAD] INFO: {len(truncated_values)} string values were truncated to fit column max_length:")
-            for msg in truncated_values:
-                print(f"  {msg}")
-
-        # Log types of first row for debugging
-        if rows_data:
-            first = rows_data[0]
-            type_map = {keep[i]: f"{type(first[i]).__name__}={repr(first[i])[:60]}" for i in range(len(keep))}
-            print(f"[DEMAND UPLOAD] First row types: { {k:v for k,v in list(type_map.items())[:10]} }")
-            # Log all date col types from first row
-            for i, col in enumerate(keep):
+            # Convert each column in bulk using pandas vectorized ops
+            for col in keep:
                 if col in date_cols:
-                    print(f"[DEMAND UPLOAD] Col '{col}' [date]: type={type(first[i]).__name__}, val={repr(first[i])}")
+                    # Convert Timestamps to Python date objects; NaT → None
+                    s = df[col]
+                    df[col] = s.apply(lambda v: v.date() if pd.notna(v) and isinstance(v, pd.Timestamp) else None)
+                elif col in float_cols:
+                    col_meta = meta.get(col, {})
+                    precision = col_meta.get("precision")
+                    scale = col_meta.get("scale")
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    if precision and col_meta.get("data_type", "").lower() in ("decimal", "numeric"):
+                        max_abs = 10 ** (precision - (scale or 0)) - 1
+                        def _safe_decimal(v, _max=max_abs, _scale=scale or 0):
+                            if not pd.notna(v):
+                                return None
+                            fv = float(v)
+                            if math.isinf(fv):
+                                return None
+                            if abs(fv) > _max:
+                                return None
+                            return round(fv, _scale)
+                        df[col] = df[col].apply(_safe_decimal)
+                    else:
+                        df[col] = df[col].apply(lambda v: float(v) if pd.notna(v) and not math.isinf(float(v)) else None)
+                elif col in int_cols:
+                    col_dtype = meta.get(col, {}).get("data_type", "int").lower()
+                    lo, hi = _INT_RANGES.get(col_dtype, _INT_RANGES["bigint"])
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    def _safe_int(v, _lo=lo, _hi=hi):
+                        if not pd.notna(v):
+                            return None
+                        iv = int(v)
+                        if iv < _lo or iv > _hi:
+                            return None
+                        return iv
+                    df[col] = df[col].apply(_safe_int)
+                else:
+                    # String column: convert to str, strip, truncate, None for blanks
+                    max_len = meta.get(col, {}).get("max_length")
+                    def _str_convert(v, _ml=max_len):
+                        if v is None:
+                            return None
+                        if isinstance(v, float):
+                            if math.isnan(v) or math.isinf(v):
+                                return None
+                            return str(int(v)) if v == int(v) else str(v)
+                        if isinstance(v, int):
+                            return str(v)
+                        if isinstance(v, pd.Timestamp):
+                            return v.strftime('%Y-%m-%d') if pd.notna(v) else None
+                        if isinstance(v, datetime):
+                            return v.strftime('%Y-%m-%d')
+                        s = str(v).strip()
+                        if not s or s.lower() in ('nan', 'none', 'nat'):
+                            return None
+                        if _ml is not None and isinstance(_ml, int) and _ml > 0 and len(s) > _ml:
+                            s = s[:_ml]
+                        return s
+                    df[col] = df[col].apply(_str_convert)
 
-        print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Row conversion complete ({len(rows_data)} rows ready)"); sys.stdout.flush()
+            # Convert DataFrame to list of tuples, sanitizing NaN/NaT → None
+            # df.values can re-introduce numpy.nan for float-dtype columns,
+            # so we must clean each value explicitly.
+            def _sanitize_row(row):
+                out = []
+                for v in row:
+                    if v is None:
+                        out.append(None)
+                    elif isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                        out.append(None)
+                    elif v is pd.NaT:
+                        out.append(None)
+                    elif hasattr(v, 'item'):
+                        # numpy scalar → Python native
+                        pv = v.item()
+                        out.append(None if (isinstance(pv, float) and (math.isnan(pv) or math.isinf(pv))) else pv)
+                    else:
+                        out.append(v)
+                return tuple(out)
 
-        # Build insert SQL — use CAST for date placeholders so SQL Server knows the type
-        col_names_sql = ", ".join(f"[{c}]" for c in keep)
-        placeholders = ", ".join(["?"] * len(keep))
-        insert_sql = f"INSERT INTO dbo.demand ({col_names_sql}) VALUES ({placeholders})"
-        print(f"[DEMAND UPLOAD] INSERT SQL (first 500 chars): {insert_sql[:500]}")
+            rows_data = [_sanitize_row(row) for row in df.values]
 
-        # Build demand_history INSERT … SELECT statement
-        # Use parameterized uploaded_on to avoid date format issues
-        # Convert uploaded_on string to datetime.date for proper pyodbc binding
-        try:
-            uploaded_on_date = pd.to_datetime(uploaded_on).date()
-        except Exception:
-            uploaded_on_date = uploaded_on  # fallback to string
-        print(f"[DEMAND UPLOAD] uploaded_on_date = {repr(uploaded_on_date)} (type={type(uploaded_on_date).__name__})")
+            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Row conversion complete ({len(rows_data)} rows ready)"); sys.stdout.flush()
 
-        # Query demand_history column sizes so we can LEFT()-truncate
-        # any varchar/nvarchar columns that are wider in demand than demand_history
-        history_meta = {}
-        with connection.cursor() as _mc:
-            _mc.execute("""
-                SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='demand_history'
-            """)
-            for _cn, _dt, _ml in _mc.fetchall():
-                history_meta[_cn] = {"data_type": _dt, "max_length": _ml}
+            yield _progress_line("Building SQL statements", 30)
+            col_names_sql = ", ".join(f"[{c}]" for c in keep)
+            placeholders = ", ".join(["?"] * len(keep))
+            insert_sql = f"INSERT INTO dbo.demand ({col_names_sql}) VALUES ({placeholders})"
 
-        # Build SELECT expressions: truncate strings if demand_history column is shorter
-        _insert_cols = []
-        _select_exprs = []
-        for c in DEMAND_COLUMNS:
-            _insert_cols.append(f"[{c}]")
-            h = history_meta.get(c)
-            if (h and h["data_type"] in ("varchar", "nvarchar", "char", "nchar")
-                    and h["max_length"] is not None and h["max_length"] > 0):
-                _select_exprs.append(f"LEFT([{c}], {h['max_length']})")
-            else:
-                _select_exprs.append(f"[{c}]")
+            try:
+                uploaded_on_date = pd.to_datetime(uploaded_on).date()
+            except Exception:
+                uploaded_on_date = uploaded_on
 
-        history_insert_cols = ", ".join(_insert_cols)
-        history_select_exprs = ", ".join(_select_exprs)
-        history_sql = (
-            f"INSERT INTO dbo.demand_history ([UploadedOn], {history_insert_cols}) "
-            f"SELECT ? AS UploadedOn, {history_select_exprs} FROM dbo.demand"
-        )
+            history_meta = {}
+            with connection.cursor() as _mc:
+                _mc.execute("""
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='demand_history'
+                """)
+                for _cn, _dt, _ml in _mc.fetchall():
+                    history_meta[_cn] = {"data_type": _dt, "max_length": _ml}
 
-        # Execute inside a transaction
-        raw_conn = connection.connection
-        if raw_conn is None:
-            connection.ensure_connection()
+            _insert_cols = []
+            _select_exprs = []
+            for c in DEMAND_COLUMNS:
+                _insert_cols.append(f"[{c}]")
+                h = history_meta.get(c)
+                if (h and h["data_type"] in ("varchar", "nvarchar", "char", "nchar")
+                        and h["max_length"] is not None and h["max_length"] > 0):
+                    _select_exprs.append(f"LEFT([{c}], {h['max_length']})")
+                else:
+                    _select_exprs.append(f"[{c}]")
+
+            history_insert_cols = ", ".join(_insert_cols)
+            history_select_exprs = ", ".join(_select_exprs)
+            history_sql = (
+                f"INSERT INTO dbo.demand_history ([UploadedOn], {history_insert_cols}) "
+                f"SELECT ? AS UploadedOn, {history_select_exprs} FROM dbo.demand"
+            )
+
+            # Execute inside a transaction
             raw_conn = connection.connection
-        old_autocommit = raw_conn.autocommit
-        raw_conn.autocommit = False
-        cursor = raw_conn.cursor()
+            if raw_conn is None:
+                connection.ensure_connection()
+                raw_conn = connection.connection
+            old_autocommit = raw_conn.autocommit
+            raw_conn.autocommit = False
+            cursor = raw_conn.cursor()
 
-        try:
-            cursor.execute("SET XACT_ABORT ON")
+            try:
+                cursor.execute("SET XACT_ABORT ON")
 
-            # 1. DELETE existing demand data
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Deleting existing demand rows..."); sys.stdout.flush()
-            cursor.execute("DELETE FROM dbo.demand")
-            deleted = cursor.rowcount
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Deleted {deleted} rows from dbo.demand"); sys.stdout.flush()
+                # 1. DELETE existing demand data
+                yield _progress_line("Deleting existing demand data", 35)
+                cursor.execute("DELETE FROM dbo.demand")
+                deleted = cursor.rowcount
+                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Deleted {deleted} rows from dbo.demand"); sys.stdout.flush()
 
-            # 2. Batch INSERT using fast_executemany for performance
-            cursor.fast_executemany = True
-            BATCH = 1000
-            inserted = 0
-            total_batches = (len(rows_data) + BATCH - 1) // BATCH
-            for start in range(0, len(rows_data), BATCH):
-                batch = rows_data[start:start + BATCH]
-                cursor.executemany(insert_sql, batch)
-                inserted += len(batch)
-                batch_num = start // BATCH + 1
-                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Batch {batch_num}/{total_batches} done ({inserted}/{len(rows_data)} rows)"); sys.stdout.flush()
+                # 2. Batch INSERT
+                cursor.fast_executemany = True
+                BATCH = 10000
+                inserted = 0
+                total_batches = (len(rows_data) + BATCH - 1) // BATCH
+                # Reserve pct 40-70 for batch inserts
+                for start in range(0, len(rows_data), BATCH):
+                    batch = rows_data[start:start + BATCH]
+                    try:
+                        cursor.executemany(insert_sql, batch)
+                    except pyodbc.DataError as batch_err:
+                        # Fallback: insert row-by-row to find the exact bad row
+                        print(f"[DEMAND UPLOAD] Batch {start//BATCH+1} failed: {batch_err}. Inserting row-by-row to find bad data..."); sys.stdout.flush()
+                        for row_offset, single_row in enumerate(batch):
+                            try:
+                                cursor.execute(insert_sql, single_row)
+                            except pyodbc.DataError as row_err:
+                                row_num = start + row_offset + 2  # +2 for 1-based + header
+                                # Log the problematic values
+                                for ci, cv in enumerate(single_row):
+                                    if cv is not None:
+                                        col_name = keep[ci]
+                                        col_meta = meta.get(col_name, {})
+                                        print(f"  Row {row_num}, [{col_name}] ({col_meta.get('data_type')}): {repr(cv)[:80]}")
+                                raise pyodbc.DataError(row_err.args[0], f"Row {row_num}: {row_err.args[1]}") from row_err
+                    inserted += len(batch)
+                    batch_num = start // BATCH + 1
+                    # Scale pct from 40 to 70 based on batch progress
+                    batch_pct = 40 + int(30 * inserted / len(rows_data))
+                    yield _progress_line(
+                        f"Inserting rows: batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)} rows)",
+                        batch_pct
+                    )
+                    print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Batch {batch_num}/{total_batches} done ({inserted}/{len(rows_data)} rows)"); sys.stdout.flush()
 
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  INSERT complete: {inserted} rows into dbo.demand"); sys.stdout.flush()
+                # 3. Remove CANCELLED rows
+                yield _progress_line("Removing CANCELLED rows from demand", 75)
+                cursor.execute("DELETE FROM dbo.demand WHERE LTRIM(RTRIM([SO Line Status])) = 'CANCELLED'")
+                cancelled_deleted = cursor.rowcount
+                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Removed {cancelled_deleted} CANCELLED rows"); sys.stdout.flush()
 
-            # 3. Copy demand → demand_history with UploadedOn (parameterized)
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Copying to demand_history..."); sys.stdout.flush()
-            cursor.execute(history_sql, [uploaded_on_date])
-            history_count = cursor.rowcount
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Copied {history_count} rows to demand_history"); sys.stdout.flush()
+                # 4. Keep only EMEA
+                yield _progress_line("Filtering to EMEA market only", 80)
+                cursor.execute("DELETE FROM dbo.demand WHERE LTRIM(RTRIM([Market])) != 'EMEA' OR [Market] IS NULL")
+                non_emea_deleted = cursor.rowcount
+                remaining = inserted - cancelled_deleted - non_emea_deleted
+                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Removed {non_emea_deleted} non-EMEA rows, {remaining} remain"); sys.stdout.flush()
 
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Committing transaction..."); sys.stdout.flush()
-            raw_conn.commit()
-            print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  COMMITTED. Total time: {time.time()-t0:.1f}s"); sys.stdout.flush()
+                # 5. Fix account name before history
+                cursor.execute("UPDATE dbo.demand SET [Account Name] = 'SIA Tele2' WHERE [Account Name] = 'SIA \"Tele2\"'")
 
-            # Cleanup session
-            request.session.pop("_demand_file_b64", None)
-            request.session.pop("_demand_uploaded_on", None)
+                # 6. Copy to history
+                yield _progress_line("Copying demand data to history table", 85)
+                cursor.execute(history_sql, [uploaded_on_date])
+                history_count = cursor.rowcount
+                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Copied {history_count} rows to demand_history"); sys.stdout.flush()
 
-            return JsonResponse({
-                "success": True,
-                "deleted": deleted,
-                "inserted": inserted,
-                "history_inserted": history_count,
-                "message": f"Upload complete. {inserted} rows inserted into demand, {history_count} rows copied to demand_history.",
-            })
+                # 6. Commit
+                yield _progress_line("Committing transaction", 95)
+                raw_conn.commit()
+                print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  COMMITTED. Total time: {time.time()-t0:.1f}s"); sys.stdout.flush()
+
+                # Cleanup session and temp file
+                _remove_cache(request.session.pop("_demand_cache_key", None))
+                request.session.pop("_demand_uploaded_on", None)
+                request.session.save()
+
+                yield _progress_line("done", 100, result={
+                    "success": True,
+                    "deleted": deleted,
+                    "inserted": inserted,
+                    "cancelled_removed": cancelled_deleted,
+                    "non_emea_removed": non_emea_deleted,
+                    "remaining_in_demand": remaining,
+                    "history_inserted": history_count,
+                    "message": (
+                        f"Upload complete. {inserted} rows inserted, "
+                        f"{cancelled_deleted} CANCELLED rows removed, "
+                        f"{non_emea_deleted} non-EMEA rows removed, "
+                        f"{remaining} rows remain in demand, "
+                        f"{history_count} rows copied to demand_history."
+                    ),
+                })
+
+            except Exception as e:
+                raw_conn.rollback()
+                traceback.print_exc()
+                yield _progress_line("done", 100, result={"success": False, "error": f"Transaction rolled back: {str(e)}"})
+            finally:
+                raw_conn.autocommit = old_autocommit
 
         except Exception as e:
-            raw_conn.rollback()
             traceback.print_exc()
-            return JsonResponse({"success": False, "error": f"Transaction rolled back: {str(e)}"})
-        finally:
-            raw_conn.autocommit = old_autocommit
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
 
-    except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({"success": False, "error": str(e)})
+    return StreamingHttpResponse(_stream(), content_type="text/plain")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Upload Selector Page
+# ════════════════════════════════════════════════════════════════════════════
+
+def upload_selector_page(request):
+    """Render the upload type selector (Demand vs Proposal)."""
+    return render(request, "visualize/upload_selector.html", {
+        "plot_label": "Data Upload",
+    })
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Proposal Upload
+# ════════════════════════════════════════════════════════════════════════════
+
+PROPOSAL_COLUMNS = [
+    "Release ID", "SO ID", "SO UniqueID", "PE SO Status", "SO Grade",
+    "SO Country", "SO State", "SO City", "TMP SO Pool Practice Name",
+    "SO Vertical", "SO Department ID", "SO Department Name",
+    "SO Pool Department ID", "SO Pool Department Name", "SO Dept",
+    "SO Start Date", "SO Creation Date", "SO Status", "SO Cancelled Date",
+    "SO Closed Date", "Account ID", "Account", "SO Parent Customer Id",
+    "Busines Unit Code", "Busines Unit Name", "Releasing Project Vertical",
+    "Hiring Manager Id", "Hiring Manager Name", "Associate Id",
+    "Associate Name", "Associate IRise Status", "Associate Current Grade",
+    "Job Code", "Current Location", "Proposal Type", "Proposed By Id",
+    "Proposed By Name", "Proposed On", "Richness Index during proposal",
+    "Blue Ring Status during proposal", "Skill Match Remarks", "Comments",
+    "Rejection Feedback", "Feedback GivenBy Id",
+    "Rejection Feedback given by(TSC/HM)", "Feedback Date", "Average Rating",
+    "Feedback Date2", "Interview Id", "Proposed From", "Proposal Status",
+    "IJM Allocation", "Country", "IsCrossBuProposal", "SOacceptedbyPOCId",
+    "SOacceptedbyPOCName", "Latest Richness Index %",
+    "Allocation initiated by", "Allocation auto approved",
+    "Associate releasing practice", "Associate Consent Given Date",
+    "Associate Consent Status", "Associate Released country",
+    "Is Cross Country Proposal", "Algorator Score during proposal",
+    "Latest Algorator Score", "SO Priority", "MU Priority", "Action Date",
+    "Interview required by Customer (Y/N)", "Ageing", "Ageing Range",
+    "Ageing Range Bucket", "SO Billability", "Billability Start Date",
+    "Billability Month", "Project Type", "Project Billability Type",
+    "Region (SO)", "RI %", "Flagged for Recruitment", "Market",
+    "BU (Prism)", "BusinessUnit Desc (Prism)", "SBU (Prism)",
+    "SO Department (Prism)", "Parent Customer", "Practice", "Service Line",
+    "Vertical Grouping", "New Market", "Market Org", "Off/On (Market)",
+    "TD Classification", "Past Due Demand", "Req Month", "BU_New",
+    "Focus Accounts", "True Demand", "Requirement Qtr", "Off/On/Nearshore",
+    "Open SO/RR Ageing Group", "SO Work Model", "Project Classification",
+    "Dept Classification", "PD Status group", "Actioned Status",
+]
+
+PROPOSAL_DATE_COLUMNS = [
+    "SO Start Date", "SO Cancelled Date", "SO Closed Date",
+    "Feedback Date", "Feedback Date2", "Associate Consent Given Date",
+    "Action Date", "SONoteUpdatedDate", "Billability Start Date",
+]
+
+
+def _get_proposal_db_columns():
+    """Fetch actual column names from dbo.proposal_base via INFORMATION_SCHEMA."""
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
+            "WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='proposal_base' ORDER BY ORDINAL_POSITION"
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+def _get_proposal_column_meta():
+    """Return dict of column_name -> {data_type, max_length, is_nullable, precision, scale} for proposal_base."""
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT COLUMN_NAME, DATA_TYPE,
+                   CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE,
+                   NUMERIC_PRECISION, NUMERIC_SCALE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='proposal_base'
+        """)
+        meta = {}
+        for name, dtype, maxlen, nullable, precision, scale in cur.fetchall():
+            meta[name] = {
+                "data_type": dtype,
+                "max_length": maxlen,
+                "is_nullable": nullable == "YES",
+                "precision": precision,
+                "scale": scale,
+            }
+        return meta
+
+
+def _preprocess_proposal_df(df, on_progress=None):
+    """Preprocess proposal DataFrame: convert date columns only."""
+    emit = on_progress or (lambda stage, pct: None)
+    emit("Converting date columns to Short Date format", 30)
+    col_lookup = {c.strip().lower(): c for c in df.columns}
+    for date_col_name in PROPOSAL_DATE_COLUMNS:
+        actual_col = col_lookup.get(date_col_name.strip().lower())
+        if actual_col and actual_col in df.columns:
+            df[actual_col] = pd.to_datetime(df[actual_col], errors='coerce')
+    return df
+
+
+# ── Proposal: render wizard page ──
+
+def proposal_upload_page(request):
+    """Render the proposal upload wizard."""
+    return render(request, "visualize/proposal_upload.html", {
+        "plot_label": "Proposal Upload",
+    })
+
+
+# ── Proposal Step 1: upload file + header mapping ──
+
+@csrf_exempt
+@require_POST
+def proposal_upload_file(request):
+    """Upload .xlsx, preprocess dates, return header mapping. Streams NDJSON progress."""
+    f = request.FILES.get("file")
+    if not f:
+        return JsonResponse({"success": False, "error": "No file uploaded."})
+    if not f.name.lower().endswith(".xlsx"):
+        return JsonResponse({"success": False, "error": "Only .xlsx files are accepted."})
+    if f.size > 100 * 1024 * 1024:
+        return JsonResponse({"success": False, "error": "File exceeds 100 MB limit."})
+
+    uploaded_on = request.POST.get("uploaded_on", "")
+    raw = f.read()
+
+    def _stream():
+        import io, base64
+        try:
+            yield _progress_line("Uploading file to server", 5)
+
+            yield _progress_line("Reading Excel file", 15)
+            df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+            total_rows = int(df_full.shape[0])
+
+            progress_lines = []
+            def _on_preprocess(stage, pct):
+                progress_lines.append(_progress_line(stage, pct))
+            df_full = _preprocess_proposal_df(df_full, on_progress=_on_preprocess)
+            for line in progress_lines:
+                yield line
+
+            yield _progress_line("Caching preprocessed data to disk", 60)
+            cache_key = _save_df_to_cache(df_full)
+            request.session["_proposal_cache_key"] = cache_key
+            request.session["_proposal_uploaded_on"] = uploaded_on
+            request.session.save()
+
+            yield _progress_line("Matching columns to database schema", 80)
+            excel_headers = df_full.columns.tolist()
+            db_cols = _get_proposal_db_columns()
+            db_set = {c.strip().lower(): c for c in db_cols}
+
+            mapping = []
+            for hdr in excel_headers:
+                norm = hdr.strip().lower()
+                if norm in db_set:
+                    mapping.append({"excel": hdr, "suggested_db": db_set[norm], "score": 1.0, "status": "exact"})
+                else:
+                    mapping.append({"excel": hdr, "suggested_db": "", "score": 0, "status": "unmapped"})
+
+            yield _progress_line("done", 100, result={
+                "success": True,
+                "excel_headers": excel_headers,
+                "db_columns": db_cols,
+                "mapping": mapping,
+                "row_count": len(excel_headers),
+                "total_rows": total_rows,
+            })
+        except Exception as e:
+            traceback.print_exc()
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
+
+    return StreamingHttpResponse(_stream(), content_type="text/plain")
+
+
+# ── Proposal Step 2: preview + validate ──
+
+@csrf_exempt
+@require_POST
+def proposal_upload_preview(request):
+    """Apply mapping, validate, return preview. Streams NDJSON progress."""
+    body = json.loads(request.body)
+    col_mapping = body.get("mapping", {})
+    preview_rows = int(body.get("preview_rows", 20))
+
+    cache_key = request.session.get("_proposal_cache_key")
+    if not cache_key:
+        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+
+    def _stream():
+        try:
+            yield _progress_line("Loading cached data from disk", 10)
+            df = _load_df_from_cache(cache_key)
+
+            yield _progress_line("Applying column mapping", 30)
+            rename_map = {}
+            for excel_hdr, db_col in col_mapping.items():
+                if db_col and excel_hdr in df.columns:
+                    rename_map[excel_hdr] = db_col
+            df = df.rename(columns=rename_map)
+            db_cols = _get_proposal_db_columns()
+            keep = [c for c in df.columns if c in db_cols]
+            df = df[keep]
+
+            yield _progress_line("Validating fields and data types", 55)
+            meta = _get_proposal_column_meta()
+            errors = []
+            MAX_ERRORS = 30
+            for idx, row in df.head(preview_rows).iterrows():
+                for col in keep:
+                    val = row[col]
+                    m = meta.get(col, {})
+                    if not m.get("is_nullable", True) and (pd.isna(val) or str(val).strip() == ""):
+                        errors.append({"row": int(idx) + 2, "col": col, "msg": "Required field is empty"})
+                    if m.get("max_length") and not pd.isna(val) and len(str(val)) > m["max_length"]:
+                        errors.append({"row": int(idx) + 2, "col": col,
+                                       "msg": f"Exceeds max length {m['max_length']} (got {len(str(val))})"})
+                    if len(errors) >= MAX_ERRORS:
+                        break
+                if len(errors) >= MAX_ERRORS:
+                    break
+
+            yield _progress_line("Building preview table", 80)
+            preview_df = df.head(preview_rows).copy()
+            preview_df = preview_df.where(pd.notnull(preview_df), None)
+            preview_data = []
+            for _, r in preview_df.iterrows():
+                preview_data.append({c: (str(r[c]) if r[c] is not None else "") for c in keep})
+
+            yield _progress_line("done", 100, result={
+                "success": True,
+                "columns": keep,
+                "preview": preview_data,
+                "errors": errors[:MAX_ERRORS],
+                "total_rows": int(df.shape[0]),
+                "mapped_columns": len(keep),
+            })
+        except Exception as e:
+            traceback.print_exc()
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
+
+    return StreamingHttpResponse(_stream(), content_type="text/plain")
+
+
+# ── Proposal Step 3: execute (transactional) ──
+
+@csrf_exempt
+@require_POST
+def proposal_upload_execute(request):
+    """
+    Final step for proposal upload:
+      1. DELETE FROM dbo.proposal_base
+      2. Bulk-INSERT into dbo.proposal_base
+      3. INSERT INTO dbo.proposal_base_history SELECT … FROM dbo.proposal_base
+      4. COMMIT
+    Streams NDJSON progress.
+    """
+    body = json.loads(request.body)
+    col_mapping = body.get("mapping", {})
+    uploaded_on = body.get("uploaded_on", "")
+
+    if not uploaded_on:
+        return JsonResponse({"success": False, "error": "UploadedOn date is required."})
+
+    cache_key = request.session.get("_proposal_cache_key")
+    if not cache_key:
+        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+
+    def _stream():
+        import time, sys
+        t0 = time.time()
+        try:
+            yield _progress_line("Loading cached data from disk", 5)
+            df = _load_df_from_cache(cache_key)
+            print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  Loaded from cache: {df.shape[0]} rows x {df.shape[1]} cols"); sys.stdout.flush()
+
+            yield _progress_line("Applying column mapping", 10)
+            rename_map = {}
+            for excel_hdr, db_col in col_mapping.items():
+                if db_col and excel_hdr in df.columns:
+                    rename_map[excel_hdr] = db_col
+            df = df.rename(columns=rename_map)
+
+            db_cols = _get_proposal_db_columns()
+            keep = [c for c in df.columns if c in db_cols]
+            df = df[keep]
+
+            meta = _get_proposal_column_meta()
+            date_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("date", "datetime", "datetime2", "smalldatetime"))
+            float_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("float", "real", "decimal", "numeric", "money"))
+            int_cols = set(c for c in keep if meta.get(c, {}).get("data_type", "").lower() in ("int", "bigint", "smallint", "tinyint"))
+
+            # ── Vectorized column-level conversion (much faster than per-cell) ──
+            yield _progress_line("Processing date columns", 15)
+            for col in date_cols:
+                if col in df.columns:
+                    df[col] = pd.to_datetime(df[col], errors='coerce', format='mixed', dayfirst=False)
+
+            yield _progress_line(f"Converting {df.shape[0]} rows to database types", 20)
+
+            # SQL Server integer type ranges
+            _INT_RANGES = {
+                "tinyint": (0, 255),
+                "smallint": (-32768, 32767),
+                "int": (-2147483648, 2147483647),
+                "bigint": (-9223372036854775808, 9223372036854775807),
+            }
+
+            for col in keep:
+                if col in date_cols:
+                    s = df[col]
+                    df[col] = s.apply(lambda v: v.date() if pd.notna(v) and isinstance(v, pd.Timestamp) else None)
+                elif col in float_cols:
+                    col_meta = meta.get(col, {})
+                    precision = col_meta.get("precision")
+                    scale = col_meta.get("scale")
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    if precision and col_meta.get("data_type", "").lower() in ("decimal", "numeric"):
+                        max_abs = 10 ** (precision - (scale or 0)) - 1
+                        def _safe_decimal(v, _max=max_abs, _scale=scale or 0):
+                            if not pd.notna(v):
+                                return None
+                            fv = float(v)
+                            if math.isinf(fv):
+                                return None
+                            if abs(fv) > _max:
+                                return None
+                            return round(fv, _scale)
+                        df[col] = df[col].apply(_safe_decimal)
+                    else:
+                        df[col] = df[col].apply(lambda v: float(v) if pd.notna(v) and not math.isinf(float(v)) else None)
+                elif col in int_cols:
+                    col_dtype = meta.get(col, {}).get("data_type", "int").lower()
+                    lo, hi = _INT_RANGES.get(col_dtype, _INT_RANGES["bigint"])
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    def _safe_int(v, _lo=lo, _hi=hi):
+                        if not pd.notna(v):
+                            return None
+                        iv = int(v)
+                        if iv < _lo or iv > _hi:
+                            return None
+                        return iv
+                    df[col] = df[col].apply(_safe_int)
+                else:
+                    max_len = meta.get(col, {}).get("max_length")
+                    def _str_convert(v, _ml=max_len):
+                        if v is None:
+                            return None
+                        if isinstance(v, float):
+                            if math.isnan(v) or math.isinf(v):
+                                return None
+                            return str(int(v)) if v == int(v) else str(v)
+                        if isinstance(v, int):
+                            return str(v)
+                        if isinstance(v, pd.Timestamp):
+                            return v.strftime('%Y-%m-%d') if pd.notna(v) else None
+                        if isinstance(v, datetime):
+                            return v.strftime('%Y-%m-%d')
+                        s = str(v).strip()
+                        if not s or s.lower() in ('nan', 'none', 'nat'):
+                            return None
+                        if _ml is not None and isinstance(_ml, int) and _ml > 0 and len(s) > _ml:
+                            s = s[:_ml]
+                        return s
+                    df[col] = df[col].apply(_str_convert)
+
+            # Convert DataFrame to list of tuples, sanitizing NaN/NaT → None
+            def _sanitize_row(row):
+                out = []
+                for v in row:
+                    if v is None:
+                        out.append(None)
+                    elif isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                        out.append(None)
+                    elif v is pd.NaT:
+                        out.append(None)
+                    elif hasattr(v, 'item'):
+                        pv = v.item()
+                        out.append(None if (isinstance(pv, float) and (math.isnan(pv) or math.isinf(pv))) else pv)
+                    else:
+                        out.append(v)
+                return tuple(out)
+
+            rows_data = [_sanitize_row(row) for row in df.values]
+
+            yield _progress_line("Building SQL statements", 30)
+            col_names_sql = ", ".join(f"[{c}]" for c in keep)
+            placeholders = ", ".join(["?"] * len(keep))
+            insert_sql = f"INSERT INTO dbo.proposal_base ({col_names_sql}) VALUES ({placeholders})"
+
+            try:
+                uploaded_on_date = pd.to_datetime(uploaded_on).date()
+            except Exception:
+                uploaded_on_date = uploaded_on
+
+            # Build history INSERT … SELECT
+            history_meta = {}
+            with connection.cursor() as _mc:
+                _mc.execute("""
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='proposal_base_history'
+                """)
+                for _cn, _dt, _ml in _mc.fetchall():
+                    history_meta[_cn] = {"data_type": _dt, "max_length": _ml}
+
+            _insert_cols = []
+            _select_exprs = []
+            for c in PROPOSAL_COLUMNS:
+                _insert_cols.append(f"[{c}]")
+                h = history_meta.get(c)
+                if (h and h["data_type"] in ("varchar", "nvarchar", "char", "nchar")
+                        and h["max_length"] is not None and h["max_length"] > 0):
+                    _select_exprs.append(f"LEFT([{c}], {h['max_length']})")
+                else:
+                    _select_exprs.append(f"[{c}]")
+
+            history_insert_cols = ", ".join(_insert_cols)
+            history_select_exprs = ", ".join(_select_exprs)
+            history_sql = (
+                f"INSERT INTO dbo.proposal_base_history ([UploadedOn], {history_insert_cols}) "
+                f"SELECT ? AS UploadedOn, {history_select_exprs} FROM dbo.proposal_base"
+            )
+
+            # Execute inside a transaction
+            raw_conn = connection.connection
+            if raw_conn is None:
+                connection.ensure_connection()
+                raw_conn = connection.connection
+            old_autocommit = raw_conn.autocommit
+            raw_conn.autocommit = False
+            cursor = raw_conn.cursor()
+
+            try:
+                cursor.execute("SET XACT_ABORT ON")
+
+                # 1. DELETE existing proposal_base data
+                yield _progress_line("Deleting existing proposal data", 38)
+                cursor.execute("DELETE FROM dbo.proposal_base")
+                deleted = cursor.rowcount
+                print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  Deleted {deleted} rows"); sys.stdout.flush()
+
+                # 2. Batch INSERT
+                cursor.fast_executemany = True
+                BATCH = 10000
+                inserted = 0
+                total_batches = (len(rows_data) + BATCH - 1) // BATCH
+                for start in range(0, len(rows_data), BATCH):
+                    batch = rows_data[start:start + BATCH]
+                    cursor.executemany(insert_sql, batch)
+                    inserted += len(batch)
+                    batch_num = start // BATCH + 1
+                    batch_pct = 42 + int(35 * inserted / len(rows_data))
+                    yield _progress_line(
+                        f"Inserting rows: batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)} rows)",
+                        batch_pct
+                    )
+
+                # 3. Copy to history
+                yield _progress_line("Copying proposal data to history table", 82)
+                cursor.execute(history_sql, [uploaded_on_date])
+                history_count = cursor.rowcount
+                print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  Copied {history_count} rows to history"); sys.stdout.flush()
+
+                # 4. Commit
+                yield _progress_line("Committing transaction", 94)
+                raw_conn.commit()
+                print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  COMMITTED. Total time: {time.time()-t0:.1f}s"); sys.stdout.flush()
+
+                _remove_cache(request.session.pop("_proposal_cache_key", None))
+                request.session.pop("_proposal_uploaded_on", None)
+                request.session.save()
+
+                yield _progress_line("done", 100, result={
+                    "success": True,
+                    "deleted": deleted,
+                    "inserted": inserted,
+                    "history_inserted": history_count,
+                    "message": (
+                        f"Upload complete. {inserted} rows inserted into proposal_base, "
+                        f"{history_count} rows copied to proposal_base_history."
+                    ),
+                })
+
+            except Exception as e:
+                raw_conn.rollback()
+                traceback.print_exc()
+                yield _progress_line("done", 100, result={"success": False, "error": f"Transaction rolled back: {str(e)}"})
+            finally:
+                raw_conn.autocommit = old_autocommit
+
+        except Exception as e:
+            traceback.print_exc()
+            yield _progress_line("done", 100, result={"success": False, "error": str(e)})
+
+    return StreamingHttpResponse(_stream(), content_type="text/plain")

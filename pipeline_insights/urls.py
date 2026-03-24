@@ -23,8 +23,8 @@ from django.conf import settings
 url_prefix = "GGMPipelineInsights/"
 urlpatterns = [
     #  path('', views.home, name='home'),      
-    # Default: when visiting /GGMPipelineInsights/ show the pipeline summary page
-    path(url_prefix, views.demand_upload_page, name='demand_upload_page'),
+    # Default: when visiting /GGMPipelineInsights/ show the upload selector page
+    path(url_prefix, views.upload_selector_page, name='home'),
     # Explicit dashboard route so clicking 'Dashboard' navigates to the dashboard page
     path(url_prefix + 'dashboard/', views.show_dashboard, name="show_dashboard"),
      path(url_prefix+'AjaxCallForDashBoard/', views.AjaxCallForDashBoard, name="AjaxCallForDashBoard"),
@@ -54,11 +54,20 @@ urlpatterns = [
      path(url_prefix + 'pipeline_vs_demand/AjaxCallForDemandsReqStartDate/', views.AjaxCallForDemandsReqStartDate, name='AjaxCallForDemandsReqStartDate'),
      path(url_prefix + 'pipeline_vs_demand/AjaxCallForSunburstData/', views.AjaxCallForSunburstData, name='AjaxCallForSunburstData'),
 
+     # Upload selector (Demand vs Proposal)
+     path(url_prefix + 'demand_upload/', views.upload_selector_page, name='upload_selector_page'),
+
      # Demand Upload wizard
-     path(url_prefix + 'demand_upload/', views.demand_upload_page, name='demand_upload_page'),
+     path(url_prefix + 'demand_upload/demand/', views.demand_upload_page, name='demand_upload_page'),
      path(url_prefix + 'demand_upload/upload_file/', views.demand_upload_file, name='demand_upload_file'),
      path(url_prefix + 'demand_upload/preview/', views.demand_upload_preview, name='demand_upload_preview'),
      path(url_prefix + 'demand_upload/execute/', views.demand_upload_execute, name='demand_upload_execute'),
+
+     # Proposal Upload wizard
+     path(url_prefix + 'demand_upload/proposal/', views.proposal_upload_page, name='proposal_upload_page'),
+     path(url_prefix + 'demand_upload/proposal/upload_file/', views.proposal_upload_file, name='proposal_upload_file'),
+     path(url_prefix + 'demand_upload/proposal/preview/', views.proposal_upload_preview, name='proposal_upload_preview'),
+     path(url_prefix + 'demand_upload/proposal/execute/', views.proposal_upload_execute, name='proposal_upload_execute'),
 
 ]+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

@@ -463,11 +463,11 @@
       <div class="du-card">
         <h3>
           <i class="fas fa-cloud-upload-alt" style="color: #4a9eff"></i> Upload
-          Demand File
+          Proposal File
         </h3>
         <p>
           Select an <b>.xlsx</b> file and choose the <b>UploadedOn</b> date that
-          will be stamped on every row in demand_history.
+          will be stamped on every row in proposal_base_history.
         </p>
 
         <div
@@ -808,7 +808,7 @@
       fd.append("file", selectedFile);
       fd.append("uploaded_on", uploadedOn);
 
-      streamFetch(prefix + "demand_upload/upload_file/", {
+      streamFetch(prefix + "demand_upload/proposal/upload_file/", {
         method: "POST",
         headers: { "X-CSRFToken": csrfToken },
         body: fd,
@@ -901,7 +901,7 @@
       }
 
       showOverlay("Validating Mapped Data");
-      streamFetch(prefix + "demand_upload/preview/", {
+      streamFetch(prefix + "demand_upload/proposal/preview/", {
         method: "POST",
         headers: {
           "X-CSRFToken": csrfToken,
@@ -975,14 +975,14 @@
       const uploadedOn = document.getElementById("duUploadedOn").value;
       if (
         !confirm(
-          `⚠️ This will DELETE all rows from dbo.demand, insert the new data, ` +
-            `and copy to dbo.demand_history with UploadedOn = ${uploadedOn}.\n\nProceed?`,
+          `⚠️ This will DELETE all rows from dbo.proposal_base, insert the new data, ` +
+            `and copy to dbo.proposal_base_history with UploadedOn = ${uploadedOn}.\n\nProceed?`,
         )
       )
         return;
 
       showOverlay("Executing Upload Transaction");
-      streamFetch(prefix + "demand_upload/execute/", {
+      streamFetch(prefix + "demand_upload/proposal/execute/", {
         method: "POST",
         headers: {
           "X-CSRFToken": csrfToken,
@@ -1003,9 +1003,6 @@
               <div class="du-stats" style="margin-top:10px">
                 <div class="du-stat"><b>${data.deleted}</b> old rows deleted</div>
                 <div class="du-stat"><b>${data.inserted}</b> rows inserted</div>
-                <div class="du-stat"><b>${data.cancelled_removed || 0}</b> CANCELLED removed</div>
-                <div class="du-stat"><b>${data.non_emea_removed || 0}</b> non-EMEA removed</div>
-                <div class="du-stat"><b>${data.remaining_in_demand || 0}</b> rows in demand</div>
                 <div class="du-stat"><b>${data.history_inserted}</b> history rows</div>
               </div>
             </div>`;

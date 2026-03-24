@@ -1,0 +1,133 @@
+{% extends 'visualize/common.html' %} {% load static %} {% block content %}
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+<link
+  href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  body {
+    background: #070707 !important;
+    color: #e0e0e0;
+    font-family: "Roboto", sans-serif;
+  }
+
+  .sel-container {
+    max-width: 900px;
+    margin: 80px auto;
+    padding: 0 18px;
+    text-align: center;
+  }
+
+  .sel-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .sel-subtitle {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 48px;
+  }
+
+  .sel-cards {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .sel-card {
+    background: #0e1117;
+    border: 1px solid #1e2330;
+    border-radius: 14px;
+    padding: 44px 36px 36px;
+    width: 340px;
+    text-decoration: none;
+    color: #e0e0e0;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    cursor: pointer;
+    display: block;
+  }
+
+  .sel-card:hover {
+    border-color: #4a9eff;
+    box-shadow: 0 0 20px rgba(74, 158, 255, 0.15);
+    transform: translateY(-3px);
+  }
+
+  .sel-card .icon {
+    font-size: 40px;
+    margin-bottom: 18px;
+    color: #4a9eff;
+  }
+
+  .sel-card.proposal .icon {
+    color: #a78bfa;
+  }
+
+  .sel-card:hover.proposal {
+    border-color: #a78bfa;
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.15);
+  }
+
+  .sel-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: #fff;
+  }
+
+  .sel-card p {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .sel-card .arrow {
+    margin-top: 22px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a9eff;
+  }
+
+  .sel-card.proposal .arrow {
+    color: #a78bfa;
+  }
+</style>
+
+<div class="sel-container">
+  <div class="sel-title">Data Upload Portal</div>
+  <div class="sel-subtitle">Select the type of data you want to upload</div>
+
+  <div class="sel-cards">
+    <a class="sel-card" href="/GGMPipelineInsights/demand_upload/demand/">
+      <div class="icon"><i class="fas fa-chart-line"></i></div>
+      <h2>Demand Upload</h2>
+      <p>
+        Upload demand Excel data with preprocessing, column mapping,
+        validation, and database insertion into the demand table.
+      </p>
+      <div class="arrow">Open Demand Upload <i class="fas fa-arrow-right"></i></div>
+    </a>
+
+    <a class="sel-card proposal" href="/GGMPipelineInsights/demand_upload/proposal/">
+      <div class="icon"><i class="fas fa-file-signature"></i></div>
+      <h2>Proposal Upload</h2>
+      <p>
+        Upload proposal Excel data with date formatting, column mapping,
+        validation, and database insertion into the proposal base table.
+      </p>
+      <div class="arrow">Open Proposal Upload <i class="fas fa-arrow-right"></i></div>
+    </a>
+  </div>
+</div>
+
+{% endblock %}

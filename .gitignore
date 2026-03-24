@@ -145,3 +145,4 @@ PROJECT_ANALYSIS.md
 
 # Environment file containing secrets
 .env
+.claude/settings.local.json
