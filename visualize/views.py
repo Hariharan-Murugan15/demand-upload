@@ -5171,6 +5171,14 @@ def _progress_line(stage, pct, **extra):
     return json.dumps(payload) + "\n"
 
 
+def _stream_error(error_msg):
+    """Return a StreamingHttpResponse with a single NDJSON error result.
+    Use this instead of JsonResponse for early-exit errors in streaming endpoints."""
+    def _gen():
+        yield _progress_line("done", 100, result={"success": False, "error": error_msg})
+    return StreamingHttpResponse(_gen(), content_type="text/plain")
+
+
 import tempfile, os, uuid
 
 # Directory for cached preprocessed DataFrames (temp parquet files)
@@ -5513,6 +5521,16 @@ def _preprocess_demand_df(df, on_progress=None):
     if rename_map:
         df = df.rename(columns=rename_map)
 
+    # ── Subtask 1.5: Fix column names with dots ──
+    dot_renames = {}
+    for c in df.columns:
+        if "Leadership and Prof. Dev. Comp" in c:
+            dot_renames[c] = "Leadership and Prof Dev Comp"
+    if dot_renames:
+        df = df.rename(columns=dot_renames)
+        for old, new in dot_renames.items():
+            logger.info(f"[PREPROCESS] Renaming '{old}' → '{new}'")
+
     logger.info(f"[PREPROCESS] Preprocessing complete. DataFrame shape: {df.shape}")
     return df
 
@@ -5539,37 +5557,35 @@ def demand_upload_file(request):
     # --- Validate inputs synchronously (before streaming) ---
     f = request.FILES.get("file")
     if not f:
-        return JsonResponse({"success": False, "error": "No file uploaded."})
+        return _stream_error("No file uploaded.")
     if not f.name.lower().endswith(".xlsx"):
-        return JsonResponse({"success": False, "error": "Only .xlsx files are accepted."})
+        return _stream_error("Only .xlsx files are accepted.")
     if f.size > 100 * 1024 * 1024:
-        return JsonResponse({"success": False, "error": "File exceeds 100 MB limit."})
+        return _stream_error("File exceeds 100 MB limit.")
 
     uploaded_on = request.POST.get("uploaded_on", "")
     raw = f.read()  # read file bytes before entering generator
 
+    # ── Do ALL session-writing work synchronously (before the generator) ──
+    # StreamingHttpResponse generators run AFTER Django's session middleware,
+    # so session writes inside generators are silently lost.
+    import io
+    try:
+        df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+        total_rows = int(df_full.shape[0])
+        df_full = _preprocess_demand_df(df_full)
+        cache_key = _save_df_to_cache(df_full)
+        request.session["_demand_cache_key"] = cache_key
+        request.session["_demand_uploaded_on"] = uploaded_on
+        request.session.save()
+    except Exception as e:
+        traceback.print_exc()
+        return _stream_error(str(e))
+
+    # ── Stream only the lightweight mapping phase ──
     def _stream():
-        import io, base64
         try:
-            yield _progress_line("Uploading file to server", 5)
-
-            yield _progress_line("Reading Excel file", 10)
-            df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
-            total_rows = int(df_full.shape[0])
-
-            # Preprocess with progress callback
-            progress_lines = []
-            def _on_preprocess(stage, pct):
-                progress_lines.append(_progress_line(stage, pct))
-            df_full = _preprocess_demand_df(df_full, on_progress=_on_preprocess)
-            for line in progress_lines:
-                yield line
-
-            yield _progress_line("Caching preprocessed data to disk", 78)
-            cache_key = _save_df_to_cache(df_full)
-            request.session["_demand_cache_key"] = cache_key
-            request.session["_demand_uploaded_on"] = uploaded_on
-            request.session.save()
+            yield _progress_line("Reading and preprocessing complete", 75)
 
             yield _progress_line("Matching columns to database schema", 88)
             excel_headers = df_full.columns.tolist()
@@ -5615,7 +5631,7 @@ def demand_upload_preview(request):
 
     cache_key = request.session.get("_demand_cache_key")
     if not cache_key:
-        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+        return _stream_error("No file in session. Please re-upload.")
 
     def _stream():
         try:
@@ -5694,11 +5710,11 @@ def demand_upload_execute(request):
     uploaded_on = body.get("uploaded_on", "")
 
     if not uploaded_on:
-        return JsonResponse({"success": False, "error": "UploadedOn date is required."})
+        return _stream_error("UploadedOn date is required.")
 
     cache_key = request.session.get("_demand_cache_key")
     if not cache_key:
-        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+        return _stream_error("No file in session. Please re-upload.")
 
     def _stream():
         import time, sys
@@ -5882,40 +5898,24 @@ def demand_upload_execute(request):
                 deleted = cursor.rowcount
                 print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Deleted {deleted} rows from dbo.demand"); sys.stdout.flush()
 
-                # 2. Batch INSERT
+                # 2. Bulk INSERT via fast_executemany (NOCOUNT ON for speed)
+                cursor.execute("SET NOCOUNT ON")
                 cursor.fast_executemany = True
-                BATCH = 10000
+                BATCH = 20000
                 inserted = 0
                 total_batches = (len(rows_data) + BATCH - 1) // BATCH
-                # Reserve pct 40-70 for batch inserts
                 for start in range(0, len(rows_data), BATCH):
                     batch = rows_data[start:start + BATCH]
-                    try:
-                        cursor.executemany(insert_sql, batch)
-                    except pyodbc.DataError as batch_err:
-                        # Fallback: insert row-by-row to find the exact bad row
-                        print(f"[DEMAND UPLOAD] Batch {start//BATCH+1} failed: {batch_err}. Inserting row-by-row to find bad data..."); sys.stdout.flush()
-                        for row_offset, single_row in enumerate(batch):
-                            try:
-                                cursor.execute(insert_sql, single_row)
-                            except pyodbc.DataError as row_err:
-                                row_num = start + row_offset + 2  # +2 for 1-based + header
-                                # Log the problematic values
-                                for ci, cv in enumerate(single_row):
-                                    if cv is not None:
-                                        col_name = keep[ci]
-                                        col_meta = meta.get(col_name, {})
-                                        print(f"  Row {row_num}, [{col_name}] ({col_meta.get('data_type')}): {repr(cv)[:80]}")
-                                raise pyodbc.DataError(row_err.args[0], f"Row {row_num}: {row_err.args[1]}") from row_err
+                    cursor.executemany(insert_sql, batch)
                     inserted += len(batch)
                     batch_num = start // BATCH + 1
-                    # Scale pct from 40 to 70 based on batch progress
-                    batch_pct = 40 + int(30 * inserted / len(rows_data))
+                    batch_pct = 38 + int(32 * inserted / len(rows_data))
                     yield _progress_line(
                         f"Inserting rows: batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)} rows)",
                         batch_pct
                     )
-                    print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Batch {batch_num}/{total_batches} done ({inserted}/{len(rows_data)} rows)"); sys.stdout.flush()
+                    print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)})"); sys.stdout.flush()
+                cursor.execute("SET NOCOUNT OFF")
 
                 # 3. Remove CANCELLED rows
                 yield _progress_line("Removing CANCELLED rows from demand", 75)
@@ -5931,6 +5931,7 @@ def demand_upload_execute(request):
                 print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Removed {non_emea_deleted} non-EMEA rows, {remaining} remain"); sys.stdout.flush()
 
                 # 5. Fix account name before history
+                yield _progress_line("Fixing account name data", 82)
                 cursor.execute("UPDATE dbo.demand SET [Account Name] = 'SIA Tele2' WHERE [Account Name] = 'SIA \"Tele2\"'")
 
                 # 6. Copy to history
@@ -5939,15 +5940,19 @@ def demand_upload_execute(request):
                 history_count = cursor.rowcount
                 print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  Copied {history_count} rows to demand_history"); sys.stdout.flush()
 
-                # 6. Commit
+                # 7. Commit
                 yield _progress_line("Committing transaction", 95)
                 raw_conn.commit()
                 print(f"[DEMAND UPLOAD] +{time.time()-t0:.1f}s  COMMITTED. Total time: {time.time()-t0:.1f}s"); sys.stdout.flush()
 
-                # Cleanup session and temp file
-                _remove_cache(request.session.pop("_demand_cache_key", None))
-                request.session.pop("_demand_uploaded_on", None)
-                request.session.save()
+                # Cleanup temp file (session cleanup is best-effort inside generator)
+                _remove_cache(cache_key)
+                try:
+                    del request.session["_demand_cache_key"]
+                    del request.session["_demand_uploaded_on"]
+                    request.session.save()
+                except Exception:
+                    pass  # session cleanup is non-critical
 
                 yield _progress_line("done", 100, result={
                     "success": True,
@@ -6071,7 +6076,9 @@ def _get_proposal_column_meta():
 
 
 def _preprocess_proposal_df(df, on_progress=None):
-    """Preprocess proposal DataFrame: convert date columns only."""
+    """Preprocess proposal DataFrame: convert date columns, fix column names."""
+    import logging
+    logger = logging.getLogger(__name__)
     emit = on_progress or (lambda stage, pct: None)
     emit("Converting date columns to Short Date format", 30)
     col_lookup = {c.strip().lower(): c for c in df.columns}
@@ -6079,6 +6086,18 @@ def _preprocess_proposal_df(df, on_progress=None):
         actual_col = col_lookup.get(date_col_name.strip().lower())
         if actual_col and actual_col in df.columns:
             df[actual_col] = pd.to_datetime(df[actual_col], errors='coerce')
+
+    # Fix column names with dots
+    emit("Fixing column names", 60)
+    dot_renames = {}
+    for c in df.columns:
+        if c.strip() == "Req. Month":
+            dot_renames[c] = "Req Month"
+    if dot_renames:
+        df = df.rename(columns=dot_renames)
+        for old, new in dot_renames.items():
+            logger.info(f"[PREPROCESS-PROPOSAL] Renaming '{old}' → '{new}'")
+
     return df
 
 
@@ -6099,38 +6118,35 @@ def proposal_upload_file(request):
     """Upload .xlsx, preprocess dates, return header mapping. Streams NDJSON progress."""
     f = request.FILES.get("file")
     if not f:
-        return JsonResponse({"success": False, "error": "No file uploaded."})
+        return _stream_error("No file uploaded.")
     if not f.name.lower().endswith(".xlsx"):
-        return JsonResponse({"success": False, "error": "Only .xlsx files are accepted."})
+        return _stream_error("Only .xlsx files are accepted.")
     if f.size > 100 * 1024 * 1024:
-        return JsonResponse({"success": False, "error": "File exceeds 100 MB limit."})
+        return _stream_error("File exceeds 100 MB limit.")
 
     uploaded_on = request.POST.get("uploaded_on", "")
     raw = f.read()
 
+    # ── Do ALL session-writing work synchronously ──
+    import io
+    try:
+        df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+        total_rows = int(df_full.shape[0])
+        df_full = _preprocess_proposal_df(df_full)
+        cache_key = _save_df_to_cache(df_full)
+        request.session["_proposal_cache_key"] = cache_key
+        request.session["_proposal_uploaded_on"] = uploaded_on
+        request.session.save()
+    except Exception as e:
+        traceback.print_exc()
+        return _stream_error(str(e))
+
+    # ── Stream only the lightweight mapping phase ──
     def _stream():
-        import io, base64
         try:
-            yield _progress_line("Uploading file to server", 5)
+            yield _progress_line("Reading and preprocessing complete", 75)
 
-            yield _progress_line("Reading Excel file", 15)
-            df_full = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
-            total_rows = int(df_full.shape[0])
-
-            progress_lines = []
-            def _on_preprocess(stage, pct):
-                progress_lines.append(_progress_line(stage, pct))
-            df_full = _preprocess_proposal_df(df_full, on_progress=_on_preprocess)
-            for line in progress_lines:
-                yield line
-
-            yield _progress_line("Caching preprocessed data to disk", 60)
-            cache_key = _save_df_to_cache(df_full)
-            request.session["_proposal_cache_key"] = cache_key
-            request.session["_proposal_uploaded_on"] = uploaded_on
-            request.session.save()
-
-            yield _progress_line("Matching columns to database schema", 80)
+            yield _progress_line("Matching columns to database schema", 88)
             excel_headers = df_full.columns.tolist()
             db_cols = _get_proposal_db_columns()
             db_set = {c.strip().lower(): c for c in db_cols}
@@ -6170,7 +6186,7 @@ def proposal_upload_preview(request):
 
     cache_key = request.session.get("_proposal_cache_key")
     if not cache_key:
-        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+        return _stream_error("No file in session. Please re-upload.")
 
     def _stream():
         try:
@@ -6245,11 +6261,11 @@ def proposal_upload_execute(request):
     uploaded_on = body.get("uploaded_on", "")
 
     if not uploaded_on:
-        return JsonResponse({"success": False, "error": "UploadedOn date is required."})
+        return _stream_error("UploadedOn date is required.")
 
     cache_key = request.session.get("_proposal_cache_key")
     if not cache_key:
-        return JsonResponse({"success": False, "error": "No file in session. Please re-upload."})
+        return _stream_error("No file in session. Please re-upload.")
 
     def _stream():
         import time, sys
@@ -6425,9 +6441,10 @@ def proposal_upload_execute(request):
                 deleted = cursor.rowcount
                 print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  Deleted {deleted} rows"); sys.stdout.flush()
 
-                # 2. Batch INSERT
+                # 2. Bulk INSERT via fast_executemany (NOCOUNT ON for speed)
+                cursor.execute("SET NOCOUNT ON")
                 cursor.fast_executemany = True
-                BATCH = 10000
+                BATCH = 20000
                 inserted = 0
                 total_batches = (len(rows_data) + BATCH - 1) // BATCH
                 for start in range(0, len(rows_data), BATCH):
@@ -6435,11 +6452,13 @@ def proposal_upload_execute(request):
                     cursor.executemany(insert_sql, batch)
                     inserted += len(batch)
                     batch_num = start // BATCH + 1
-                    batch_pct = 42 + int(35 * inserted / len(rows_data))
+                    batch_pct = 40 + int(35 * inserted / len(rows_data))
                     yield _progress_line(
                         f"Inserting rows: batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)} rows)",
                         batch_pct
                     )
+                    print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  Batch {batch_num}/{total_batches} ({inserted}/{len(rows_data)})"); sys.stdout.flush()
+                cursor.execute("SET NOCOUNT OFF")
 
                 # 3. Copy to history
                 yield _progress_line("Copying proposal data to history table", 82)
@@ -6452,9 +6471,13 @@ def proposal_upload_execute(request):
                 raw_conn.commit()
                 print(f"[PROPOSAL UPLOAD] +{time.time()-t0:.1f}s  COMMITTED. Total time: {time.time()-t0:.1f}s"); sys.stdout.flush()
 
-                _remove_cache(request.session.pop("_proposal_cache_key", None))
-                request.session.pop("_proposal_uploaded_on", None)
-                request.session.save()
+                _remove_cache(cache_key)
+                try:
+                    del request.session["_proposal_cache_key"]
+                    del request.session["_proposal_uploaded_on"]
+                    request.session.save()
+                except Exception:
+                    pass  # session cleanup is non-critical
 
                 yield _progress_line("done", 100, result={
                     "success": True,
